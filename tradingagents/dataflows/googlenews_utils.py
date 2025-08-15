@@ -131,7 +131,7 @@ def getNewsData(query, start_date, end_date):
     start_dt = to_datetime(start_date)
     end_dt = to_datetime(end_date)
 
-    max_results = 50
+    max_results = 30
     news_results = []
 
     # DuckDuckGo 뉴스 검색
@@ -170,11 +170,6 @@ def getNewsData(query, start_date, end_date):
                         pub_dt = None
                 else:
                     pubdate_str = relative_time
-                
-                # 날짜 필터링 (pub_dt가 있는 경우에만)
-                if pub_dt and start_dt and end_dt:
-                    if not (start_dt <= pub_dt <= end_dt):
-                        continue
 
                 news_results.append({
                     "link": result.get("url", ""),
