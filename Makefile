@@ -24,7 +24,7 @@ install:
 
 # Deploy
 deploy:
-	nohup uv run streamlit run app.py --server.port 8000 --server.address 0.0.0.0 > streamlit.log 2>&1 &
+	nohup uv run streamlit run streamlit_app.py --server.port 8000 --server.address 0.0.0.0 > streamlit.log 2>&1 &
 	
 # Clean temporary files
 clean:
