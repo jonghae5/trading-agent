@@ -10,6 +10,34 @@ import io
 from typing import Optional, List, Dict, Any
 import pandas as pd
 from dotenv import load_dotenv
+import pytz
+
+# KST 시간대 설정
+KST = pytz.timezone('Asia/Seoul')
+
+def get_kst_now():
+    """현재 KST 시간을 반환 (timezone-aware)"""
+    return datetime.datetime.now(KST)
+
+def get_kst_naive_now():
+    """현재 KST 시간을 naive datetime으로 반환"""
+    return get_kst_now().replace(tzinfo=None)
+
+def to_kst_string(dt):
+    """datetime을 KST 문자열로 변환"""
+    if dt is None:
+        return ""
+    if dt.tzinfo is None:
+        # naive datetime은 KST로 가정
+        dt = KST.localize(dt)
+    else:
+        # timezone-aware datetime을 KST로 변환
+        dt = dt.astimezone(KST)
+    return dt.strftime("%Y-%m-%d %H:%M:%S KST")
+
+def get_kst_date():
+    """현재 KST 날짜를 date 객체로 반환"""
+    return get_kst_now().date()
 
 # Load environment variables
 load_dotenv()
@@ -471,7 +499,7 @@ def get_session_file(username=None):
 def save_session():
     """Save current session to file"""
     if st.session_state.authenticated and st.session_state.login_time and hasattr(st.session_state, 'username'):
-        # Ensure we're using naive datetime (no timezone info)
+        # KST 시간으로 저장
         login_time = st.session_state.login_time
         if login_time.tzinfo is not None:
             login_time = login_time.replace(tzinfo=None)
@@ -500,11 +528,11 @@ def load_session():
                     session_data = json.load(f)
                 
                 login_time = datetime.datetime.fromisoformat(session_data['login_time'])
-                # Ensure both datetimes are naive (no timezone info)
+                # KST 시간으로 처리
                 if login_time.tzinfo is not None:
                     login_time = login_time.replace(tzinfo=None)
                 
-                current_time = datetime.datetime.now()
+                current_time = get_kst_naive_now()
                 if current_time.tzinfo is not None:
                     current_time = current_time.replace(tzinfo=None)
                 
@@ -565,11 +593,11 @@ def clear_session():
                     session_data = json.load(f)
                 
                 login_time = datetime.datetime.fromisoformat(session_data['login_time'])
-                # Ensure both datetimes are naive (no timezone info)
+                # KST 시간으로 처리
                 if login_time.tzinfo is not None:
                     login_time = login_time.replace(tzinfo=None)
                 
-                current_time = datetime.datetime.now()
+                current_time = get_kst_naive_now()
                 if current_time.tzinfo is not None:
                     current_time = current_time.replace(tzinfo=None)
                 
@@ -602,10 +630,10 @@ def is_session_expired():
     if not st.session_state.authenticated or st.session_state.login_time is None:
         return False
     
-    current_time = datetime.datetime.now()
+    current_time = get_kst_naive_now()
     login_time = st.session_state.login_time
     
-    # Ensure both datetimes are naive (no timezone info)
+    # KST 시간으로 처리
     if current_time.tzinfo is not None:
         current_time = current_time.replace(tzinfo=None)
     if login_time.tzinfo is not None:
@@ -640,10 +668,10 @@ def is_blocked():
     if st.session_state.blocked_until is None:
         return False
     
-    current_time = datetime.datetime.now()
+    current_time = get_kst_naive_now()
     blocked_until = st.session_state.blocked_until
     
-    # Ensure both datetimes are naive (no timezone info)
+    # KST 시간으로 처리
     if current_time.tzinfo is not None:
         current_time = current_time.replace(tzinfo=None)
     if blocked_until.tzinfo is not None:
@@ -670,12 +698,12 @@ def authenticate_user(username: str, password: str) -> bool:
         st.session_state.authenticated = True
         st.session_state.username = username
         st.session_state.login_attempts = 0
-        st.session_state.login_time = datetime.datetime.now()  # Record login time
+        st.session_state.login_time = get_kst_naive_now()  # Record KST login time
         
         # Save session to file
         save_session()
         
-        logger.info(f"[AUTH] User {username} successfully authenticated - session will last 1 hour")
+        logger.info(f"[AUTH] User {username} successfully authenticated at {to_kst_string(get_kst_now())} - session will last 1 hour")
         return True
     else:
         st.session_state.login_attempts += 1
@@ -683,7 +711,7 @@ def authenticate_user(username: str, password: str) -> bool:
         
         if st.session_state.login_attempts >= 5:
             # Block user for 30 minutes
-            st.session_state.blocked_until = datetime.datetime.now() + datetime.timedelta(minutes=30)
+            st.session_state.blocked_until = get_kst_naive_now() + datetime.timedelta(minutes=30)
             logger.warning("[AUTH] User blocked for 5 failed attempts (30 minutes)")
         
         return False
@@ -700,10 +728,10 @@ def render_login_page():
     
     # Check if user is blocked
     if is_blocked():
-        current_time = datetime.datetime.now()
+        current_time = get_kst_naive_now()
         blocked_until = st.session_state.blocked_until
         
-        # Ensure both datetimes are naive (no timezone info)
+        # KST 시간으로 처리
         if current_time.tzinfo is not None:
             current_time = current_time.replace(tzinfo=None)
         if blocked_until.tzinfo is not None:
@@ -761,8 +789,9 @@ def render_login_page():
     - Select your username from the dropdown
     - Enter your password
     - You have **5 attempts** before being blocked for 30 minutes
-    - Each user has their own session that lasts 1 hour
+    - Each user has their own session that lasts 1 hour (KST)
     - Sessions persist through browser refresh
+    - All times are displayed in **Korea Standard Time (KST)**
     
     """)
 
@@ -878,11 +907,13 @@ def get_provider_urls():
 
 def render_welcome_header():
     """Render the welcome header"""
-    st.markdown("""
+    current_kst_time = to_kst_string(get_kst_now())
+    st.markdown(f"""
     <div class="welcome-header">
         <h1>💹 TradingAgents Dashboard</h1>
         <h3>Multi-Agents LLM Financial Trading Framework</h3>
         <p><strong>Workflow:</strong> 🧑‍💼 Analyst Team ➡️ 🧑‍🔬 Research Team ➡️ 💼 Trader ➡️ 🛡️ Risk Management ➡️ 📊 Portfolio Management</p>
+        <p style="font-size: 0.9em; opacity: 0.8;">🕒 Current Time: {current_kst_time}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -904,21 +935,26 @@ def render_configuration_section():
         ).upper()
         
         # Step 2: Analysis Date  
-        st.markdown("**2. 📅 Analysis Date**")
+        st.markdown("**2. 📅 Analysis Date (KST)**")
         current_date = st.session_state.config.get("analysis_date")
+        kst_today = get_kst_date()
+        
         if current_date:
             try:
                 default_date = datetime.datetime.strptime(current_date, "%Y-%m-%d").date()
+                # 미래 날짜인 경우 오늘 날짜로 조정
+                if default_date > kst_today:
+                    default_date = kst_today
             except:
-                default_date = datetime.date.today()
+                default_date = kst_today
         else:
-            default_date = datetime.date.today()
+            default_date = kst_today
             
         analysis_date = st.date_input(
             "Select analysis date",
             value=default_date,
-            max_value=datetime.date.today(),
-            help="Date for the analysis (cannot be in future)"
+            max_value=kst_today,
+            help=f"Date for the analysis (cannot be in future) - Current KST date: {kst_today.strftime('%Y-%m-%d')}"
         )
         
         # Step 3: Select Analysts
@@ -1032,7 +1068,10 @@ def render_configuration_section():
         st.sidebar.success("🎯 Configuration Ready")
         with st.sidebar.expander("📋 Current Settings", expanded=False):
             st.write(f"📊 **Ticker:** {st.session_state.config.get('ticker', 'N/A')}")
-            st.write(f"📅 **Date:** {st.session_state.config.get('analysis_date', 'N/A')}")
+            config_date = st.session_state.config.get('analysis_date', 'N/A')
+            if config_date != 'N/A':
+                config_date = f"{config_date} (KST)"
+            st.write(f"📅 **Date:** {config_date}")
             st.write(f"👥 **Analysts:** {len(st.session_state.config.get('analysts', []))}")
             st.write(f"🔍 **Depth:** {st.session_state.config.get('research_depth', 'N/A')} rounds")
             st.write(f"🤖 **Provider:** {st.session_state.config.get('llm_provider', 'N/A').title()}")
@@ -1239,7 +1278,7 @@ def render_reports_section():
 
 def add_message(msg_type: str, content: str):
     """Add message to buffer"""
-    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    timestamp = get_kst_naive_now().strftime("%H:%M:%S KST")
     st.session_state.message_buffer['messages'].append((timestamp, msg_type, content))
     if msg_type == "Reasoning":
         st.session_state.message_buffer['llm_call_count'] += 1
@@ -1249,7 +1288,7 @@ def add_message(msg_type: str, content: str):
 
 def add_tool_call(tool_name: str, args: dict):
     """Add tool call to buffer"""
-    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    timestamp = get_kst_naive_now().strftime("%H:%M:%S KST")
     st.session_state.message_buffer['tool_calls'].append((timestamp, tool_name, args))
     st.session_state.message_buffer['tool_call_count'] += 1
     
@@ -1442,10 +1481,10 @@ def get_session_info():
     if not st.session_state.authenticated or st.session_state.login_time is None:
         return None
     
-    current_time = datetime.datetime.now()
+    current_time = get_kst_naive_now()
     login_time = st.session_state.login_time
     
-    # Ensure both datetimes are naive (no timezone info)
+    # KST 시간으로 처리
     if current_time.tzinfo is not None:
         current_time = current_time.replace(tzinfo=None)
     if login_time.tzinfo is not None:
@@ -1500,11 +1539,11 @@ def main():
             remaining_seconds = int(session_info['remaining'] % 60)
             
             if session_info['remaining'] > 300:  # More than 5 minutes
-                st.success(f"⏱️ Time remaining: {remaining_minutes}m {remaining_seconds}s")
+                st.success(f"⏱️ Time remaining: {remaining_minutes}m {remaining_seconds}s (KST)")
             elif session_info['remaining'] > 60:  # 1-5 minutes
-                st.warning(f"⚠️ Time remaining: {remaining_minutes}m {remaining_seconds}s")
+                st.warning(f"⚠️ Time remaining: {remaining_minutes}m {remaining_seconds}s (KST)")
             else:  # Less than 1 minute
-                st.error(f"🚨 Time remaining: {remaining_seconds}s")
+                st.error(f"🚨 Time remaining: {remaining_seconds}s (KST)")
             
             # Progress bar for session time
             progress = 1 - (session_info['remaining'] / session_info['total'])
@@ -1658,9 +1697,13 @@ def main():
         # Configuration Summary
         st.subheader("⚙️ Current Configuration")
         if st.session_state.config:
+            config_date = st.session_state.config.get("analysis_date", "N/A")
+            if config_date != "N/A":
+                config_date = f"{config_date} (KST)"
+            
             config_data = {
                 "📊 Ticker": st.session_state.config.get("ticker", "N/A"),
-                "📅 Date": st.session_state.config.get("analysis_date", "N/A"),
+                "📅 Date": config_date,
                 "👥 Analysts": len(st.session_state.config.get("analysts", [])),
                 "🔍 Research Depth": f"{st.session_state.config.get('research_depth', 'N/A')} rounds",
                 "🤖 Provider": st.session_state.config.get("llm_provider", "N/A").title()
