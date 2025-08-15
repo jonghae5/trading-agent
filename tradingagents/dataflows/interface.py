@@ -293,7 +293,7 @@ def get_google_news(
     before = start_date - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
-    news_results = getNewsData(query, before, curr_date, max_results=30)
+    news_results = getNewsData(query, before, curr_date)
 
     news_str = ""
 
