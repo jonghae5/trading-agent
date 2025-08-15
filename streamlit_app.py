@@ -32,136 +32,158 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS for clean sky-blue and white design
 st.markdown("""
 <style>
-    /* Global app styling - Clean white theme */
+    /* Global app styling - Clean sky background */
     .stApp {
-        background-color: #ffffff;
-        color: #111827;
+        background: linear-gradient(135deg, #e0f2fe 0%, #f8fdff 50%, #ffffff 100%);
+        min-height: 100vh;
     }
     
-    /* All text elements - consistent black on white */
+    /* Main content wrapper - Pure white */
+    .main .block-container {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 2rem;
+        margin: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 122, 255, 0.08);
+        border: 1px solid rgba(135, 206, 250, 0.15);
+    }
+    
+    /* All text elements - clean typography */
     body, .stApp, .main, .stSidebar,
     h1, h2, h3, h4, h5, h6, p, span, div, label, 
     .stMarkdown, .stText, .streamlit-container {
-        color: #111827 !important;
-        background-color: transparent;
+        color: #2c3e50 !important;
     }
     
-    /* Force expander content to stay white */
-    .streamlit-expanderContent, .streamlit-expanderContent * {
-        background-color: #ffffff !important;
-        color: #111827 !important;
+    /* Headings with soft blue accent */
+    h1, h2, h3 {
+        color: #1976d2 !important;
+        font-weight: 700 !important;
     }
     
-    /* Expander open state */
-    .streamlit-expander[aria-expanded="true"] .streamlit-expanderContent {
-        background-color: #ffffff !important;
-    }
-    
-    /* Main content area */
-    .main > div {
-        padding-top: 2rem;
-        background-color: #ffffff;
-    }
-    
-    /* Sidebar - consistent with main theme */
+    /* Sidebar - Light blue accent */
     .css-1d391kg, .stSidebar {
-        background-color: #f8fafc;
-        border-right: 1px solid #e2e8f0;
+        background: linear-gradient(180deg, #f5f9ff 0%, #ffffff 100%);
+        border-right: 1px solid rgba(135, 206, 250, 0.2);
     }
     
-    /* All sidebar text - black */
+    /* Sidebar content styling */
     .css-1d391kg *, .stSidebar * {
-        color: #111827 !important;
+        color: #2c3e50 !important;
     }
     
-    /* Form elements - consistent styling */
+    /* Clean form elements */
     .stTextInput input, .stSelectbox select, .stDateInput input {
-        background-color: #ffffff !important;
-        color: #111827 !important;
-        border: 2px solid #e2e8f0 !important;
-        border-radius: 0.5rem !important;
+        background: #ffffff !important;
+        color: #2c3e50 !important;
+        border: 2px solid #e3f2fd !important;
+        border-radius: 8px !important;
+        padding: 12px 16px !important;
+        transition: all 0.3s ease !important;
+        font-weight: 500 !important;
     }
     
     .stTextInput input:focus, .stSelectbox select:focus, .stDateInput input:focus {
-        border-color: #059669 !important;
-        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1) !important;
+        border-color: #42a5f5 !important;
+        box-shadow: 0 0 0 3px rgba(66, 165, 245, 0.1) !important;
+        outline: none !important;
     }
     
-    /* Checkboxes */
+    /* Clean checkboxes */
     .stCheckbox label {
-        color: #111827 !important;
+        color: #2c3e50 !important;
+        font-weight: 500 !important;
     }
     
-    /* Metrics styling */
+    /* Clean metrics cards */
     .stMetric {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border: 1px solid #e2e8f0;
-        padding: 1rem;
-        border-radius: 0.75rem;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        background: #ffffff;
+        border: 2px solid #e3f2fd;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(66, 165, 245, 0.08);
+        transition: all 0.3s ease;
+    }
+    
+    .stMetric:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(66, 165, 245, 0.15);
+        border-color: #bbdefb;
     }
     
     .stMetric label {
-        color: #111827 !important;
-        font-weight: 700 !important;
+        color: #546e7a !important;
+        font-weight: 600 !important;
         font-size: 0.875rem !important;
-    }
-    
-    .stMetric > div > div {
-        color: #111827 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
     
     .stMetric > div > div[data-testid="metric-value"] {
-        color: #111827 !important;
+        color: #1976d2 !important;
         font-weight: 800 !important;
-        font-size: 1.5rem !important;
+        font-size: 2rem !important;
     }
     
     .stMetric > div > div[data-testid="metric-delta"] {
-        color: #374151 !important;
+        color: #66bb6a !important;
+        font-weight: 600 !important;
     }
     
-    /* Agent status cards */
+    /* Clean agent status cards */
     .agent-status {
-        padding: 0.75rem;
-        border-radius: 0.5rem;
+        padding: 1rem;
+        border-radius: 12px;
         font-weight: 600;
         text-align: center;
-        margin-bottom: 0.5rem;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
     }
     
     .agent-status:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     }
     
     .status-pending {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        color: #92400e;
-        border: 1px solid #f59e0b;
+        background: #fff8e1;
+        color: #e65100;
+        border-color: #ffcc02;
     }
     
     .status-in-progress {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        color: #1d4ed8;
-        border: 1px solid #3b82f6;
+        background: #e3f2fd;
+        color: #1565c0;
+        border-color: #42a5f5;
+        animation: softPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes softPulse {
+        0%, 100% { 
+            background: #e3f2fd;
+            transform: scale(1);
+        }
+        50% { 
+            background: #bbdefb;
+            transform: scale(1.02);
+        }
     }
     
     .status-completed {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        color: #065f46;
-        border: 1px solid #10b981;
+        background: #e8f5e8;
+        color: #2e7d32;
+        border-color: #66bb6a;
     }
     
     .status-error {
-        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-        color: #991b1b;
-        border: 1px solid #ef4444;
+        background: #ffebee;
+        color: #c62828;
+        border-color: #ef5350;
     }
     
     /* Log container */
@@ -177,43 +199,55 @@ st.markdown("""
         color: #374151;
     }
     
-    /* Welcome header */
+    /* Clean welcome header */
     .welcome-header {
         text-align: center;
-        padding: 2.5rem;
-        background: linear-gradient(135deg, #059669 0%, #047857 50%, #065f46 100%);
-        color: white;
-        border-radius: 1rem;
+        padding: 3rem;
+        background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 50%, #f5f9ff 100%);
+        color: #1976d2;
+        border-radius: 16px;
         margin-bottom: 2rem;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 20px rgba(66, 165, 245, 0.12);
+        border: 2px solid rgba(135, 206, 250, 0.2);
     }
     
     .welcome-header h1 {
         margin-bottom: 0.5rem;
         font-size: 2.5rem;
         font-weight: 800;
+        color: #1976d2 !important;
     }
     
     .welcome-header h3 {
         margin-bottom: 1rem;
-        font-weight: 400;
-        opacity: 0.9;
+        font-weight: 500;
+        color: #546e7a !important;
+        font-size: 1.2rem;
     }
     
-    /* Buttons */
+    .welcome-header p {
+        color: #37474f !important;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    /* Clean primary buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
         color: white;
         border: none;
-        border-radius: 0.5rem;
+        border-radius: 8px;
         padding: 0.75rem 1.5rem;
         font-weight: 600;
-        transition: all 0.2s;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(66, 165, 245, 0.3);
     }
     
     .stButton > button:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        box-shadow: 0 4px 16px rgba(66, 165, 245, 0.4);
+        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
     }
     
     /* Form inputs */
@@ -267,93 +301,67 @@ st.markdown("""
         border-radius: 0.5rem;
     }
     
-    /* Buttons - consistent styling with better colors */
-    .stButton button {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
-        color: #ffffff !important;
-        border: none;
-        border-radius: 0.5rem;
+    /* Clean secondary buttons */
+    .stButton[data-baseweb="button"][kind="secondary"] button {
+        background: #ffffff;
+        color: #1976d2 !important;
+        border: 2px solid #e3f2fd;
+        border-radius: 8px;
         padding: 0.75rem 1.5rem;
         font-weight: 600;
-        transition: all 0.2s;
+        transition: all 0.3s ease;
     }
     
-    .stButton button:hover {
+    .stButton[data-baseweb="button"][kind="secondary"] button:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
-        background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+        box-shadow: 0 4px 12px rgba(66, 165, 245, 0.2);
+        background: #f5f9ff;
+        border-color: #42a5f5;
     }
     
-    /* Success/Info/Warning/Error messages - all with black text */
+    /* Clean alert messages */
     .stSuccess {
-        background-color: #ecfdf5;
-        border: 1px solid #10b981;
-        color: #111827 !important;
+        background: #f1f8e9;
+        border: 2px solid #c8e6c9;
+        border-radius: 8px;
+        color: #2e7d32 !important;
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+        padding: 1rem;
     }
     
     .stInfo {
-        background-color: #f0fdfa;
-        border: 1px solid #14b8a6;
-        color: #111827 !important;
+        background: #e3f2fd;
+        border: 2px solid #bbdefb;
+        border-radius: 8px;
+        color: #1976d2 !important;
+        box-shadow: 0 2px 8px rgba(66, 165, 245, 0.1);
+        padding: 1rem;
     }
     
     .stWarning {
-        background-color: #fffbeb;
-        border: 1px solid #f59e0b;
-        color: #111827 !important;
+        background: #fff8e1;
+        border: 2px solid #ffcc02;
+        border-radius: 8px;
+        color: #e65100 !important;
+        box-shadow: 0 2px 8px rgba(255, 193, 7, 0.1);
+        padding: 1rem;
     }
     
     .stError {
-        background-color: #fef2f2;
-        border: 1px solid #ef4444;
-        color: #111827 !important;
+        background: #ffebee;
+        border: 2px solid #ffcdd2;
+        border-radius: 8px;
+        color: #c62828 !important;
+        box-shadow: 0 2px 8px rgba(244, 67, 54, 0.1);
+        padding: 1rem;
     }
     
-    /* Ensure all nested elements in messages are black */
+    /* Preserve text colors in messages */
     .stSuccess *, .stInfo *, .stWarning *, .stError * {
-        color: #111827 !important;
+        color: inherit !important;
     }
     
-    /* Expanders - Analysis Logs and others - keep white background always */
-    .streamlit-expanderHeader {
-        background-color: #ffffff !important;
-        color: #111827 !important;
-    }
     
-    .streamlit-expanderHeader svg {
-        fill: #111827 !important;
-    }
-    
-    /* Override any dark theme on expander content */
-    .streamlit-expanderContent {
-        background-color: #ffffff !important;
-        color: #111827 !important;
-    }
-    
-    /* Ensure nested elements in expander stay white */
-    .streamlit-expanderContent div,
-    .streamlit-expanderContent p,
-    .streamlit-expanderContent span,
-    .streamlit-expanderContent .stTabs,
-    .streamlit-expanderContent .stDataFrame {
-        background-color: #ffffff !important;
-        color: #111827 !important;
-    }
-    
-    /* Sidebar toggle button - always visible */
-    .css-1rs6os, .css-17eq0hr, [data-testid="collapsedControl"] {
-        background-color: #ffffff !important;
-        color: #111827 !important;
-        border: 2px solid #111827 !important;
-        border-radius: 0.5rem !important;
-        padding: 0.5rem !important;
-    }
-    
-    /* Sidebar toggle icon - always black */
-    .css-1rs6os svg, .css-17eq0hr svg, [data-testid="collapsedControl"] svg {
-        fill: #111827 !important;
-        stroke: #111827 !important;
-    }
     
     /* Header styling - consistent colors */
     .css-18e3th9, [data-testid="stHeader"] {
@@ -379,32 +387,53 @@ st.markdown("""
         color: #111827 !important;
     }
     
-    /* Tabs */
+    /* Clean tabs */
     .stTabs [data-baseweb="tab"] {
-        background-color: #f8fafc;
-        color: #111827 !important;
-        border-radius: 0.5rem 0.5rem 0 0;
+        background: #f5f9ff;
+        color: #546e7a !important;
+        border-radius: 8px 8px 0 0;
+        border: 1px solid #e3f2fd;
+        font-weight: 600;
+        transition: all 0.3s ease;
     }
     
     .stTabs [data-baseweb="tab"]:hover {
-        background-color: #f1f5f9;
-        color: #111827 !important;
+        background: #e3f2fd;
+        color: #1976d2 !important;
     }
     
     .stTabs [aria-selected="true"] {
-        background-color: #059669 !important;
+        background: #42a5f5 !important;
         color: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(66, 165, 245, 0.3);
     }
     
-    /* DataFrames */
+    /* Clean DataFrames */
     .stDataFrame {
-        background-color: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 0.5rem;
+        background: #ffffff;
+        border: 2px solid #e3f2fd;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(66, 165, 245, 0.08);
+        overflow: hidden;
     }
     
-    .stDataFrame th, .stDataFrame td {
-        color: #111827 !important;
+    .stDataFrame th {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+        color: #1976d2 !important;
+        font-weight: 700 !important;
+        padding: 1rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .stDataFrame td {
+        color: #2c3e50 !important;
+        padding: 0.75rem 1rem !important;
+        border-bottom: 1px solid #f5f9ff !important;
+    }
+    
+    .stDataFrame tr:hover {
+        background: #f5f9ff !important;
     }
 </style>
 """, unsafe_allow_html=True)
