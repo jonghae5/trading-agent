@@ -15,7 +15,7 @@ cli:
 
 # Run Streamlit web interface
 streamlit:
-	uv run streamlit run streamlit_app.py  --server.port 8501 --server.runOnSave=true
+	uv run streamlit run streamlit_app.py  --server.port 8501 --theme.base light --server.runOnSave=true
 
 # Install dependencies
 # curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -24,7 +24,7 @@ install:
 
 # Deploy
 deploy:
-	nohup uv run streamlit run streamlit_app.py --server.port 8000 --server.address 0.0.0.0 > streamlit.log 2>&1 &
+	nohup uv run streamlit run streamlit_app.py --server.port 8000 --server.address 0.0.0.0 --theme.base light > streamlit.log 2>&1 &
 	
 # Clean temporary files
 clean:
