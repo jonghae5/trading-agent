@@ -1261,12 +1261,25 @@ def main():
                     full_config["backend_url"] = config["backend_url"]
                     full_config["llm_provider"] = config["llm_provider"]
                     
-                    # Initialize the graph
-                    st.session_state.graph = TradingAgentsGraph(
-                        [analyst.value for analyst in config["analysts"]], 
-                        config=full_config, 
-                        debug=True
-                    )
+                    # Generate unique collection names for each run
+                    import uuid
+                    session_id = str(uuid.uuid4())[:8]  # Short unique ID
+                    
+                    # Add unique session ID to config for collection naming
+                    full_config["session_id"] = session_id
+                    
+                    # Initialize the graph with unique collection names
+                    try:
+                        st.session_state.graph = TradingAgentsGraph(
+                            [analyst.value for analyst in config["analysts"]], 
+                            config=full_config, 
+                            debug=True
+                        )
+                        logger.info(f"[ANALYSIS] Graph initialized with session ID: {session_id}")
+                    except Exception as e:
+                        st.error(f"❌ Failed to initialize analysis graph: {str(e)}")
+                        logger.error(f"[ANALYSIS] Graph initialization failed: {str(e)}")
+                        return
                     
                     # Reset message buffer
                     st.session_state.message_buffer['analysis_start_time'] = time.time()
