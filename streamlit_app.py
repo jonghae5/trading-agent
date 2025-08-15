@@ -653,7 +653,6 @@ def render_welcome_header():
         <h1>💹 TradingAgents Dashboard</h1>
         <h3>Multi-Agents LLM Financial Trading Framework</h3>
         <p><strong>Workflow:</strong> 🧑‍💼 Analyst Team ➡️ 🧑‍🔬 Research Team ➡️ 💼 Trader ➡️ 🛡️ Risk Management ➡️ 📊 Portfolio Management</p>
-        <p><em>Built by <a href="https://github.com/TauricResearch" style="color: #fff;">Tauric Research</a></em></p>
     </div>
     """, unsafe_allow_html=True)
 
