@@ -12,6 +12,9 @@ from tenacity import (
     retry_if_result,
 )
 
+from duckduckgo_search import DDGS
+from datetime import datetime
+
 
 def is_rate_limited(response):
     """Check if the response indicates rate limiting (status code 429)"""
@@ -107,152 +110,89 @@ def make_request(url, headers):
 
 #     return news_results
 
-
 def getNewsData(query, start_date, end_date):
     """
-    개선된 Google News 크롤링 함수 (버전 2)
-    - 더 안정적인 CSS 선택자 사용
-    - 결과 수 제한 옵션 추가
-    - 에러 처리 개선
+    구글 뉴스 크롤링 대신, 최신 웹 검색 API(예: DuckDuckGo, SerpAPI, Bing Web Search 등)를 활용하여
+    뉴스 결과를 가져오는 방식으로 변경합니다.
+
+    DuckDuckGo의 비공식 API(duckduckgo-search 패키지)를 활용한 예시입니다.
+    (pip install duckduckgo-search)
     """
 
-    max_results = 50
-    if "-" in start_date:
-        start_date = datetime.strptime(start_date, "%Y-%m-%d")
-        start_date = start_date.strftime("%m/%d/%Y")
-    if "-" in end_date:
-        end_date = datetime.strptime(end_date, "%Y-%m-%d")
-        end_date = end_date.strftime("%m/%d/%Y")
-
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-    }
-
-    news_results = []
-    page = 0
-    
-    while len(news_results) < max_results:
-        offset = page * 10
-        url = (
-            f"https://www.google.com/search?q={query}"
-            f"&tbs=cdr:1,cd_min:{start_date},cd_max:{end_date}"
-            f"&tbm=nws&start={offset}&hl=ko"
-        )
-
+    # 날짜 필터링을 위해 datetime 변환
+    def to_datetime(date_str):
+        if "-" in date_str:
+            return datetime.strptime(date_str, "%Y-%m-%d")
         try:
-            response = make_request(url, headers)
-            if response.status_code != 200:
-                print(f"HTTP 상태 코드: {response.status_code}")
-                break
-                
-            soup = BeautifulSoup(response.content, "html.parser")
-            
-            # 다양한 CSS 선택자 시도
-            results_selectors = [
-                "div.SoaBEf",
-                "div[data-hveid]",
-                "div.MjjYud",
-                "div.g"
-            ]
-            
-            results_on_page = []
-            for selector in results_selectors:
-                results_on_page = soup.select(selector)
-                if results_on_page:
-                    break
-            
-            if not results_on_page:
-                print("더 이상 결과를 찾을 수 없습니다.")
-                break
+            return datetime.strptime(date_str, "%m/%d/%Y")
+        except Exception:
+            return None
 
-            for el in results_on_page:
+    start_dt = to_datetime(start_date)
+    end_dt = to_datetime(end_date)
+
+    max_results = 50
+    news_results = []
+
+    # DuckDuckGo 뉴스 검색
+    try:
+        with DDGS() as ddgs:
+            # DDGS.news returns a generator
+            # DuckDuckGo 뉴스 검색 결과를 반복적으로 가져옵니다.
+            # ddgs.news()는 지정한 쿼리(query), 지역(region), 안전검색(safesearch), 기간(timelimit) 옵션에 따라
+            # 뉴스 기사들을 generator 형태로 반환합니다.
+            # region="wt-wt": 전세계 뉴스, safesearch="Off": 성인/폭력 등 제한 없음, timelimit="m": 최근 1달
+            # 최신 뉴스가 우선적으로 반환됩니다.
+            print(f"DuckDuckGo 뉴스 검색 시작: 쿼리='{query}', 기간={start_date}~{end_date}")
+            
+            for result in ddgs.news(query, region="wt-wt", safesearch="Off", timelimit="m"):
+                # 새로운 DuckDuckGo 응답 형태 처리
+                # date는 이제 timestamp 형태 (예: 1755234060)
+                pubdate_raw = result.get("date")
+                relative_time = result.get("relative_time", "")
+                pub_dt = None
+                pubdate_str = ""
+                
+                if pubdate_raw:
+                    try:
+                        # timestamp를 datetime으로 변환
+                        if isinstance(pubdate_raw, (int, float)):
+                            pub_dt = datetime.fromtimestamp(pubdate_raw)
+                            pubdate_str = pub_dt.strftime("%Y-%m-%d %H:%M:%S")
+                        elif isinstance(pubdate_raw, str):
+                            # 문자열인 경우 기존 처리 방식 유지
+                            pub_dt = datetime.fromisoformat(pubdate_raw.replace("Z", "+00:00"))
+                            pubdate_str = pubdate_raw
+                    except Exception as e:
+                        # timestamp 변환 실패 시 relative_time 사용
+                        print(f"날짜 변환 실패: {pubdate_raw}, 에러: {e}")
+                        pubdate_str = relative_time
+                        pub_dt = None
+                else:
+                    pubdate_str = relative_time
+                
+                # 날짜 필터링 (pub_dt가 있는 경우에만)
+                if pub_dt and start_dt and end_dt:
+                    if not (start_dt <= pub_dt <= end_dt):
+                        continue
+
+                news_results.append({
+                    "link": result.get("url", ""),
+                    "title": result.get("title", ""),
+                    "snippet": result.get("excerpt", ""),  # body -> excerpt로 변경
+                    "date": pubdate_str,
+                    "source": result.get("source", ""),
+                    "relative_time": relative_time,  # 상대 시간 정보 추가
+                    "image": result.get("image", ""),  # 이미지 URL 추가
+                })
+                
                 if len(news_results) >= max_results:
                     break
-                    
-                try:
-                    # 링크 추출 시도
-                    link_elem = el.find("a")
-                    if not link_elem:
-                        continue
-                    link = link_elem.get("href", "")
-                    
-                    # 제목 추출 시도 (여러 선택자)
-                    title_selectors = ["div.MBeuO", "h3", ".LC20lb", ".DKV0Md"]
-                    title = ""
-                    for sel in title_selectors:
-                        title_elem = el.select_one(sel)
-                        if title_elem:
-                            title = title_elem.get_text(strip=True)
-                            break
-                    
-                    # 스니펫 추출 시도
-                    snippet_selectors = [".GI74Re", ".Y3v8qd", ".VwiC3b"]
-                    snippet = ""
-                    for sel in snippet_selectors:
-                        snippet_elem = el.select_one(sel)
-                        if snippet_elem:
-                            snippet = snippet_elem.get_text(strip=True)
-                            break
-                    
-                    # 날짜 추출 시도
-                    date_selectors = [".LfVVr", ".f", ".slp"]
-                    date = ""
-                    for sel in date_selectors:
-                        date_elem = el.select_one(sel)
-                        if date_elem:
-                            date = date_elem.get_text(strip=True)
-                            break
-                    
-                    # 소스 추출 시도
-                    source_selectors = [".NUnG9d span", ".fxC9Ne", ".CEMjEf"]
-                    source = ""
-                    for sel in source_selectors:
-                        source_elem = el.select_one(sel)
-                        if source_elem:
-                            source = source_elem.get_text(strip=True)
-                            break
-                    
-                    # 필수 필드가 있는 경우에만 추가
-                    if link and title:
-                        news_results.append({
-                            "link": link,
-                            "title": title,
-                            "snippet": snippet,
-                            "date": date,
-                            "source": source,
-                        })
-                        
-                except Exception as e:
-                    print(f"결과 처리 중 오류: {e}")
-                    continue
 
-            # 다음 페이지 확인
-            next_selectors = ["a#pnnext", "a[aria-label='다음']", "a[aria-label='Next']"]
-            next_link = None
-            for sel in next_selectors:
-                next_link = soup.select_one(sel)
-                if next_link:
-                    break
-                    
-            if not next_link:
-                print("마지막 페이지에 도달했습니다.")
-                break
+    except Exception as e:
+        print(f"DuckDuckGo 뉴스 검색 중 오류 발생: {e}")
+        print("빈 결과를 반환합니다.")
+        return []
 
-            page += 1
-            print(f"페이지 {page} 완료, 현재 결과 수: {len(news_results)}")
-
-        except Exception as e:
-            print(f"페이지 {page} 처리 중 오류: {e}")
-            break
-
-    print(f"총 {len(news_results)}개의 뉴스 결과를 수집했습니다.")
+    print(f"DuckDuckGo에서 {len(news_results)}개의 뉴스 결과를 수집했습니다.")
     return news_results

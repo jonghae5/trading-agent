@@ -436,6 +436,7 @@ st.markdown("""
         background: #f5f9ff !important;
     }
 </style>
+
 """, unsafe_allow_html=True)
 
 # Setup logging
@@ -455,15 +456,184 @@ def setup_logging():
 # Initialize logger
 logger = setup_logging()
 
+# Multi-user session management
+VALID_USERS = {
+    "jh": "jonghae5",
+    "ke": "kke"
+}
+
+def get_session_file(username=None):
+    """Get session file path for specific user"""
+    if username:
+        return f".session_{username}.json"
+    return ".current_session.json"
+
+def save_session():
+    """Save current session to file"""
+    if st.session_state.authenticated and st.session_state.login_time and hasattr(st.session_state, 'username'):
+        # Ensure we're using naive datetime (no timezone info)
+        login_time = st.session_state.login_time
+        if login_time.tzinfo is not None:
+            login_time = login_time.replace(tzinfo=None)
+        
+        session_data = {
+            'authenticated': True,
+            'username': st.session_state.username,
+            'login_time': login_time.isoformat(),
+            'session_duration': st.session_state.session_duration
+        }
+        try:
+            session_file = get_session_file(st.session_state.username)
+            with open(session_file, 'w') as f:
+                json.dump(session_data, f)
+            logger.info(f"[SESSION] Session saved for user: {st.session_state.username}")
+        except Exception as e:
+            logger.error(f"[SESSION] Failed to save session: {e}")
+
+def load_session():
+    """Load session from any existing user session files"""
+    for username in VALID_USERS.keys():
+        session_file = get_session_file(username)
+        if os.path.exists(session_file):
+            try:
+                with open(session_file, 'r') as f:
+                    session_data = json.load(f)
+                
+                login_time = datetime.datetime.fromisoformat(session_data['login_time'])
+                # Ensure both datetimes are naive (no timezone info)
+                if login_time.tzinfo is not None:
+                    login_time = login_time.replace(tzinfo=None)
+                
+                current_time = datetime.datetime.now()
+                if current_time.tzinfo is not None:
+                    current_time = current_time.replace(tzinfo=None)
+                
+                elapsed_time = (current_time - login_time).total_seconds()
+                
+                # Check if session is still valid (1 hour = 3600 seconds)
+                if elapsed_time < session_data['session_duration']:
+                    st.session_state.authenticated = True
+                    st.session_state.username = session_data['username']
+                    st.session_state.login_time = login_time
+                    st.session_state.session_duration = session_data['session_duration']
+                    logger.info(f"[SESSION] Session restored for {username} - {int((session_data['session_duration'] - elapsed_time) / 60)} minutes remaining")
+                    return True
+                else:
+                    # Session expired, remove file
+                    os.remove(session_file)
+                    logger.info(f"[SESSION] Session expired and removed for {username}")
+            except Exception as e:
+                logger.error(f"[SESSION] Failed to load session for {username}: {e}")
+                if os.path.exists(session_file):
+                    os.remove(session_file)
+    
+    return False
+
+def clear_session():
+    """Clear session file for current user"""
+    username = getattr(st.session_state, 'username', None)
+    
+    if username:
+        session_file = get_session_file(username)
+        if os.path.exists(session_file):
+            try:
+                os.remove(session_file)
+                logger.info(f"[SESSION] Session file removed for {username}: {session_file}")
+            except Exception as e:
+                logger.error(f"[SESSION] Failed to remove session file {session_file}: {e}")
+        else:
+            logger.warning(f"[SESSION] Session file not found for {username}: {session_file}")
+    else:
+        logger.warning("[SESSION] No username found, cannot clear user-specific session")
+    
+    # Also clear any old generic session file
+    old_session_file = get_session_file()
+    if os.path.exists(old_session_file):
+        try:
+            os.remove(old_session_file)
+            logger.info(f"[SESSION] Old generic session file removed: {old_session_file}")
+        except Exception as e:
+            logger.error(f"[SESSION] Failed to remove old session: {e}")
+    
+    # Clear all possible session files for cleanup
+    for user in VALID_USERS.keys():
+        session_file = get_session_file(user)
+        if os.path.exists(session_file):
+            try:
+                # Check if this is an old/expired session
+                with open(session_file, 'r') as f:
+                    session_data = json.load(f)
+                
+                login_time = datetime.datetime.fromisoformat(session_data['login_time'])
+                # Ensure both datetimes are naive (no timezone info)
+                if login_time.tzinfo is not None:
+                    login_time = login_time.replace(tzinfo=None)
+                
+                current_time = datetime.datetime.now()
+                if current_time.tzinfo is not None:
+                    current_time = current_time.replace(tzinfo=None)
+                
+                elapsed = (current_time - login_time).total_seconds()
+                
+                if elapsed > session_data.get('session_duration', 3600):
+                    os.remove(session_file)
+                    logger.info(f"[SESSION] Cleaned up expired session for {user}")
+            except Exception as e:
+                logger.error(f"[SESSION] Error cleaning up session for {user}: {e}")
+
 # Authentication functions
 def init_auth_session_state():
     """Initialize authentication session state"""
     if 'authenticated' not in st.session_state:
         st.session_state.authenticated = False
+    if 'username' not in st.session_state:
+        st.session_state.username = None
     if 'login_attempts' not in st.session_state:
         st.session_state.login_attempts = 0
     if 'blocked_until' not in st.session_state:
         st.session_state.blocked_until = None
+    if 'login_time' not in st.session_state:
+        st.session_state.login_time = None
+    if 'session_duration' not in st.session_state:
+        st.session_state.session_duration = 3600  # 1 hour in seconds
+
+def is_session_expired():
+    """Check if user session has expired"""
+    if not st.session_state.authenticated or st.session_state.login_time is None:
+        return False
+    
+    current_time = datetime.datetime.now()
+    login_time = st.session_state.login_time
+    
+    # Ensure both datetimes are naive (no timezone info)
+    if current_time.tzinfo is not None:
+        current_time = current_time.replace(tzinfo=None)
+    if login_time.tzinfo is not None:
+        login_time = login_time.replace(tzinfo=None)
+    
+    elapsed_time = (current_time - login_time).total_seconds()
+    
+    if elapsed_time > st.session_state.session_duration:
+        # Session expired, logout user
+        expired_user = st.session_state.get('username', 'Unknown')
+        
+        # Clear session file before clearing username
+        clear_session()
+        
+        # Stop any running analysis
+        if st.session_state.get('analysis_running', False):
+            st.session_state.analysis_running = False
+            st.session_state.stream_processing = False
+        
+        # Clear session state
+        st.session_state.authenticated = False
+        st.session_state.username = None
+        st.session_state.login_time = None
+        
+        logger.info(f"[AUTH] Session expired for {expired_user} - user logged out automatically")
+        return True
+    
+    return False
 
 def is_blocked():
     """Check if user is currently blocked from logging in"""
@@ -471,7 +641,15 @@ def is_blocked():
         return False
     
     current_time = datetime.datetime.now()
-    if current_time < st.session_state.blocked_until:
+    blocked_until = st.session_state.blocked_until
+    
+    # Ensure both datetimes are naive (no timezone info)
+    if current_time.tzinfo is not None:
+        current_time = current_time.replace(tzinfo=None)
+    if blocked_until.tzinfo is not None:
+        blocked_until = blocked_until.replace(tzinfo=None)
+    
+    if current_time < blocked_until:
         return True
     else:
         # Unblock user and reset attempts
@@ -479,18 +657,29 @@ def is_blocked():
         st.session_state.login_attempts = 0
         return False
 
-def authenticate_user(password: str) -> bool:
-    """Authenticate user with password"""
-    auth_key = os.getenv('STREAMLIT_AUTH_KEY', 'default_password')
+def authenticate_user(username: str, password: str) -> bool:
+    """Authenticate user with username and password"""
+    # Check if username is valid
+    if username not in VALID_USERS:
+        st.session_state.login_attempts += 1
+        logger.warning(f"[AUTH] Invalid username attempt: {username}")
+        return False
     
-    if password == auth_key:
+    # Check if password matches username
+    if password == VALID_USERS[username]:
         st.session_state.authenticated = True
+        st.session_state.username = username
         st.session_state.login_attempts = 0
-        logger.info("[AUTH] User successfully authenticated")
+        st.session_state.login_time = datetime.datetime.now()  # Record login time
+        
+        # Save session to file
+        save_session()
+        
+        logger.info(f"[AUTH] User {username} successfully authenticated - session will last 1 hour")
         return True
     else:
         st.session_state.login_attempts += 1
-        logger.warning(f"[AUTH] Failed login attempt {st.session_state.login_attempts}/5")
+        logger.warning(f"[AUTH] Failed login attempt for {username}: {st.session_state.login_attempts}/5")
         
         if st.session_state.login_attempts >= 5:
             # Block user for 30 minutes
@@ -511,7 +700,16 @@ def render_login_page():
     
     # Check if user is blocked
     if is_blocked():
-        time_left = st.session_state.blocked_until - datetime.datetime.now()
+        current_time = datetime.datetime.now()
+        blocked_until = st.session_state.blocked_until
+        
+        # Ensure both datetimes are naive (no timezone info)
+        if current_time.tzinfo is not None:
+            current_time = current_time.replace(tzinfo=None)
+        if blocked_until.tzinfo is not None:
+            blocked_until = blocked_until.replace(tzinfo=None)
+        
+        time_left = blocked_until - current_time
         minutes_left = int(time_left.total_seconds() / 60) + 1
         st.error(f"🚫 Access blocked due to too many failed attempts. Try again in {minutes_left} minutes.")
         st.stop()
@@ -524,29 +722,35 @@ def render_login_page():
         
     # Login form
     with st.form("login_form"):
-        st.subheader("🔑 Authentication")
+        st.subheader("🔑 User Authentication")
+        
+        username = st.selectbox(
+            "Select Username",
+            options=list(VALID_USERS.keys()),
+            help="Choose your username"
+        )
         
         password = st.text_input(
-            "Enter Authentication Key", 
+            "Enter Password", 
             type="password",
-            placeholder="Enter your authentication key...",
-            help="Get the authentication key from your system administrator"
+            placeholder="Enter your password...",
+            help="Enter your password"
         )
         
         submitted = st.form_submit_button("🚀 Login", type="primary")
         
         if submitted:
-            if not password:
-                st.error("❌ Please enter an authentication key")
+            if not username or not password:
+                st.error("❌ Please enter both username and password")
             else:
-                if authenticate_user(password):
-                    st.success("✅ Authentication successful! Redirecting...")
+                if authenticate_user(username, password):
+                    st.success(f"✅ Welcome back, {username}! Redirecting...")
                     time.sleep(1)
                     st.rerun()
                 else:
                     remaining = 5 - st.session_state.login_attempts
                     if remaining > 0:
-                        st.error(f"❌ Invalid authentication key. {remaining} attempt(s) remaining.")
+                        st.error(f"❌ Invalid credentials. {remaining} attempt(s) remaining.")
                     else:
                         st.error("🚫 Too many failed attempts. Access blocked for 30 minutes.")
     
@@ -554,15 +758,12 @@ def render_login_page():
     st.markdown("---")
     st.markdown("""
     ### 📋 Instructions
-    - Enter the authentication key provided by your administrator
+    - Select your username from the dropdown
+    - Enter your password
     - You have **5 attempts** before being blocked for 30 minutes
-    - Contact support if you need assistance accessing the system
+    - Each user has their own session that lasts 1 hour
+    - Sessions persist through browser refresh
     
-    ### 🔧 Environment Setup
-    Make sure your `.env` file contains:
-    ```
-    STREAMLIT_AUTH_KEY=your_secure_password_here
-    ```
     """)
 
 # Initialize session state
@@ -1236,10 +1437,44 @@ def run_analysis():
     finally:
         st.session_state.analysis_running = False
 
+def get_session_info():
+    """Get current session information"""
+    if not st.session_state.authenticated or st.session_state.login_time is None:
+        return None
+    
+    current_time = datetime.datetime.now()
+    login_time = st.session_state.login_time
+    
+    # Ensure both datetimes are naive (no timezone info)
+    if current_time.tzinfo is not None:
+        current_time = current_time.replace(tzinfo=None)
+    if login_time.tzinfo is not None:
+        login_time = login_time.replace(tzinfo=None)
+    
+    elapsed_time = (current_time - login_time).total_seconds()
+    remaining_time = st.session_state.session_duration - elapsed_time
+    
+    return {
+        'elapsed': elapsed_time,
+        'remaining': max(0, remaining_time),
+        'total': st.session_state.session_duration
+    }
+
 def main():
     """Main Streamlit application"""
     # Initialize authentication first
     init_auth_session_state()
+    
+    # Try to restore session from file
+    if not st.session_state.authenticated:
+        load_session()
+    
+    # Check if session expired
+    if is_session_expired():
+        clear_session()
+        st.error("🔒 Your session has expired. Please log in again.")
+        render_login_page()
+        return
     
     # Check authentication
     if not st.session_state.authenticated:
@@ -1249,13 +1484,71 @@ def main():
     # Initialize main session state
     init_session_state()
     
-    # Add logout button in sidebar
+    # Add session info and logout button in sidebar
     with st.sidebar:
+        # Session information
+        session_info = get_session_info()
+        if session_info:
+            st.markdown("---")
+            st.markdown("### 🔐 Session Status")
+            
+            # Show current user
+            current_user = st.session_state.get('username', 'Unknown')
+            st.info(f"👤 Logged in as: **{current_user}**")
+            
+            remaining_minutes = int(session_info['remaining'] / 60)
+            remaining_seconds = int(session_info['remaining'] % 60)
+            
+            if session_info['remaining'] > 300:  # More than 5 minutes
+                st.success(f"⏱️ Time remaining: {remaining_minutes}m {remaining_seconds}s")
+            elif session_info['remaining'] > 60:  # 1-5 minutes
+                st.warning(f"⚠️ Time remaining: {remaining_minutes}m {remaining_seconds}s")
+            else:  # Less than 1 minute
+                st.error(f"🚨 Time remaining: {remaining_seconds}s")
+            
+            # Progress bar for session time
+            progress = 1 - (session_info['remaining'] / session_info['total'])
+            st.progress(progress)
+        
         st.markdown("---")
-        if st.button("🚪 Logout", type="secondary"):
+        logout_label = f"🚪 Logout ({current_user})" if session_info else "🚪 Logout"
+        if st.button(logout_label, type="secondary"):
+            logged_out_user = st.session_state.get('username', 'Unknown')
+            
+            # Clear session file BEFORE clearing username
+            clear_session()
+            
+            # Stop any running analysis
+            if st.session_state.get('analysis_running', False):
+                st.session_state.analysis_running = False
+                st.session_state.stream_processing = False
+                if hasattr(st.session_state, 'analysis_stream'):
+                    delattr(st.session_state, 'analysis_stream')
+                if hasattr(st.session_state, 'graph'):
+                    delattr(st.session_state, 'graph')
+            
+            # Clear all session state variables
             st.session_state.authenticated = False
+            st.session_state.username = None
             st.session_state.login_attempts = 0
-            logger.info("[AUTH] User logged out")
+            st.session_state.login_time = None
+            
+            # Clear analysis-related session state
+            keys_to_clear = [
+                'analysis_running', 'stream_processing', 'analysis_stream', 
+                'graph', 'init_agent_state', 'graph_args', 'trace',
+                'message_buffer', 'config', 'config_set'
+            ]
+            for key in keys_to_clear:
+                if key in st.session_state:
+                    delattr(st.session_state, key)
+            
+            # Re-initialize auth session state for clean start
+            init_auth_session_state()
+            
+            logger.info(f"[AUTH] User {logged_out_user} logged out manually - all session data cleared")
+            st.success(f"✅ {logged_out_user} logged out successfully!")
+            time.sleep(1)  # Brief pause to show message
             st.rerun()
     
     # Welcome header
@@ -1275,6 +1568,7 @@ def main():
             if st.button("▶️ Start Analysis", disabled=not config_valid, type="primary"):
                 if config_valid:
                     st.session_state.analysis_running = True
+                    st.session_state.stream_processing = False  # Initialize stream processing flag
                     # Initialize analysis state
                     config = st.session_state.config.copy()
                     
@@ -1345,6 +1639,7 @@ def main():
             st.info("Analysis is currently running...")
             if st.button("⏹️ Stop Analysis", type="secondary"):
                 st.session_state.analysis_running = False
+                st.session_state.stream_processing = False  # Reset stream processing flag
                 st.rerun()
         
         # Metrics
@@ -1376,6 +1671,14 @@ def main():
     
     # Process analysis stream if running
     if st.session_state.analysis_running and hasattr(st.session_state, 'analysis_stream'):
+        # Prevent re-entrant generator calls
+        if 'stream_processing' not in st.session_state:
+            st.session_state.stream_processing = False
+        
+        if st.session_state.stream_processing:
+            return  # Skip if already processing
+        
+        st.session_state.stream_processing = True
         try:
             chunk = next(st.session_state.analysis_stream)
             
@@ -1450,11 +1753,13 @@ def main():
             
             # Continue processing
             time.sleep(0.1)  # Small delay to prevent overwhelming
+            st.session_state.stream_processing = False  # Reset flag before rerun
             st.rerun()
             
         except StopIteration:
             # Analysis completed
             st.session_state.analysis_running = False
+            st.session_state.stream_processing = False  # Reset flag
             st.session_state.message_buffer['analysis_end_time'] = time.time()
             
             # Calculate duration
@@ -1480,6 +1785,7 @@ def main():
             
         except Exception as e:
             st.session_state.analysis_running = False
+            st.session_state.stream_processing = False  # Reset flag on error
             error_msg = f"Analysis failed: {str(e)}"
             st.error(f"❌ {error_msg}")
             add_message("Error", error_msg)
@@ -1496,6 +1802,19 @@ def main():
     elif st.session_state.analysis_running:
         time.sleep(0.5)
         st.rerun()
+    
+    # Auto-refresh to check session expiry (every 30 seconds when not running analysis)
+    elif st.session_state.authenticated:
+        session_info = get_session_info()
+        if session_info and session_info['remaining'] < 30:  # Auto-refresh in last 30 seconds
+            time.sleep(1)
+            st.rerun()
+        elif session_info and session_info['remaining'] < 300:  # Auto-refresh every 10 seconds in last 5 minutes
+            time.sleep(10)
+            st.rerun()
+        else:  # Auto-refresh every 30 seconds normally  
+            time.sleep(30)
+            st.rerun()
 
 if __name__ == "__main__":
     main()
