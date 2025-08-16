@@ -720,9 +720,9 @@ def render_login_page():
     """Render the login page"""
     st.markdown("""
     <div class="welcome-header">
-        <h1>🔐 TradingAgents Dashboard</h1>
-        <h3>Secure Access Required</h3>
-        <p>Please enter your authentication key to continue</p>
+        <h1>🔐 트레이딩 에이전트 대시보드</h1>
+        <h3>보안 인증이 필요합니다</h3>
+        <p>계속하려면 인증 키를 입력해주세요</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -739,59 +739,59 @@ def render_login_page():
         
         time_left = blocked_until - current_time
         minutes_left = int(time_left.total_seconds() / 60) + 1
-        st.error(f"🚫 Access blocked due to too many failed attempts. Try again in {minutes_left} minutes.")
+        st.error(f"🚫 너무 많은 실패한 시도로 인해 접근이 차단되었습니다. {minutes_left}분 후에 다시 시도해주세요.")
         st.stop()
     
     # Show remaining attempts
     remaining_attempts = 5 - st.session_state.login_attempts
     if st.session_state.login_attempts > 0:
         if remaining_attempts > 0:
-            st.warning(f"⚠️ {remaining_attempts} attempt(s) remaining")
+            st.warning(f"⚠️ {remaining_attempts}번의 시도가 남았습니다")
         
     # Login form
     with st.form("login_form"):
-        st.subheader("🔑 User Authentication")
+        st.subheader("🔑 사용자 인증")
         
         username = st.selectbox(
-            "Select Username",
+            "사용자 이름 선택",
             options=list(VALID_USERS.keys()),
-            help="Choose your username"
+            help="사용자 이름을 선택하세요"
         )
         
         password = st.text_input(
-            "Enter Password", 
+            "비밀번호 입력", 
             type="password",
-            placeholder="Enter your password...",
-            help="Enter your password"
+            placeholder="비밀번호를 입력하세요...",
+            help="비밀번호를 입력하세요"
         )
         
-        submitted = st.form_submit_button("🚀 Login", type="primary")
+        submitted = st.form_submit_button("🚀 로그인", type="primary")
         
         if submitted:
             if not username or not password:
-                st.error("❌ Please enter both username and password")
+                st.error("❌ 사용자 이름과 비밀번호를 모두 입력해주세요")
             else:
                 if authenticate_user(username, password):
-                    st.success(f"✅ Welcome back, {username}! Redirecting...")
+                    st.success(f"✅ 환영합니다, {username}님! 리다이렉트 중...")
                     time.sleep(1)
                     st.rerun()
                 else:
                     remaining = 5 - st.session_state.login_attempts
                     if remaining > 0:
-                        st.error(f"❌ Invalid credentials. {remaining} attempt(s) remaining.")
+                        st.error(f"❌ 잘못된 인증 정보입니다. {remaining}번의 시도가 남았습니다.")
                     else:
-                        st.error("🚫 Too many failed attempts. Access blocked for 30 minutes.")
+                        st.error("🚫 너무 많은 시도로 인해 30분간 접근이 차단되었습니다.")
     
     # Instructions
     st.markdown("---")
     st.markdown("""
-    ### 📋 Instructions
-    - Select your username from the dropdown
-    - Enter your password
-    - You have **5 attempts** before being blocked for 30 minutes
-    - Each user has their own session that lasts 1 hour (KST)
-    - Sessions persist through browser refresh
-    - All times are displayed in **Korea Standard Time (KST)**
+    ### 📋 사용 안내
+    - 드롭다운에서 사용자 이름을 선택하세요
+    - 비밀번호를 입력하세요
+    - 30분간 차단되기 전까지 **5번의 시도** 기회가 있습니다
+    - 각 사용자는 1시간 지속되는 개별 세션을 가집니다 (KST)
+    - 브라우저 새로고침 후에도 세션이 유지됩니다
+    - 모든 시간은 **한국 표준시(KST)**로 표시됩니다
     
     """)
 
@@ -910,10 +910,16 @@ def render_welcome_header():
     current_kst_time = to_kst_string(get_kst_now())
     st.markdown(f"""
     <div class="welcome-header">
-        <h1>💹 TradingAgents Dashboard</h1>
-        <h3>Multi-Agents LLM Financial Trading Framework</h3>
-        <p><strong>Workflow:</strong> 🧑‍💼 Analyst Team ➡️ 🧑‍🔬 Research Team ➡️ 💼 Trader ➡️ 🛡️ Risk Management ➡️ 📊 Portfolio Management</p>
-        <p style="font-size: 0.9em; opacity: 0.8;">🕒 Current Time: {current_kst_time}</p>
+        <h1>💹 트레이딩 에이전트 대시보드</h1>
+        <h3>다중 AI 에이전트 금융 거래 프레임워크</h3>
+        <p><strong>작업 흐름:</strong> 🧑‍💼 분석팀 ➡️ 🧑‍🔬 리서치팀 ➡️ 💼 트레이더 ➡️ 🛡️ 리스크 관리 ➡️ 📊 포트폴리오 관리</p>
+        <p style="font-size: 0.9em; opacity: 0.8;">🕒 현재 시간: {current_kst_time}</p>
+        <p style="font-size: 0.9em; opacity: 0.8;">
+            🐝 <span style="background: #fffbe7; border-radius: 6px; padding: 2px 8px; color: #d48806; font-weight: 600;">꿀팁</span> : 
+            <a href="https://futuresnow.gitbook.io/newstoday" target="_blank" style="color: #1976d2; text-decoration: underline;">
+                오선의 미국증시
+            </a>에서 다른 미국증시 요약도 볼 수 있어요!
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
