@@ -50,9 +50,9 @@ def get_kst_date():
 def get_high_yield_spread():
     """미국 하이일드 스프레드 인덱스 데이터 가져오기"""
     try:
-        # HYG (하이일드 ETF)와 10년 국채 수익률 데이터 가져오기
-        hyg_data = yf.download('HYG', period='1y', interval='1d')
-        treasury_data = yf.download('^TNX', period='1y', interval='1d')
+        # HYG (하이일드 ETF)와 10년 국채 수익률 데이터 가져오기 - 3년 장기 트렌드
+        hyg_data = yf.download('HYG', period='5y', interval='1d')
+        treasury_data = yf.download('^TNX', period='5y', interval='1d')
         
         # Close 컬럼만 선택하고 인덱스를 reset
         hyg_df = hyg_data[['Close']].reset_index()
@@ -75,7 +75,7 @@ def get_fear_greed_index():
     """CNN 공포탐욕지수 가져오기 (대체 지표로 VIX 사용)"""
     try:
         # VIX 지수를 공포탐욕지수의 대체 지표로 사용
-        vix_data = yf.download('^VIX', period='1y', interval='1d')
+        vix_data = yf.download('^VIX', period='5y', interval='1d')
         
         # Close 컬럼만 선택하고 인덱스를 reset
         vix_df = vix_data[['Close']].reset_index()
@@ -94,8 +94,8 @@ def get_put_call_ratio():
     """풋콜레이쇼 데이터 가져오기"""
     try:
         # CBOE 풋콜레이쇼 대신 관련 지표들로 근사치 계산
-        spx_data = yf.download('^SPX', period='1y', interval='1d')
-        vix_data = yf.download('^VIX', period='1y', interval='1d')
+        spx_data = yf.download('^SPX', period='5y', interval='1d')
+        vix_data = yf.download('^VIX', period='5y', interval='1d')
         
         # Close 컬럼만 선택하고 인덱스를 reset
         spx_df = spx_data[['Close']].reset_index()
@@ -121,7 +121,7 @@ def get_fred_data():
     """FRED 데이터 가져오기 (API 키 없이 공개 데이터 사용)"""
     try:
         # Case-Shiller Home Price Index 대용으로 부동산 ETF 사용
-        real_estate_data = yf.download('VNQ', period='2y', interval='1d')
+        real_estate_data = yf.download('VNQ', period='5y', interval='1d')
         
         # Close 컬럼만 선택하고 인덱스를 reset
         fred_df = real_estate_data[['Close']].reset_index()
@@ -139,7 +139,7 @@ def get_additional_indicators():
     
     # 달러 인덱스
     try:
-        dxy_data = yf.download('DX-Y.NYB', period='1y', interval='1d')
+        dxy_data = yf.download('DX-Y.NYB', period='5y', interval='1d')
         if not dxy_data.empty:
             dxy_df = dxy_data[['Close']].reset_index()
             dxy_df.columns = ['Date', 'DXY']
@@ -149,8 +149,8 @@ def get_additional_indicators():
     
     # 수익률 곡선 (10Y-2Y)
     try:
-        ten_year = yf.download('^TNX', period='1y', interval='1d')
-        two_year = yf.download('^IRX', period='1y', interval='1d')
+        ten_year = yf.download('^TNX', period='5y', interval='1d')
+        two_year = yf.download('^IRX', period='5y', interval='1d')
         if not ten_year.empty and not two_year.empty:
             ten_y_df = ten_year[['Close']].reset_index()
             two_y_df = two_year[['Close']].reset_index()
@@ -164,7 +164,7 @@ def get_additional_indicators():
     
     # 금 가격
     try:
-        gold_data = yf.download('GC=F', period='1y', interval='1d')
+        gold_data = yf.download('GC=F', period='5y', interval='1d')
         if not gold_data.empty:
             gold_df = gold_data[['Close']].reset_index()
             gold_df.columns = ['Date', 'Gold']
@@ -174,7 +174,7 @@ def get_additional_indicators():
     
     # 원유 가격
     try:
-        oil_data = yf.download('CL=F', period='1y', interval='1d')
+        oil_data = yf.download('CL=F', period='5y', interval='1d')
         if not oil_data.empty:
             oil_df = oil_data[['Close']].reset_index()
             oil_df.columns = ['Date', 'Oil']
