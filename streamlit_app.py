@@ -186,7 +186,7 @@ def get_additional_indicators():
 
 def create_financial_indicators_charts():
     """통합 금융 지표 대시보드 - 모든 지표 + 상관관계 분석"""
-    st.header("📊 금융 지표 통합 대시보드")
+    st.header("📊 거시 경제 대시보드")
     
     # 모든 데이터 로드
     spread_data = get_high_yield_spread()
@@ -516,6 +516,31 @@ def create_financial_indicators_charts():
     st.markdown("**💡 참고:** 실제 거래 전 공식 데이터를 확인하시기 바랍니다.")
 
 
+# 🔍 데이터 로딩 상태 스타일을 차용한 로딩 화면
+def show_loading_status(message: str):
+    """🔍 데이터 로딩 상태 스타일 로딩 화면"""
+    return st.info(f"🔍 {message}")
+
+def show_step_status(step_number: int, total_steps: int, current_step: str):
+    """단계별 상태 표시"""
+    progress_percentage = (step_number / total_steps) * 100
+    
+    # 단계별 아이콘 매핑
+    step_icons = {
+        1: "📡",
+        2: "🔢", 
+        3: "📈",
+        4: "✨"
+    }
+    
+    icon = step_icons.get(step_number, "🔍")
+    
+    # 진행률에 따른 상태 메시지
+    if step_number == total_steps:
+        return st.success(f"{icon} {current_step} (완료!)")
+    else:
+        return st.info(f"{icon} {current_step} ({progress_percentage:.0f}% 완료)")
+
 # Market Agent 데이터 시각화 함수들
 @st.cache_data(ttl=300)  
 def get_stock_data_for_viz(symbol: str, period: str = "6mo"):
@@ -553,8 +578,8 @@ def calculate_technical_indicators(data):
             df = df.reset_index()
         
         # 충분한 데이터가 있는지 확인
-        if len(df) < 200:
-            st.warning("기술적 지표 계산을 위해서는 더 긴 기간의 데이터가 필요합니다.")
+        # if len(df) < 200:
+        #     st.warning("기술적 지표 계산을 위해서는 더 긴 기간의 데이터가 필요합니다.")
         
         # 기본 이동평균들
         df['sma_10'] = df['Close'].rolling(window=10).mean()
@@ -1002,16 +1027,40 @@ def create_market_agent_dashboard():
             st.warning("티커 심볼을 입력해주세요.")
             return
         
-        # 데이터 로드
-        with st.spinner(f"{ticker} 데이터 로딩 중..."):
-            stock_data = get_stock_data_for_viz(ticker, period)
-            
-            if stock_data is None or stock_data.empty:
-                st.error(f"{ticker} 데이터를 불러올 수 없습니다.")
-                return
-            
-            # 기술적 지표 계산
-            technical_data = calculate_technical_indicators(stock_data)
+        # 상태 컨테이너 생성
+        status_container = st.empty()
+        
+        # 1단계: 데이터 로드
+        with status_container:
+            show_step_status(1, 4, f"{ticker} 주식 데이터 다운로드 중...")
+        
+        stock_data = get_stock_data_for_viz(ticker, period)
+        
+        if stock_data is None or stock_data.empty:
+            status_container.empty()
+            st.error(f"❌ {ticker} 데이터를 불러올 수 없습니다. 다른 티커를 시도해보세요.")
+            return
+        
+        # 2단계: 기술적 지표 계산
+        with status_container:
+            show_step_status(2, 4, "기술적 지표 계산 중...")
+        
+        technical_data = calculate_technical_indicators(stock_data)
+        
+        # 3단계: 차트 생성 준비
+        with status_container:
+            show_step_status(3, 4, "차트 생성 중...")
+        
+        time.sleep(0.2)  # 잠시 표시
+        
+        # 4단계: 완료
+        with status_container:
+            show_step_status(4, 4, "분석 완료!")
+        
+        time.sleep(0.5)  # 완료 메시지 표시
+        
+        # 상태 메시지 제거
+        status_container.empty()
         
         # 기본 정보를 뱃지 스타일로 표시
         current_price = stock_data['Close'].iloc[-1]
@@ -2722,7 +2771,7 @@ def main():
     config_valid = render_configuration_section()
     
     # Create tabs for different sections
-    tab1, tab2, tab3 = st.tabs(["🧠 AI 분석", "📊 금융 지표 시각화", "📈 Market Agent 주식 분석"])
+    tab1, tab2, tab3 = st.tabs(["🧠 AI 분석", "📊 거시경제 지표", "📈 Market Agent 주식 분석"])
     
     with tab1:
         # Main content area for AI Analysis
