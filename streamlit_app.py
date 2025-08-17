@@ -763,7 +763,15 @@ def create_price_chart(data, symbol):
             y=1.02,
             xanchor="right",
             x=1
-        )
+        ),
+        # 터치 드래그는 유지, 줌만 비활성화
+        dragmode='pan'
+    )
+    
+    # 모바일에서 줌 비활성화하되 스크롤은 유지
+    fig.update_layout(
+        xaxis=dict(fixedrange=True),
+        yaxis=dict(fixedrange=True)
     )
     
     return fig
@@ -832,7 +840,11 @@ def create_macd_chart(data, symbol):
             y=1.02,
             xanchor="right",
             x=1
-        )
+        ),
+        # 터치 드래그는 유지, 줌만 비활성화
+        dragmode='pan',
+        xaxis=dict(fixedrange=True),
+        yaxis=dict(fixedrange=True)
     )
     
     return fig
@@ -875,7 +887,7 @@ def create_rsi_chart(data, symbol):
         title=f'{symbol} RSI 지표',
         xaxis_title='날짜',
         yaxis_title='RSI',
-        yaxis=dict(range=[0, 100]),
+        yaxis=dict(range=[0, 100], fixedrange=True),
         height=400,
         # 모바일 최적화
         margin=dict(l=20, r=20, t=60, b=40),
@@ -885,7 +897,10 @@ def create_rsi_chart(data, symbol):
             y=1.02,
             xanchor="right",
             x=1
-        )
+        ),
+        # 터치 드래그는 유지, 줌만 비활성화
+        dragmode='pan',
+        xaxis=dict(fixedrange=True)
     )
     
     return fig
@@ -928,7 +943,11 @@ def create_atr_chart(data, symbol):
             y=1.02,
             xanchor="right",
             x=1
-        )
+        ),
+        # 터치 드래그는 유지, 줌만 비활성화
+        dragmode='pan',
+        xaxis=dict(fixedrange=True),
+        yaxis=dict(fixedrange=True)
     )
     
     return fig
@@ -1007,8 +1026,14 @@ def create_volume_analysis_chart(data, symbol):
             y=1.02,
             xanchor="right",
             x=1
-        )
+        ),
+        # 터치 드래그는 유지, 줌만 비활성화
+        dragmode='pan'
     )
+    
+    # 서브플롯의 각 축에 대해 고정 범위 설정 (줌 비활성화)
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(fixedrange=True)
     
     return fig
 
@@ -1166,7 +1191,13 @@ def create_market_agent_dashboard():
             st.subheader("📈 가격 차트 및 이동평균")
             price_chart = create_price_chart(technical_data, ticker)
             if price_chart:
-                st.plotly_chart(price_chart, use_container_width=True)
+                st.plotly_chart(price_chart, use_container_width=True, config={
+                    'displayModeBar': False,
+                    'scrollZoom': False,
+                    'doubleClick': False,
+                    'showTips': False,
+                    'staticPlot': False
+                })
         
         # 2개 열로 나누어 차트 배치
         col1, col2 = st.columns(2)
@@ -1176,26 +1207,50 @@ def create_market_agent_dashboard():
                 st.subheader("📊 MACD")
                 macd_chart = create_macd_chart(technical_data, ticker)
                 if macd_chart:
-                    st.plotly_chart(macd_chart, use_container_width=True)
+                    st.plotly_chart(macd_chart, use_container_width=True, config={
+                        'displayModeBar': False,
+                        'scrollZoom': False,
+                        'doubleClick': False,
+                        'showTips': False,
+                        'staticPlot': False
+                    })
             
             if show_atr:
                 st.subheader("📈 ATR (변동성)")
                 atr_chart = create_atr_chart(technical_data, ticker)
                 if atr_chart:
-                    st.plotly_chart(atr_chart, use_container_width=True)
+                    st.plotly_chart(atr_chart, use_container_width=True, config={
+                        'displayModeBar': False,
+                        'scrollZoom': False,
+                        'doubleClick': False,
+                        'showTips': False,
+                        'staticPlot': False
+                    })
         
         with col2:
             if show_rsi:
                 st.subheader("⚡ RSI")
                 rsi_chart = create_rsi_chart(technical_data, ticker)
                 if rsi_chart:
-                    st.plotly_chart(rsi_chart, use_container_width=True)
+                    st.plotly_chart(rsi_chart, use_container_width=True, config={
+                        'displayModeBar': False,
+                        'scrollZoom': False,
+                        'doubleClick': False,
+                        'showTips': False,
+                        'staticPlot': False
+                    })
             
             if show_volume:
                 st.subheader("📊 거래량 분석")
                 volume_chart = create_volume_analysis_chart(technical_data, ticker)
                 if volume_chart:
-                    st.plotly_chart(volume_chart, use_container_width=True)
+                    st.plotly_chart(volume_chart, use_container_width=True, config={
+                        'displayModeBar': False,
+                        'scrollZoom': False,
+                        'doubleClick': False,
+                        'showTips': False,
+                        'staticPlot': False
+                    })
         
         # 기술적 지표 요약 테이블
         if technical_data is not None:
@@ -1684,6 +1739,22 @@ st.markdown("""
         .stPlotlyChart {
             width: 100% !important;
             overflow-x: auto;
+            /* 세로 스크롤만 허용, 핀치 줌 비활성화 */
+            touch-action: pan-y;
+        }
+        
+        /* Plotly 차트 핀치 줌만 비활성화 */
+        .js-plotly-plot .plotly {
+            touch-action: pan-y !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+        }
+        
+        /* 차트 영역 더블탭 줌 비활성화 */
+        .js-plotly-plot .plotly .nsewdrag {
+            touch-action: pan-y !important;
         }
         
         /* 모바일에서 차트 마진 조정 */
