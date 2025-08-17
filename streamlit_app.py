@@ -754,7 +754,16 @@ def create_price_chart(data, symbol):
         title=f'{symbol} 주가 및 기술적 지표',
         xaxis_rangeslider_visible=False,
         height=800,
-        showlegend=True
+        showlegend=True,
+        # 모바일 최적화
+        margin=dict(l=20, r=20, t=60, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
     )
     
     return fig
@@ -814,7 +823,16 @@ def create_macd_chart(data, symbol):
         title=f'{symbol} MACD 지표',
         xaxis_title='날짜',
         yaxis_title='값',
-        height=400
+        height=400,
+        # 모바일 최적화
+        margin=dict(l=20, r=20, t=60, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
     )
     
     return fig
@@ -858,7 +876,16 @@ def create_rsi_chart(data, symbol):
         xaxis_title='날짜',
         yaxis_title='RSI',
         yaxis=dict(range=[0, 100]),
-        height=400
+        height=400,
+        # 모바일 최적화
+        margin=dict(l=20, r=20, t=60, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
     )
     
     return fig
@@ -892,7 +919,16 @@ def create_atr_chart(data, symbol):
         title=f'{symbol} ATR (Average True Range) 변동성 지표',
         xaxis_title='날짜',
         yaxis_title='ATR',
-        height=400
+        height=400,
+        # 모바일 최적화
+        margin=dict(l=20, r=20, t=60, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
     )
     
     return fig
@@ -962,7 +998,16 @@ def create_volume_analysis_chart(data, symbol):
     fig.update_layout(
         title=f'{symbol} 거래량 분석',
         height=600,
-        showlegend=True
+        showlegend=True,
+        # 모바일 최적화
+        margin=dict(l=20, r=20, t=60, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
     )
     
     return fig
@@ -1631,6 +1676,75 @@ st.markdown("""
     
     .stDataFrame tr:hover {
         background: #f5f9ff !important;
+    }
+    
+    /* 모바일 최적화 */
+    @media (max-width: 768px) {
+        /* 차트 컨테이너 모바일 최적화 */
+        .stPlotlyChart {
+            width: 100% !important;
+            overflow-x: auto;
+        }
+        
+        /* 모바일에서 차트 마진 조정 */
+        .js-plotly-plot .plotly .modebar {
+            left: 10px !important;
+            top: 10px !important;
+        }
+        
+        /* 탭 텍스트 모바일에서 줄바꿈 방지 */
+        .stTabs [data-baseweb="tab"] {
+            min-width: auto !important;
+            font-size: 0.85rem !important;
+            padding: 0.5rem 0.75rem !important;
+        }
+        
+        /* 메트릭 카드 모바일 최적화 */
+        .stMetric {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* 모바일에서 컬럼 간격 줄이기 */
+        .stColumns > div {
+            padding: 0 0.25rem !important;
+        }
+        
+        /* 뱃지 스타일 모바일 최적화 */
+        div[style*="display: flex; flex-wrap: wrap"] {
+            gap: 8px !important;
+        }
+        
+        div[style*="min-width: 160px"] {
+            min-width: 140px !important;
+            font-size: 0.9rem !important;
+        }
+    }
+    
+    /* 아주 작은 화면 (스마트폰) */
+    @media (max-width: 480px) {
+        .stTabs [data-baseweb="tab"] {
+            font-size: 0.75rem !important;
+            padding: 0.4rem 0.5rem !important;
+        }
+        
+        /* 헤더 텍스트 크기 조정 */
+        .welcome-header h1 {
+            font-size: 1.8rem !important;
+        }
+        
+        .welcome-header h3 {
+            font-size: 1rem !important;
+        }
+        
+        /* 뱃지 더 작게 */
+        div[style*="min-width: 160px"] {
+            min-width: 120px !important;
+            padding: 8px 12px !important;
+        }
+        
+        div[style*="font-size: 1.5em"] {
+            font-size: 1.2em !important;
+        }
     }
 </style>
 
@@ -3032,18 +3146,17 @@ def main():
         time.sleep(0.5)
         st.rerun()
     
-    # Auto-refresh to check session expiry (every 30 seconds when not running analysis)
+    # Auto-refresh to check session expiry only when critical (less than 5 minutes remaining)
     elif st.session_state.authenticated:
         session_info = get_session_info()
+        # Only auto-refresh when session is about to expire to avoid interrupting user interaction
         if session_info and session_info['remaining'] < 30:  # Auto-refresh in last 30 seconds
             time.sleep(1)
             st.rerun()
-        elif session_info and session_info['remaining'] < 300:  # Auto-refresh every 10 seconds in last 5 minutes
-            time.sleep(10)
-            st.rerun()
-        else:  # Auto-refresh every 30 seconds normally  
+        elif session_info and session_info['remaining'] < 300:  # Auto-refresh every 30 seconds in last 5 minutes
             time.sleep(30)
             st.rerun()
+        # Removed normal 30-second auto-refresh to prevent interrupting Market Agent tab usage
 
 if __name__ == "__main__":
     main()
