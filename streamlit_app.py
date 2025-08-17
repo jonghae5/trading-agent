@@ -1196,7 +1196,8 @@ def create_market_agent_dashboard():
                     'scrollZoom': False,
                     'doubleClick': False,
                     'showTips': False,
-                    'staticPlot': False
+                    'staticPlot': False,
+                    'modeBarButtonsToRemove': ['zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']
                 })
         
         # 2개 열로 나누어 차트 배치
@@ -1212,7 +1213,8 @@ def create_market_agent_dashboard():
                         'scrollZoom': False,
                         'doubleClick': False,
                         'showTips': False,
-                        'staticPlot': False
+                        'staticPlot': False,
+                        'modeBarButtonsToRemove': ['zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']
                     })
             
             if show_atr:
@@ -1224,7 +1226,8 @@ def create_market_agent_dashboard():
                         'scrollZoom': False,
                         'doubleClick': False,
                         'showTips': False,
-                        'staticPlot': False
+                        'staticPlot': False,
+                        'modeBarButtonsToRemove': ['zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']
                     })
         
         with col2:
@@ -1237,7 +1240,8 @@ def create_market_agent_dashboard():
                         'scrollZoom': False,
                         'doubleClick': False,
                         'showTips': False,
-                        'staticPlot': False
+                        'staticPlot': False,
+                        'modeBarButtonsToRemove': ['zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']
                     })
             
             if show_volume:
@@ -1249,7 +1253,8 @@ def create_market_agent_dashboard():
                         'scrollZoom': False,
                         'doubleClick': False,
                         'showTips': False,
-                        'staticPlot': False
+                        'staticPlot': False,
+                        'modeBarButtonsToRemove': ['zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']
                     })
         
         # 기술적 지표 요약 테이블
@@ -1739,22 +1744,32 @@ st.markdown("""
         .stPlotlyChart {
             width: 100% !important;
             overflow-x: auto;
-            /* 세로 스크롤만 허용, 핀치 줌 비활성화 */
-            touch-action: pan-y;
+            /* 페이지 스크롤 우선, 차트 상호작용 최소화 */
+            touch-action: auto;
         }
         
-        /* Plotly 차트 핀치 줌만 비활성화 */
+        /* Plotly 차트에서 페이지 스크롤 허용 */
         .js-plotly-plot .plotly {
-            touch-action: pan-y !important;
+            touch-action: auto !important;
             user-select: none !important;
             -webkit-user-select: none !important;
             -moz-user-select: none !important;
             -ms-user-select: none !important;
+            /* 차트 상호작용보다 페이지 스크롤 우선 */
+            pointer-events: none !important;
         }
         
-        /* 차트 영역 더블탭 줌 비활성화 */
-        .js-plotly-plot .plotly .nsewdrag {
-            touch-action: pan-y !important;
+        /* 차트 오버레이 요소들도 터치 이벤트 통과 */
+        .js-plotly-plot .plotly .nsewdrag,
+        .js-plotly-plot .plotly .drag,
+        .js-plotly-plot .plotly .cursor-crosshair {
+            touch-action: auto !important;
+            pointer-events: none !important;
+        }
+        
+        /* 차트 배경도 터치 이벤트 통과 */
+        .js-plotly-plot .plotly .bg {
+            pointer-events: none !important;
         }
         
         /* 모바일에서 차트 마진 조정 */
