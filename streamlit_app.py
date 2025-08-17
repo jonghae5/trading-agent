@@ -46,7 +46,7 @@ def get_kst_date():
     return get_kst_now().date()
 
 # Financial Indicators Functions
-@st.cache_data(ttl=3600)  # Cache for 1 hour
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def get_high_yield_spread():
     """미국 하이일드 스프레드 인덱스 데이터 가져오기"""
     try:
@@ -70,7 +70,7 @@ def get_high_yield_spread():
         st.error(f"하이일드 스프레드 데이터 로딩 실패: {e}")
         return None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=300)
 def get_fear_greed_index():
     """CNN 공포탐욕지수 가져오기 (대체 지표로 VIX 사용)"""
     try:
@@ -89,7 +89,7 @@ def get_fear_greed_index():
         st.error(f"공포탐욕지수(VIX) 데이터 로딩 실패: {e}")
         return None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=300)
 def get_put_call_ratio():
     """풋콜레이쇼 데이터 가져오기"""
     try:
@@ -116,7 +116,7 @@ def get_put_call_ratio():
         st.error(f"풋콜레이쇼 데이터 로딩 실패: {e}")
         return None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=300)
 def get_fred_data():
     """FRED 데이터 가져오기 (API 키 없이 공개 데이터 사용)"""
     try:
@@ -132,7 +132,7 @@ def get_fred_data():
         st.error(f"FRED 부동산 지수 데이터 로딩 실패: {e}")
         return None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=300)
 def get_additional_indicators():
     """추가 필수 지표들 로드"""
     indicators = {}
@@ -514,7 +514,650 @@ def create_financial_indicators_charts():
     st.markdown("---")
     st.markdown(f"**📅 마지막 업데이트:** {get_kst_now().strftime('%Y-%m-%d %H:%M:%S KST')}")
     st.markdown("**💡 참고:** 실제 거래 전 공식 데이터를 확인하시기 바랍니다.")
+
+
+# Market Agent 데이터 시각화 함수들
+@st.cache_data(ttl=300)  
+def get_stock_data_for_viz(symbol: str, period: str = "6mo"):
+    """주식 데이터 가져오기"""
+    try:
+        if not symbol or len(symbol.strip()) == 0:
+            return None
+            
+        ticker = yf.Ticker(symbol.strip().upper())
+        data = ticker.history(period=period)
+        
+        if data.empty:
+            st.error(f"{symbol} 데이터를 찾을 수 없습니다. 유효한 티커 심볼인지 확인해주세요.")
+            return None
+            
+        return data
+    except Exception as e:
+        st.error(f"데이터 로딩 실패 ({symbol}): {e}")
+        return None
+
+@st.cache_data(ttl=300)
+def calculate_technical_indicators(data):
+    """기술적 지표 계산"""
+    if data is None or data.empty:
+        return None
     
+    try:
+        df = data.copy()
+        
+        # 인덱스가 날짜인 경우 Date 컬럼으로 저장
+        if isinstance(df.index, pd.DatetimeIndex):
+            df = df.reset_index()
+            df.rename(columns={'Date': 'Date'}, inplace=True)
+        else:
+            df = df.reset_index()
+        
+        # 충분한 데이터가 있는지 확인
+        if len(df) < 200:
+            st.warning("기술적 지표 계산을 위해서는 더 긴 기간의 데이터가 필요합니다.")
+        
+        # 기본 이동평균들
+        df['sma_10'] = df['Close'].rolling(window=10).mean()
+        df['sma_20'] = df['Close'].rolling(window=20).mean()
+        df['sma_50'] = df['Close'].rolling(window=50).mean()
+        df['sma_200'] = df['Close'].rolling(window=200).mean()
+        
+        # 지수이동평균
+        df['ema_10'] = df['Close'].ewm(span=10).mean()
+        df['ema_20'] = df['Close'].ewm(span=20).mean()
+        
+        # RSI 계산
+        delta = df['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        df['rsi'] = 100 - (100 / (1 + rs))
+        
+        # MACD 계산
+        ema_12 = df['Close'].ewm(span=12).mean()
+        ema_26 = df['Close'].ewm(span=26).mean()
+        df['macd'] = ema_12 - ema_26
+        df['macd_signal'] = df['macd'].ewm(span=9).mean()
+        df['macd_histogram'] = df['macd'] - df['macd_signal']
+        
+        # 볼린저 밴드
+        df['bb_middle'] = df['Close'].rolling(window=20).mean()
+        bb_std = df['Close'].rolling(window=20).std()
+        df['bb_upper'] = df['bb_middle'] + (bb_std * 2)
+        df['bb_lower'] = df['bb_middle'] - (bb_std * 2)
+        
+        # ATR 계산
+        high_low = df['High'] - df['Low']
+        high_close = abs(df['High'] - df['Close'].shift())
+        low_close = abs(df['Low'] - df['Close'].shift())
+        true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+        df['atr'] = true_range.rolling(window=14).mean()
+        
+        # VWMA 계산
+        def vwma(price, volume, window=20):
+            return (price * volume).rolling(window=window).sum() / volume.rolling(window=window).sum()
+        
+        df['vwma'] = vwma(df['Close'], df['Volume'], 20)
+        
+        # 스토캐스틱 계산
+        low_min = df['Low'].rolling(window=14).min()
+        high_max = df['High'].rolling(window=14).max()
+        df['stoch_k'] = 100 * (df['Close'] - low_min) / (high_max - low_min)
+        df['stoch_d'] = df['stoch_k'].rolling(window=3).mean()
+        
+        return df
+        
+    except Exception as e:
+        st.error(f"기술적 지표 계산 실패: {e}")
+        return None
+
+def create_price_chart(data, symbol):
+    """가격 차트 생성"""
+    if data is None or data.empty:
+        return None
+        
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.03,
+        row_heights=[0.7, 0.3],
+        subplot_titles=[f'{symbol} 주가 차트', '거래량']
+    )
+    
+    # 캔들스틱 차트 - 인덱스가 날짜인지 확인하고 처리
+    if 'Date' in data.columns:
+        x_axis = data['Date']
+    else:
+        x_axis = data.index
+    
+    fig.add_trace(
+        go.Candlestick(
+            x=x_axis,
+            open=data['Open'],
+            high=data['High'],
+            low=data['Low'],
+            close=data['Close'],
+            name="가격",
+            increasing_line_color='#26a69a',
+            decreasing_line_color='#ef5350'
+        ),
+        row=1, col=1
+    )
+    
+    # 이동평균선 추가
+    if 'sma_20' in data.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=x_axis,
+                y=data['sma_20'],
+                name='SMA 20',
+                line=dict(color='blue', width=2)
+            ),
+            row=1, col=1
+        )
+    
+    if 'sma_50' in data.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=x_axis,
+                y=data['sma_50'],
+                name='SMA 50',
+                line=dict(color='orange', width=2)
+            ),
+            row=1, col=1
+        )
+    
+    if 'ema_10' in data.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=x_axis,
+                y=data['ema_10'],
+                name='EMA 10',
+                line=dict(color='purple', width=2)
+            ),
+            row=1, col=1
+        )
+    
+    # 볼린저 밴드
+    if all(col in data.columns for col in ['bb_upper', 'bb_middle', 'bb_lower']):
+        fig.add_trace(
+            go.Scatter(
+                x=x_axis,
+                y=data['bb_upper'],
+                name='볼린저 상단',
+                line=dict(color='gray', width=1, dash='dash'),
+                showlegend=False
+            ),
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=x_axis,
+                y=data['bb_lower'],
+                name='볼린저 하단',
+                line=dict(color='gray', width=1, dash='dash'),
+                fill='tonexty',
+                fillcolor='rgba(128,128,128,0.1)',
+                showlegend=False
+            ),
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=x_axis,
+                y=data['bb_middle'],
+                name='볼린저 중간 (SMA 20)',
+                line=dict(color='red', width=1, dash='dot')
+            ),
+            row=1, col=1
+        )
+    
+    # 거래량
+    fig.add_trace(
+        go.Bar(
+            x=x_axis,
+            y=data['Volume'],
+            name='거래량',
+            marker_color='lightblue'
+        ),
+        row=2, col=1
+    )
+    
+    fig.update_layout(
+        title=f'{symbol} 주가 및 기술적 지표',
+        xaxis_rangeslider_visible=False,
+        height=800,
+        showlegend=True
+    )
+    
+    return fig
+
+def create_macd_chart(data, symbol):
+    """MACD 차트 생성"""
+    if data is None or not all(col in data.columns for col in ['macd', 'macd_signal', 'macd_histogram']):
+        return None
+    
+    # NaN 값들을 제거
+    valid_data = data.dropna(subset=['macd', 'macd_signal', 'macd_histogram'])
+    if valid_data.empty:
+        st.warning("MACD 계산을 위한 충분한 데이터가 없습니다.")
+        return None
+    
+    fig = go.Figure()
+    
+    # X축 데이터 결정
+    if 'Date' in valid_data.columns:
+        x_axis = valid_data['Date']
+    else:
+        x_axis = valid_data.index
+    
+    # MACD 라인
+    fig.add_trace(
+        go.Scatter(
+            x=x_axis,
+            y=valid_data['macd'],
+            name='MACD',
+            line=dict(color='blue', width=2)
+        )
+    )
+    
+    # MACD 시그널
+    fig.add_trace(
+        go.Scatter(
+            x=x_axis,
+            y=valid_data['macd_signal'],
+            name='MACD Signal',
+            line=dict(color='orange', width=2)
+        )
+    )
+    
+    # MACD 히스토그램
+    colors = ['red' if val < 0 else 'green' for val in valid_data['macd_histogram']]
+    fig.add_trace(
+        go.Bar(
+            x=x_axis,
+            y=valid_data['macd_histogram'],
+            name='MACD Histogram',
+            marker_color=colors,
+            opacity=0.7
+        )
+    )
+    
+    fig.update_layout(
+        title=f'{symbol} MACD 지표',
+        xaxis_title='날짜',
+        yaxis_title='값',
+        height=400
+    )
+    
+    return fig
+
+def create_rsi_chart(data, symbol):
+    """RSI 차트 생성"""
+    if data is None or 'rsi' not in data.columns:
+        return None
+    
+    # NaN 값들을 제거
+    valid_data = data.dropna(subset=['rsi'])
+    if valid_data.empty:
+        st.warning("RSI 계산을 위한 충분한 데이터가 없습니다.")
+        return None
+    
+    fig = go.Figure()
+    
+    # X축 데이터 결정
+    if 'Date' in valid_data.columns:
+        x_axis = valid_data['Date']
+    else:
+        x_axis = valid_data.index
+    
+    # RSI 라인
+    fig.add_trace(
+        go.Scatter(
+            x=x_axis,
+            y=valid_data['rsi'],
+            name='RSI',
+            line=dict(color='purple', width=2)
+        )
+    )
+    
+    # 과매수/과매도 라인
+    fig.add_hline(y=70, line_dash="dash", line_color="red", annotation_text="과매수 (70)")
+    fig.add_hline(y=30, line_dash="dash", line_color="green", annotation_text="과매도 (30)")
+    fig.add_hline(y=50, line_dash="dot", line_color="gray", annotation_text="중립 (50)")
+    
+    fig.update_layout(
+        title=f'{symbol} RSI 지표',
+        xaxis_title='날짜',
+        yaxis_title='RSI',
+        yaxis=dict(range=[0, 100]),
+        height=400
+    )
+    
+    return fig
+
+def create_atr_chart(data, symbol):
+    """ATR 차트 생성"""
+    if data is None or 'atr' not in data.columns:
+        return None
+    
+    fig = go.Figure()
+    
+    # X축 데이터 결정
+    if 'Date' in data.columns:
+        x_axis = data['Date']
+    else:
+        x_axis = data.index
+    
+    # ATR 라인
+    fig.add_trace(
+        go.Scatter(
+            x=x_axis,
+            y=data['atr'],
+            name='ATR',
+            line=dict(color='red', width=2),
+            fill='tozeroy',
+            fillcolor='rgba(255,0,0,0.1)'
+        )
+    )
+    
+    fig.update_layout(
+        title=f'{symbol} ATR (Average True Range) 변동성 지표',
+        xaxis_title='날짜',
+        yaxis_title='ATR',
+        height=400
+    )
+    
+    return fig
+
+def create_volume_analysis_chart(data, symbol):
+    """거래량 분석 차트"""
+    if data is None:
+        return None
+    
+    if 'Volume' not in data.columns or 'Close' not in data.columns:
+        return None
+    
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.05,
+        row_heights=[0.6, 0.4],
+        subplot_titles=[f'{symbol} 거래량 vs 가격', '거래량 이동평균']
+    )
+    
+    # X축 데이터 결정
+    if 'Date' in data.columns:
+        x_axis = data['Date']
+    else:
+        x_axis = data.index
+    
+    # 가격 변화에 따른 거래량 색상
+    price_change = data['Close'].pct_change()
+    colors = ['red' if change < 0 else 'green' for change in price_change]
+    
+    # 거래량 바
+    fig.add_trace(
+        go.Bar(
+            x=x_axis,
+            y=data['Volume'],
+            name='거래량',
+            marker_color=colors,
+            opacity=0.7
+        ),
+        row=1, col=1
+    )
+    
+    # VWMA (Volume Weighted Moving Average)
+    if 'vwma' in data.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=x_axis,
+                y=data['vwma'],
+                name='VWMA',
+                line=dict(color='orange', width=2)
+            ),
+            row=1, col=1
+        )
+    
+    # 거래량 이동평균
+    volume_ma = data['Volume'].rolling(window=20).mean()
+    fig.add_trace(
+        go.Scatter(
+            x=x_axis,
+            y=volume_ma,
+            name='거래량 20일 평균',
+            line=dict(color='blue', width=2)
+        ),
+        row=2, col=1
+    )
+    
+    fig.update_layout(
+        title=f'{symbol} 거래량 분석',
+        height=600,
+        showlegend=True
+    )
+    
+    return fig
+
+def create_market_agent_dashboard():
+    """Market Agent 데이터 시각화 대시보드"""
+    try:
+        st.header("📈 Market Agent 주식 통계 시각화")
+        
+        # 메인 영역에서 설정
+        st.subheader("🎯 분석 설정")
+        
+        # 설정을 3개 열로 배치
+        col1, col2, col3 = st.columns([2, 2, 3])
+        
+        with col1:
+            # 티커 입력
+            default_ticker = "AAPL"
+            ticker = st.text_input(
+                "주식 티커 심볼", 
+                value=default_ticker,
+                help="예: AAPL, TSLA, GOOGL, SPY",
+                key="market_ticker"
+            ).upper()
+        
+        with col2:
+            # 기간 선택
+            period_options = {
+                "1개월": "1mo",
+                "3개월": "3mo", 
+                "6개월": "6mo",
+                "1년": "1y",
+                "2년": "2y"
+            }
+            
+            selected_period = st.selectbox(
+                "분석 기간",
+                options=list(period_options.keys()),
+                index=2,  # 기본값: 6개월
+                key="market_period"
+            )
+            
+            period = period_options[selected_period]
+        
+        with col3:
+            # 차트 선택을 더 컴팩트하게
+            st.write("**📊 표시할 차트**")
+            chart_col1, chart_col2 = st.columns(2)
+            
+            with chart_col1:
+                show_price = st.checkbox("가격 & 이동평균", value=True, key="show_price")
+                show_macd = st.checkbox("MACD", value=True, key="show_macd")
+                show_rsi = st.checkbox("RSI", value=True, key="show_rsi")
+            
+            with chart_col2:
+                show_atr = st.checkbox("ATR (변동성)", value=False, key="show_atr")
+                show_volume = st.checkbox("거래량 분석", value=False, key="show_volume")
+        
+        st.markdown("---")
+        
+        if not ticker:
+            st.warning("티커 심볼을 입력해주세요.")
+            return
+        
+        # 데이터 로드
+        with st.spinner(f"{ticker} 데이터 로딩 중..."):
+            stock_data = get_stock_data_for_viz(ticker, period)
+            
+            if stock_data is None or stock_data.empty:
+                st.error(f"{ticker} 데이터를 불러올 수 없습니다.")
+                return
+            
+            # 기술적 지표 계산
+            technical_data = calculate_technical_indicators(stock_data)
+        
+        # 기본 정보를 뱃지 스타일로 표시
+        current_price = stock_data['Close'].iloc[-1]
+        prev_price = stock_data['Close'].iloc[-2]
+        price_change = current_price - prev_price
+        price_change_pct = (price_change / prev_price) * 100
+        
+        volume = stock_data['Volume'].iloc[-1]
+        avg_volume = stock_data['Volume'].tail(20).mean()
+        volume_change = ((volume - avg_volume) / avg_volume) * 100
+        
+        high_52w = stock_data['High'].tail(252).max()  # 약 1년
+        low_52w = stock_data['Low'].tail(252).min()
+    
+        # RSI 계산
+        rsi_badge = ""
+        if technical_data is not None and 'rsi' in technical_data.columns:
+            current_rsi = technical_data['rsi'].iloc[-1]
+            if not pd.isna(current_rsi):
+                if current_rsi > 70:
+                    rsi_status = "과매수"
+                    rsi_color = "#ff4444"
+                elif current_rsi < 30:
+                    rsi_status = "과매도"
+                    rsi_color = "#44ff44"
+                else:
+                    rsi_status = "중립"
+                    rsi_color = "#4488ff"
+                rsi_badge = f'<span style="background-color: {rsi_color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold;">{rsi_status}</span>'
+    
+        # 가격 변화 색상
+        price_color = "#44ff44" if price_change >= 0 else "#ff4444"
+        volume_color = "#44ff44" if volume_change >= 0 else "#ff4444"
+        
+        # 뱃지 스타일 메트릭 표시
+        st.markdown(f"""
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0;">
+        <div style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 12px 16px; min-width: 160px;">
+            <div style="font-size: 0.75em; color: #666; font-weight: 600; margin-bottom: 4px;">현재 가격</div>
+            <div style="font-size: 1.5em; font-weight: bold; color: #333;">${current_price:.2f}</div>
+            <div style="font-size: 0.8em; color: {price_color}; font-weight: 600;">{price_change:+.2f} ({price_change_pct:+.2f}%)</div>
+        </div>
+        <div style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 12px 16px; min-width: 160px;">
+            <div style="font-size: 0.75em; color: #666; font-weight: 600; margin-bottom: 4px;">거래량</div>
+            <div style="font-size: 1.2em; font-weight: bold; color: #333;">{volume:,.0f}</div>
+            <div style="font-size: 0.8em; color: {volume_color}; font-weight: 600;">20일 평균 대비 {volume_change:+.1f}%</div>
+        </div>
+        <div style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 12px 16px; min-width: 140px;">
+            <div style="font-size: 0.75em; color: #666; font-weight: 600; margin-bottom: 4px;">52주 최고/최저</div>
+            <div style="font-size: 1.1em; font-weight: bold; color: #333;">${high_52w:.2f}</div>
+            <div style="font-size: 0.9em; color: #666; font-weight: 600;">${low_52w:.2f}</div>
+        </div>
+    </div>
+        """, unsafe_allow_html=True)
+        
+        # 차트 표시
+        if show_price:
+            st.subheader("📈 가격 차트 및 이동평균")
+            price_chart = create_price_chart(technical_data, ticker)
+            if price_chart:
+                st.plotly_chart(price_chart, use_container_width=True)
+        
+        # 2개 열로 나누어 차트 배치
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if show_macd:
+                st.subheader("📊 MACD")
+                macd_chart = create_macd_chart(technical_data, ticker)
+                if macd_chart:
+                    st.plotly_chart(macd_chart, use_container_width=True)
+            
+            if show_atr:
+                st.subheader("📈 ATR (변동성)")
+                atr_chart = create_atr_chart(technical_data, ticker)
+                if atr_chart:
+                    st.plotly_chart(atr_chart, use_container_width=True)
+        
+        with col2:
+            if show_rsi:
+                st.subheader("⚡ RSI")
+                rsi_chart = create_rsi_chart(technical_data, ticker)
+                if rsi_chart:
+                    st.plotly_chart(rsi_chart, use_container_width=True)
+            
+            if show_volume:
+                st.subheader("📊 거래량 분석")
+                volume_chart = create_volume_analysis_chart(technical_data, ticker)
+                if volume_chart:
+                    st.plotly_chart(volume_chart, use_container_width=True)
+        
+        # 기술적 지표 요약 테이블
+        if technical_data is not None:
+            st.subheader("📋 기술적 지표 요약")
+            
+            summary_data = []
+            
+            # 현재 가격과 이동평균 비교
+            if 'sma_50' in technical_data.columns:
+                sma_50 = technical_data['sma_50'].iloc[-1]
+                if not pd.isna(sma_50):
+                    sma_50_signal = "상승" if current_price > sma_50 else "하락"
+                    summary_data.append(["SMA 50", f"${sma_50:.2f}", sma_50_signal])
+            
+            if 'sma_200' in technical_data.columns:
+                sma_200 = technical_data['sma_200'].iloc[-1]
+                if not pd.isna(sma_200):
+                    sma_200_signal = "상승" if current_price > sma_200 else "하락"
+                    summary_data.append(["SMA 200", f"${sma_200:.2f}", sma_200_signal])
+            
+            if 'ema_10' in technical_data.columns:
+                ema_10 = technical_data['ema_10'].iloc[-1]
+                if not pd.isna(ema_10):
+                    ema_10_signal = "상승" if current_price > ema_10 else "하락"
+                    summary_data.append(["EMA 10", f"${ema_10:.2f}", ema_10_signal])
+            
+            # RSI
+            if 'rsi' in technical_data.columns:
+                rsi = technical_data['rsi'].iloc[-1]
+                if pd.isna(rsi):
+                    summary_data.append(["RSI", "계산중", "데이터 부족"])
+                else:
+                    if rsi > 70:
+                        rsi_signal = "과매수"
+                    elif rsi < 30:
+                        rsi_signal = "과매도"
+                    else:
+                        rsi_signal = "중립"
+                    summary_data.append(["RSI", f"{rsi:.1f}", rsi_signal])
+            
+            # MACD
+            if 'macd' in technical_data.columns and 'macd_signal' in technical_data.columns:
+                macd = technical_data['macd'].iloc[-1]
+                macd_signal = technical_data['macd_signal'].iloc[-1]
+                if not pd.isna(macd) and not pd.isna(macd_signal):
+                    macd_trend = "상승" if macd > macd_signal else "하락"
+                    summary_data.append(["MACD", f"{macd:.3f}", macd_trend])
+            
+            if summary_data:
+                summary_df = pd.DataFrame(summary_data, columns=["지표", "현재 값", "신호"])
+                st.table(summary_df)
+    
+    except Exception as e:
+        st.error(f"Market Agent 대시보드 로딩 중 오류가 발생했습니다: {e}")
+        st.info("다른 탭을 사용하거나 페이지를 새로고침 해보세요.")
+
 
 # Load environment variables
 load_dotenv()
@@ -1413,7 +2056,7 @@ def render_configuration_section():
         ticker = st.text_input(
             "Enter ticker symbol", 
             value=st.session_state.config.get("ticker", "SPY"),
-            help="Stock ticker symbol to analyze (e.g., AAPL, TSLA, SPY)",
+            help="Stock ticker symbol to analyze (e.g., SPY, TSLA, SPY)",
             placeholder="Enter symbol..."
         ).upper()
         
@@ -2079,7 +2722,7 @@ def main():
     config_valid = render_configuration_section()
     
     # Create tabs for different sections
-    tab1, tab2 = st.tabs(["🧠 AI 분석", "📊 금융 지표 시각화"])
+    tab1, tab2, tab3 = st.tabs(["🧠 AI 분석", "📊 금융 지표 시각화", "📈 Market Agent 주식 분석"])
     
     with tab1:
         # Main content area for AI Analysis
@@ -2201,6 +2844,10 @@ def main():
     with tab2:
         # Financial Indicators Visualization Tab
         create_financial_indicators_charts()
+    
+    with tab3:
+        # Market Agent Stock Analysis Tab
+        create_market_agent_dashboard()
     
     # Process analysis stream if running
     if st.session_state.analysis_running and hasattr(st.session_state, 'analysis_stream'):
