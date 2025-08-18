@@ -17,6 +17,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import requests
 import numpy as np
+from db_manager import DatabaseManager
 
 # KST 시간대 설정
 KST = pytz.timezone('Asia/Seoul')
@@ -1919,11 +1920,13 @@ def setup_logging():
 # Initialize logger
 logger = setup_logging()
 
-# Multi-user session management
-VALID_USERS = {
-    "jh": "jonghae5",
-    "ke": "kke"
-}
+# Initialize Database Manager
+@st.cache_resource
+def get_db_manager():
+    return DatabaseManager()
+
+# DB 매니저 인스턴스
+db_manager = get_db_manager()
 
 def get_session_file(username=None):
     """Get session file path for specific user"""
@@ -1932,117 +1935,90 @@ def get_session_file(username=None):
     return ".current_session.json"
 
 def save_session():
-    """Save current session to file"""
-    if st.session_state.authenticated and st.session_state.login_time and hasattr(st.session_state, 'username'):
-        # KST 시간으로 저장
-        login_time = st.session_state.login_time
-        if login_time.tzinfo is not None:
-            login_time = login_time.replace(tzinfo=None)
-        
-        session_data = {
-            'authenticated': True,
-            'username': st.session_state.username,
-            'login_time': login_time.isoformat(),
-            'session_duration': st.session_state.session_duration
-        }
-        try:
-            session_file = get_session_file(st.session_state.username)
-            with open(session_file, 'w') as f:
-                json.dump(session_data, f)
-            logger.info(f"[SESSION] Session saved for user: {st.session_state.username}")
-        except Exception as e:
-            logger.error(f"[SESSION] Failed to save session: {e}")
+    """세션 저장 - DB 기반으로 변경되어 더이상 필요 없음"""
+    # DB 매니저가 세션을 자동으로 관리하므로 별도 저장 불필요
+    pass
 
 def load_session():
-    """Load session from any existing user session files"""
-    for username in VALID_USERS.keys():
-        session_file = get_session_file(username)
-        if os.path.exists(session_file):
-            try:
-                with open(session_file, 'r') as f:
-                    session_data = json.load(f)
+    """Load session from database - check both session_state and query params"""
+    # 먼저 session_state에서 세션 ID 확인
+    session_id = getattr(st.session_state, 'session_id', None)
+    
+    # session_state에 없으면 query params에서 확인 (새로고침 대응)
+    if not session_id:
+        query_params = st.query_params
+        session_id = query_params.get('session_id')
+        
+    if session_id:
+        try:
+            # DB에서 세션 유효성 검사
+            username = db_manager.validate_session(session_id)
+            
+            if username:
+                # 유효한 세션 - 상태 복원
+                st.session_state.authenticated = True
+                st.session_state.username = username
+                st.session_state.session_id = session_id
+                st.session_state.login_time = get_kst_naive_now()  # 현재 시간으로 갱신
+                st.session_state.session_duration = 3600  # 1시간
                 
-                login_time = datetime.datetime.fromisoformat(session_data['login_time'])
-                # KST 시간으로 처리
-                if login_time.tzinfo is not None:
-                    login_time = login_time.replace(tzinfo=None)
+                # URL에 세션 ID 유지 (새로고침 대응)
+                st.query_params['session_id'] = session_id
                 
-                current_time = get_kst_naive_now()
-                if current_time.tzinfo is not None:
-                    current_time = current_time.replace(tzinfo=None)
+                logger.info(f"[SESSION] DB session restored for {username}")
+                return True
+            else:
+                # 세션 만료 또는 무효 - URL에서도 제거
+                st.session_state.session_id = None
+                if 'session_id' in st.query_params:
+                    del st.query_params['session_id']
+                logger.info(f"[SESSION] DB session expired or invalid: {session_id[:8] if session_id else 'None'}")
                 
-                elapsed_time = (current_time - login_time).total_seconds()
-                
-                # Check if session is still valid (1 hour = 3600 seconds)
-                if elapsed_time < session_data['session_duration']:
-                    st.session_state.authenticated = True
-                    st.session_state.username = session_data['username']
-                    st.session_state.login_time = login_time
-                    st.session_state.session_duration = session_data['session_duration']
-                    logger.info(f"[SESSION] Session restored for {username} - {int((session_data['session_duration'] - elapsed_time) / 60)} minutes remaining")
-                    return True
-                else:
-                    # Session expired, remove file
-                    os.remove(session_file)
-                    logger.info(f"[SESSION] Session expired and removed for {username}")
-            except Exception as e:
-                logger.error(f"[SESSION] Failed to load session for {username}: {e}")
-                if os.path.exists(session_file):
-                    os.remove(session_file)
+        except Exception as e:
+            logger.error(f"[SESSION] Failed to validate DB session {session_id[:8] if session_id else 'None'}: {e}")
+            st.session_state.session_id = None
+            if 'session_id' in st.query_params:
+                del st.query_params['session_id']
+    
+    # 기존 파일 세션 정리 (한번만 실행)
+    cleanup_old_file_sessions()
     
     return False
 
+def cleanup_old_file_sessions():
+    """기존 파일 기반 세션 정리 (DB 전환 완료 후)"""
+    try:
+        session_files = [f for f in os.listdir('.') if f.startswith('.session_') and f.endswith('.json')]
+        
+        for session_file in session_files:
+            if os.path.exists(session_file):
+                try:
+                    os.remove(session_file)
+                    logger.info(f"[SESSION] Cleaned up old file session: {session_file}")
+                except Exception as e:
+                    logger.error(f"[SESSION] Failed to remove old session file {session_file}: {e}")
+    except Exception as e:
+        logger.error(f"[SESSION] Error during file session cleanup: {e}")
+
 def clear_session():
-    """Clear session file for current user"""
+    """Clear current user session from database"""
+    session_id = getattr(st.session_state, 'session_id', None)
     username = getattr(st.session_state, 'username', None)
     
-    if username:
-        session_file = get_session_file(username)
-        if os.path.exists(session_file):
-            try:
-                os.remove(session_file)
-                logger.info(f"[SESSION] Session file removed for {username}: {session_file}")
-            except Exception as e:
-                logger.error(f"[SESSION] Failed to remove session file {session_file}: {e}")
-        else:
-            logger.warning(f"[SESSION] Session file not found for {username}: {session_file}")
-    else:
-        logger.warning("[SESSION] No username found, cannot clear user-specific session")
-    
-    # Also clear any old generic session file
-    old_session_file = get_session_file()
-    if os.path.exists(old_session_file):
+    if session_id:
         try:
-            os.remove(old_session_file)
-            logger.info(f"[SESSION] Old generic session file removed: {old_session_file}")
+            # DB에서 세션 무효화
+            db_manager.invalidate_session(session_id)
+            logger.info(f"[SESSION] DB session invalidated for {username}: {session_id[:8]}")
         except Exception as e:
-            logger.error(f"[SESSION] Failed to remove old session: {e}")
+            logger.error(f"[SESSION] Failed to invalidate DB session {session_id[:8] if session_id else 'None'}: {e}")
     
-    # Clear all possible session files for cleanup
-    for user in VALID_USERS.keys():
-        session_file = get_session_file(user)
-        if os.path.exists(session_file):
-            try:
-                # Check if this is an old/expired session
-                with open(session_file, 'r') as f:
-                    session_data = json.load(f)
-                
-                login_time = datetime.datetime.fromisoformat(session_data['login_time'])
-                # KST 시간으로 처리
-                if login_time.tzinfo is not None:
-                    login_time = login_time.replace(tzinfo=None)
-                
-                current_time = get_kst_naive_now()
-                if current_time.tzinfo is not None:
-                    current_time = current_time.replace(tzinfo=None)
-                
-                elapsed = (current_time - login_time).total_seconds()
-                
-                if elapsed > session_data.get('session_duration', 3600):
-                    os.remove(session_file)
-                    logger.info(f"[SESSION] Cleaned up expired session for {user}")
-            except Exception as e:
-                logger.error(f"[SESSION] Error cleaning up session for {user}: {e}")
+    # URL에서 세션 ID 제거
+    if 'session_id' in st.query_params:
+        del st.query_params['session_id']
+    
+    # 기존 파일 세션도 정리 (호환성)
+    cleanup_old_file_sessions()
 
 # Authentication functions
 def init_auth_session_state():
@@ -2051,6 +2027,8 @@ def init_auth_session_state():
         st.session_state.authenticated = False
     if 'username' not in st.session_state:
         st.session_state.username = None
+    if 'session_id' not in st.session_state:
+        st.session_state.session_id = None
     if 'login_attempts' not in st.session_state:
         st.session_state.login_attempts = 0
     if 'blocked_until' not in st.session_state:
@@ -2061,26 +2039,24 @@ def init_auth_session_state():
         st.session_state.session_duration = 3600  # 1 hour in seconds
 
 def is_session_expired():
-    """Check if user session has expired"""
-    if not st.session_state.authenticated or st.session_state.login_time is None:
+    """Check if user session has expired using database"""
+    if not st.session_state.authenticated:
         return False
     
-    current_time = get_kst_naive_now()
-    login_time = st.session_state.login_time
+    session_id = getattr(st.session_state, 'session_id', None)
     
-    # KST 시간으로 처리
-    if current_time.tzinfo is not None:
-        current_time = current_time.replace(tzinfo=None)
-    if login_time.tzinfo is not None:
-        login_time = login_time.replace(tzinfo=None)
+    if not session_id:
+        # 세션 ID가 없으면 만료된 것으로 간주
+        return True
     
-    elapsed_time = (current_time - login_time).total_seconds()
+    # DB에서 세션 유효성 재검증
+    username = db_manager.validate_session(session_id)
     
-    if elapsed_time > st.session_state.session_duration:
-        # Session expired, logout user
+    if not username:
+        # 세션 만료 또는 무효 - 간단하게 로그아웃 처리
         expired_user = st.session_state.get('username', 'Unknown')
         
-        # Clear session file before clearing username
+        # Clear session
         clear_session()
         
         # Stop any running analysis
@@ -2091,10 +2067,15 @@ def is_session_expired():
         # Clear session state
         st.session_state.authenticated = False
         st.session_state.username = None
+        st.session_state.session_id = None
         st.session_state.login_time = None
         
-        logger.info(f"[AUTH] Session expired for {expired_user} - user logged out automatically")
+        logger.info(f"[AUTH] Session expired for {expired_user}")
         return True
+    
+    # 세션이 유효하면 사용자 정보 동기화
+    if username != st.session_state.username:
+        st.session_state.username = username
     
     return False
 
@@ -2121,34 +2102,37 @@ def is_blocked():
         return False
 
 def authenticate_user(username: str, password: str) -> bool:
-    """Authenticate user with username and password"""
-    # Check if username is valid
-    if username not in VALID_USERS:
+    """Authenticate user with username and password using database"""
+    try:
+        if db_manager.verify_user(username, password):
+            # 인증 성공 - 세션 생성
+            session_id = db_manager.create_session(username, duration_hours=1)
+            
+            st.session_state.authenticated = True
+            st.session_state.username = username
+            st.session_state.session_id = session_id
+            st.session_state.login_attempts = 0
+            st.session_state.login_time = get_kst_naive_now()
+            st.session_state.blocked_until = None
+            
+            # URL에 세션 ID 추가 (새로고침 대응)
+            st.query_params['session_id'] = session_id
+            
+            logger.info(f"[AUTH] User {username} successfully authenticated at {to_kst_string(get_kst_now())} - session will last 1 hour")
+            return True
+        else:
+            st.session_state.login_attempts += 1
+            logger.warning(f"[AUTH] Failed login attempt for {username}: {st.session_state.login_attempts}/5")
+            
+            # 클라이언트 사이드 차단 (5회 시도시 15분)
+            if st.session_state.login_attempts >= 5:
+                st.session_state.blocked_until = get_kst_naive_now() + datetime.timedelta(minutes=15)
+                logger.warning("[AUTH] User blocked for 5 failed attempts (15 minutes)")
+            
+            return False
+    except Exception as e:
+        logger.error(f"[AUTH] Authentication error for {username}: {e}")
         st.session_state.login_attempts += 1
-        logger.warning(f"[AUTH] Invalid username attempt: {username}")
-        return False
-    
-    # Check if password matches username
-    if password == VALID_USERS[username]:
-        st.session_state.authenticated = True
-        st.session_state.username = username
-        st.session_state.login_attempts = 0
-        st.session_state.login_time = get_kst_naive_now()  # Record KST login time
-        
-        # Save session to file
-        save_session()
-        
-        logger.info(f"[AUTH] User {username} successfully authenticated at {to_kst_string(get_kst_now())} - session will last 1 hour")
-        return True
-    else:
-        st.session_state.login_attempts += 1
-        logger.warning(f"[AUTH] Failed login attempt for {username}: {st.session_state.login_attempts}/5")
-        
-        if st.session_state.login_attempts >= 5:
-            # Block user for 30 minutes
-            st.session_state.blocked_until = get_kst_naive_now() + datetime.timedelta(minutes=30)
-            logger.warning("[AUTH] User blocked for 5 failed attempts (30 minutes)")
-        
         return False
 
 def render_login_page():
@@ -2187,10 +2171,10 @@ def render_login_page():
     with st.form("login_form"):
         st.subheader("🔑 사용자 인증")
         
-        username = st.selectbox(
-            "사용자 이름 선택",
-            options=list(VALID_USERS.keys()),
-            help="사용자 이름을 선택하세요"
+        username = st.text_input(
+            "사용자 이름",
+            placeholder="사용자 이름을 입력하세요",
+            help="등록된 사용자 이름을 입력하세요"
         )
         
         password = st.text_input(
@@ -2527,6 +2511,240 @@ def render_configuration_section():
         st.sidebar.warning("⚠️ Please configure and save settings")
     
     return st.session_state.config_set and len(st.session_state.config.get("analysts", [])) > 0
+
+def render_report_history():
+    """리포트 히스토리 렌더링"""
+    st.markdown("### 📚 분석 리포트 히스토리")
+    
+    try:
+        # 현재 사용자 확인
+        if not st.session_state.get('authenticated') or not st.session_state.get('username'):
+            st.warning("로그인이 필요합니다.")
+            return
+        
+        # 필터 옵션
+        col1, col2, col3 = st.columns([2, 2, 1])
+        
+        with col1:
+            start_date = st.date_input(
+                "📅 시작 날짜",
+                value=get_kst_date() - datetime.timedelta(days=30),  # 30일 전
+                help="분석 시작 날짜 필터"
+            )
+        
+        with col2:
+            end_date = st.date_input(
+                "📅 종료 날짜", 
+                value=get_kst_date(),
+                help="분석 종료 날짜 필터"
+            )
+        
+        with col3:
+            limit = st.selectbox("📄 표시 개수", options=[10, 25, 50, 100], index=1)
+        
+        # 분석 세션 조회 (사용자별 세션)
+        current_username = st.session_state.username
+        sessions = db_manager.get_user_analysis_sessions(current_username, limit=limit)
+        
+        # 날짜 필터 적용
+        if start_date and end_date:
+            start_str = start_date.strftime("%Y-%m-%d")
+            end_str = end_date.strftime("%Y-%m-%d")
+            sessions = [s for s in sessions if start_str <= s['analysis_date'][:10] <= end_str]
+
+        if not sessions:
+            st.info("📭 No analysis reports found. Start your first analysis!")
+            return
+        
+        # 히스토리 테이블 표시
+        st.markdown("#### 📋 Analysis History")
+        
+        # 데이터프레임으로 변환
+        df_data = []
+        for session in sessions:
+            df_data.append({
+                "Session ID": session['session_id'][:8] + "...",
+                "Ticker": session['ticker'],
+                "Analysis Date": session['analysis_date'][:16] if session['analysis_date'] else '',
+                "Status": session['status'],
+                "Decision": session['final_decision'] or '-',
+                "Confidence": f"{session['confidence_score']:.1%}" if session['confidence_score'] else '-',
+                "Completed": session['completed_at'][:16] if session['completed_at'] else '-'
+            })
+        
+        df = pd.DataFrame(df_data)
+        
+        # 상태별 색상 코딩을 위한 스타일링
+        def style_status(val):
+            if val == 'completed':
+                return 'background-color: #d4edda; color: #155724'
+            elif val == 'running':
+                return 'background-color: #fff3cd; color: #856404'
+            elif val == 'failed':
+                return 'background-color: #f8d7da; color: #721c24'
+            return ''
+        
+        styled_df = df.style.applymap(style_status, subset=['Status'])
+        st.dataframe(styled_df, use_container_width=True)
+        
+        # 상세 리포트 보기
+        st.markdown("#### 🔍 Detailed Report View")
+        
+        # 세션 선택
+        session_options = {f"{s['ticker']} - {s['analysis_date'][:16]} ({s['session_id'][:8]})": s['session_id'] 
+                          for s in sessions}
+        
+        if session_options:
+            selected_display = st.selectbox(
+                "📊 Select Report to View:",
+                options=list(session_options.keys()),
+                help="View detailed analysis report"
+            )
+            
+            selected_session_id = session_options[selected_display]
+            
+            # 선택된 리포트 표시
+            if st.button("📖 Load Report", type="primary"):
+                with st.spinner("Loading report..."):
+                    report_data = db_manager.get_session_report(selected_session_id)
+                    
+                    # 세션 정보 표시
+                    session_info = report_data['session_info']
+                    
+                    st.markdown("##### 📋 Session Information")
+                    info_col1, info_col2, info_col3, info_col4 = st.columns(4)
+                    
+                    with info_col1:
+                        st.metric("Ticker", session_info['ticker'])
+                    with info_col2:
+                        st.metric("Status", session_info['status'])
+                    with info_col3:
+                        if session_info['final_decision']:
+                            st.metric("Decision", session_info['final_decision'])
+                    with info_col4:
+                        if session_info['confidence_score']:
+                            st.metric("Confidence", f"{session_info['confidence_score']:.1%}")
+                    
+                    # 에이전트 실행 상태
+                    if report_data['agent_executions']:
+                        st.markdown("##### 🤖 Agent Execution Status")
+                        agent_df_data = []
+                        for agent in report_data['agent_executions']:
+                            duration = ""
+                            if agent['execution_time_seconds']:
+                                duration = f"{agent['execution_time_seconds']:.1f}s"
+                            
+                            agent_df_data.append({
+                                "Agent": agent['agent_name'],
+                                "Status": agent['status'],
+                                "Duration": duration,
+                                "Error": agent['error_message'] or '-'
+                            })
+                        
+                        agent_df = pd.DataFrame(agent_df_data)
+                        st.dataframe(agent_df, use_container_width=True)
+                    
+                    # 리포트 섹션들
+                    if report_data['report_sections']:
+                        st.markdown("##### 📄 Analysis Reports")
+                        
+                        # 섹션별로 그룹화
+                        sections_by_type = {}
+                        for section in report_data['report_sections']:
+                            section_type = section['section_type']
+                            if section_type not in sections_by_type:
+                                sections_by_type[section_type] = []
+                            sections_by_type[section_type].append(section)
+                        
+                        # 섹션별 탭 생성
+                        section_titles = {
+                            "market_report": "📈 Market Analysis",
+                            "sentiment_report": "🗣️ Social Sentiment", 
+                            "news_report": "📰 News Analysis",
+                            "fundamentals_report": "📊 Fundamentals",
+                            "investment_plan": "🎯 Research Decision",
+                            "trader_investment_plan": "💼 Trading Plan",
+                            "final_trade_decision": "⚖️ Final Decision"
+                        }
+                        
+                        available_sections = list(sections_by_type.keys())
+                        if available_sections:
+                            section_tabs = st.tabs([section_titles.get(s, s) for s in available_sections])
+                            
+                            for tab_idx, (section_type, tab) in enumerate(zip(available_sections, section_tabs)):
+                                with tab:
+                                    for section in sections_by_type[section_type]:
+                                        st.markdown(f"**Agent:** {section['agent_name']}")
+                                        st.markdown(f"**Created:** {section['created_at']}")
+                                        st.markdown("---")
+                                        st.markdown(section['content'])
+                    
+                    # 리포트 내보내기
+                    st.markdown("##### ⬇️ Export Options")
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # JSON 내보내기
+                        json_data = db_manager.export_session_to_json(selected_session_id)
+                        st.download_button(
+                            label="📄 Download as JSON",
+                            data=json_data,
+                            file_name=f"report_{session_info['ticker']}_{selected_session_id[:8]}.json",
+                            mime="application/json"
+                        )
+                    
+                    with col2:
+                        # Markdown 내보내기 (간단한 버전)
+                        md_content = f"# Analysis Report - {session_info['ticker']}\n\n"
+                        md_content += f"**Date:** {session_info['analysis_date']}\n"
+                        md_content += f"**Decision:** {session_info['final_decision'] or 'N/A'}\n\n"
+                        
+                        for section in report_data['report_sections']:
+                            title = section_titles.get(section['section_type'], section['section_type'])
+                            md_content += f"## {title}\n\n{section['content']}\n\n"
+                        
+                        st.download_button(
+                            label="📝 Download as Markdown",
+                            data=md_content,
+                            file_name=f"report_{session_info['ticker']}_{selected_session_id[:8]}.md",
+                            mime="text/markdown"
+                        )
+        
+        # 통계 정보
+        if sessions:
+            st.markdown("#### 📊 Statistics")
+            
+            # 기본 통계
+            total_analyses = len(sessions)
+            completed_analyses = len([s for s in sessions if s['status'] == 'completed'])
+            
+            stat_col1, stat_col2, stat_col3 = st.columns(3)
+            
+            with stat_col1:
+                st.metric("Total Analyses", total_analyses)
+            
+            with stat_col2:
+                st.metric("Completed", completed_analyses)
+            
+            with stat_col3:
+                completion_rate = (completed_analyses / total_analyses * 100) if total_analyses > 0 else 0
+                st.metric("Completion Rate", f"{completion_rate:.1f}%")
+            
+            # 결정 분포 차트
+            decisions = [s['final_decision'] for s in sessions if s['final_decision']]
+            if decisions:
+                decision_counts = pd.Series(decisions).value_counts()
+                
+                fig = px.pie(
+                    values=decision_counts.values,
+                    names=decision_counts.index,
+                    title="Decision Distribution"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+    
+    except Exception as e:
+        st.error(f"Error loading report history: {str(e)}")
+        st.info("Make sure the database is properly initialized.")
 
 def render_agent_status():
     """Render agent status monitoring in column format"""
@@ -3040,6 +3258,7 @@ def main():
             # Clear all session state variables
             st.session_state.authenticated = False
             st.session_state.username = None
+            st.session_state.session_id = None
             st.session_state.login_attempts = 0
             st.session_state.login_time = None
             
@@ -3067,7 +3286,7 @@ def main():
     config_valid = render_configuration_section()
     
     # Create tabs for different sections
-    tab1, tab2, tab3 = st.tabs(["🧠 AI 분석", "📊 거시경제 지표", "📈 Market Agent 주식 분석"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🧠 AI 분석", "📚 분석 히스토리", "📈 Market Agent 주식 분석","📊 거시경제 지표",])
     
     with tab1:
         # Main content area for AI Analysis
@@ -3218,12 +3437,18 @@ def main():
         render_logging_section()
     
     with tab2:
-        # Financial Indicators Visualization Tab
-        create_financial_indicators_charts()
+        # Report History Tab
+        render_report_history()
+        
     
     with tab3:
         # Market Agent Stock Analysis Tab
         create_market_agent_dashboard()
+    
+    with tab4:
+        # Financial Indicators Visualization Tab
+        create_financial_indicators_charts()
+        
     
     # Process analysis stream if running
     if st.session_state.analysis_running and hasattr(st.session_state, 'analysis_stream'):
@@ -3332,6 +3557,60 @@ def main():
             if st.session_state.trace:
                 st.session_state.message_buffer['final_state'] = st.session_state.trace[-1]
             
+            # Save analysis to database
+            try:
+                # Extract final decision from reports
+                final_decision = None
+                confidence_score = None
+                
+                final_trade_decision = st.session_state.message_buffer['report_sections'].get('final_trade_decision')
+                if final_trade_decision:
+                    # Try to extract decision from final report (simple text parsing)
+                    if '매수' in final_trade_decision or 'BUY' in final_trade_decision.upper():
+                        final_decision = '매수'
+                    elif '매도' in final_trade_decision or 'SELL' in final_trade_decision.upper():
+                        final_decision = '매도'
+                    elif '보유' in final_trade_decision or 'HOLD' in final_trade_decision.upper():
+                        final_decision = '보유'
+                    
+                    # Try to extract confidence score (simple regex)
+                    import re
+                    confidence_match = re.search(r'(\d{1,3})%', final_trade_decision)
+                    if confidence_match:
+                        confidence_score = float(confidence_match.group(1)) / 100.0
+                
+                # Create analysis session in DB
+                session_id = db_manager.create_analysis_session(
+                    username=st.session_state.username,
+                    ticker=config['ticker'],
+                    analysis_date=config['analysis_date'],
+                    config=config
+                )
+                
+                # Save report sections
+                for section_type, content in st.session_state.message_buffer['report_sections'].items():
+                    if content:
+                        db_manager.save_report_section(
+                            session_id=session_id,
+                            section_type=section_type,
+                            agent_name=f"{section_type.replace('_', ' ').title()}",
+                            content=content
+                        )
+                
+                # Update session with final results
+                db_manager.complete_analysis_session(
+                    session_id=session_id,
+                    final_decision=final_decision,
+                    confidence_score=confidence_score,
+                    execution_time_seconds=duration
+                )
+                
+                logger.info(f"[DATABASE] Analysis saved to DB with session_id: {session_id}")
+                
+            except Exception as db_error:
+                logger.error(f"[DATABASE] Failed to save analysis to DB: {db_error}")
+                st.warning(f"⚠️ 분석 완료되었으나 DB 저장 실패: {db_error}")
+            
             # Log analysis completion
             logger.info(f"[ANALYSIS] Analysis completed for {config['ticker']} in {duration:.2f} seconds")
             logger.info(f"[ANALYSIS] Final stats - LLM calls: {st.session_state.message_buffer['llm_call_count']}, Tool calls: {st.session_state.message_buffer['tool_call_count']}")
@@ -3359,17 +3638,8 @@ def main():
         time.sleep(0.5)
         st.rerun()
     
-    # Auto-refresh to check session expiry only when critical (less than 5 minutes remaining)
-    elif st.session_state.authenticated:
-        session_info = get_session_info()
-        # Only auto-refresh when session is about to expire to avoid interrupting user interaction
-        if session_info and session_info['remaining'] < 30:  # Auto-refresh in last 30 seconds
-            time.sleep(1)
-            st.rerun()
-        elif session_info and session_info['remaining'] < 300:  # Auto-refresh every 30 seconds in last 5 minutes
-            time.sleep(30)
-            st.rerun()
-        # Removed normal 30-second auto-refresh to prevent interrupting Market Agent tab usage
+    # 자동 새로고침 최소화 - 사용자 경험 개선
+    # 세션 만료는 사용자 액션 시에만 체크하도록 변경
 
 if __name__ == "__main__":
     main()
