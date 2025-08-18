@@ -1400,56 +1400,81 @@ st.markdown("""
         font-weight: 500 !important;
     }
     
-    /* Clean metrics cards */
+    /* Modern compact metrics cards */
     .stMetric {
-        background: #ffffff;
-        border: 2px solid #e3f2fd;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 12px rgba(66, 165, 245, 0.08);
-        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
+        border: 1px solid rgba(66, 165, 245, 0.12);
+        padding: 0.3rem 0.4rem;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(66, 165, 245, 0.05);
+        transition: all 0.25s ease;
+        min-height: 35px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stMetric::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #42a5f5, #64b5f6, #90caf9);
+        opacity: 0;
+        transition: opacity 0.3s ease;
     }
     
     .stMetric:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(66, 165, 245, 0.15);
-        border-color: #bbdefb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(66, 165, 245, 0.12);
+        border-color: rgba(66, 165, 245, 0.25);
+    }
+    
+    .stMetric:hover::before {
+        opacity: 1;
     }
     
     .stMetric label {
-        color: #546e7a !important;
-        font-weight: 600 !important;
-        font-size: 0.875rem !important;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        color: #5f6368 !important;
+        font-weight: 500 !important;
+        font-size: 0.5rem !important;
+        text-transform: none;
+        letter-spacing: 0.02em;
+        margin-bottom: 0.05rem !important;
     }
     
     .stMetric > div > div[data-testid="metric-value"] {
-        color: #1976d2 !important;
-        font-weight: 800 !important;
-        font-size: 2rem !important;
+        color: #1a73e8 !important;
+        font-weight: 600 !important;
+        font-size: 0.65rem !important;
+        line-height: 1 !important;
     }
     
     .stMetric > div > div[data-testid="metric-delta"] {
-        color: #66bb6a !important;
-        font-weight: 600 !important;
+        color: #34a853 !important;
+        font-weight: 500 !important;
+        font-size: 0.6rem !important;
     }
     
-    /* Clean agent status cards */
+    /* Clean agent status cards - mini flow version */
     .agent-status {
-        padding: 1rem;
-        border-radius: 12px;
-        font-weight: 600;
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 20px;
+        font-weight: 500;
         text-align: center;
-        margin-bottom: 0.75rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
+        margin: 0.2rem 0.3rem 0.2rem 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        font-size: 0.7rem;
+        min-width: 60px;
     }
     
     .agent-status:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     
     .status-pending {
@@ -1533,23 +1558,64 @@ st.markdown("""
         font-weight: 500;
     }
     
-    /* Clean primary buttons */
+    /* Modern primary buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        padding: 0.8rem 2rem;
         font-weight: 600;
-        font-size: 1rem;
+        font-size: 0.9rem;
         transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(66, 165, 245, 0.3);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.25);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stButton > button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s ease;
     }
     
     .stButton > button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 16px rgba(66, 165, 245, 0.4);
-        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    
+    .stButton > button:hover::before {
+        left: 100%;
+    }
+    
+    .stButton > button:active {
+        transform: translateY(0px);
+        box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Secondary buttons (Stop button) */
+    .stButton > button[kind="secondary"] {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 0.8rem 2rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.25);
+    }
+    
+    .stButton > button[kind="secondary"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.35);
+        background: linear-gradient(135deg, #ee5a52 0%, #ff6b6b 100%);
     }
     
     /* Form inputs */
@@ -2292,8 +2358,7 @@ def render_welcome_header():
     </div>
     """, unsafe_allow_html=True)
     
-    # Add architecture diagram
-    st.markdown("### 🏗️ 시스템 아키텍처")
+    # Add architecture diagram without header
     try:
         st.image("assets/schema.png", caption="트레이딩 에이전트 시스템 아키텍처", use_container_width=True)
     except Exception as e:
@@ -2464,87 +2529,110 @@ def render_configuration_section():
     return st.session_state.config_set and len(st.session_state.config.get("analysts", [])) > 0
 
 def render_agent_status():
-    """Render agent status monitoring"""
+    """Render agent status monitoring in column format"""
     st.markdown("### 🧑‍💻 Agent Status")
     
-    # Group agents by team with better icons
+    # Group agents by team with better icons in flow order
     teams = {
-        "📈 Analyst Team": ["Market Analyst", "Social Analyst", "News Analyst", "Fundamentals Analyst"],
-        "🔬 Research Team": ["Bull Researcher", "Bear Researcher", "Research Manager"],
-        "💼 Trading Team": ["Trader"],
-        "🛡️ Risk Management": ["Risky Analyst", "Neutral Analyst", "Safe Analyst"],
-        "📊 Portfolio Management": ["Portfolio Manager"]
+        "📈 분석팀": ["Market Analyst", "Social Analyst", "News Analyst", "Fundamentals Analyst"],
+        "🔬 리서치팀": ["Bull Researcher", "Bear Researcher", "Research Manager"],  
+        "💼 트레이딩팀": ["Trader"],
+        "🛡️ 리스크관리": ["Risky Analyst", "Neutral Analyst", "Safe Analyst"],
+        "📊 포트폴리오": ["Portfolio Manager"]
     }
     
-    # Create responsive columns
+    # Create columns for teams
     cols = st.columns(len(teams))
     
-    for idx, (team_name, agents) in enumerate(teams.items()):
-        with cols[idx]:
+    for col_idx, (team_name, agents) in enumerate(teams.items()):
+        with cols[col_idx]:
             st.markdown(f"**{team_name}**")
             
-            for agent in agents:
+            # Create a container for the flow within each column
+            flow_html = ""
+            
+            for i, agent in enumerate(agents):
                 status = st.session_state.message_buffer['agent_status'].get(agent, "pending")
                 
                 if status == "pending":
                     status_class = "status-pending"
                     emoji = "⏳"
-                    status_text = "Waiting"
                 elif status == "in_progress":
                     status_class = "status-in-progress" 
                     emoji = "🔄"
-                    status_text = "Working"
                 elif status == "completed":
                     status_class = "status-completed"
                     emoji = "✅"
-                    status_text = "Done"
                 else:
                     status_class = "status-error"
                     emoji = "❌"
-                    status_text = "Error"
                 
-                # Shortened agent names for better display
-                agent_display = agent.replace(" Analyst", "").replace(" Researcher", "").replace(" Manager", "")
+                # Very short agent names for compact display
+                agent_display = agent.replace(" Analyst", "").replace(" Researcher", "Res").replace(" Manager", "Mgr")
                 
-                st.markdown(f"""
-                <div class="agent-status {status_class}">
-                    <div style="font-size: 1.2em;">{emoji}</div>
-                    <div style="font-size: 0.9em; margin: 0.25rem 0;">{agent_display}</div>
-                    <div style="font-size: 0.75em; opacity: 0.8;">{status_text}</div>
+                flow_html += f"""
+                <div style="margin-bottom: 0.3rem;">
+                    <span class="agent-status {status_class}">
+                        {emoji} {agent_display}
+                    </span>
                 </div>
-                """, unsafe_allow_html=True)
+                """
             
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown(flow_html, unsafe_allow_html=True)
 
 def render_metrics():
-    """Render key metrics"""
+    """Render key metrics with custom styling"""
     col1, col2, col3, col4 = st.columns(4)
     
+    def custom_metric(label, value):
+        return f"""
+        <div style="
+            background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
+            border: 1px solid rgba(66, 165, 245, 0.12);
+            padding: 0.3rem 0.4rem;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(66, 165, 245, 0.05);
+            margin-bottom: 0.5rem;
+            min-height: 35px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        ">
+            <div style="
+                color: #5f6368;
+                font-weight: 500;
+                font-size: 0.65rem;
+                margin-bottom: 0.05rem;
+            ">{label}</div>
+            <div style="
+                color: #1a73e8;
+                font-weight: 600;
+                font-size: 0.7rem;
+            ">{value}</div>
+        </div>
+        """
+    
     with col1:
-        st.metric(
-            "🛠️ Tool Calls", 
-            st.session_state.message_buffer['tool_call_count']
-        )
+        st.markdown(custom_metric("🛠️ Tool Calls", st.session_state.message_buffer['tool_call_count']), unsafe_allow_html=True)
     
     with col2:
-        st.metric(
-            "🤖 LLM Calls",
-            st.session_state.message_buffer['llm_call_count'] 
-        )
+        st.markdown(custom_metric("🤖 LLM Calls", st.session_state.message_buffer['llm_call_count']), unsafe_allow_html=True)
     
     with col3:
         reports_count = sum(1 for content in st.session_state.message_buffer['report_sections'].values() if content is not None)
-        st.metric("📄 Generated Reports", reports_count)
+        st.markdown(custom_metric("📄 Generated Reports", reports_count), unsafe_allow_html=True)
     
     with col4:
         if st.session_state.message_buffer['analysis_start_time'] and st.session_state.message_buffer['analysis_end_time']:
             duration = st.session_state.message_buffer['analysis_end_time'] - st.session_state.message_buffer['analysis_start_time']
-            st.metric("⏱️ Duration", f"{duration:.1f}s")
+            duration_text = f"{duration:.1f}s"
         elif st.session_state.message_buffer['analysis_start_time']:
             current_duration = time.time() - st.session_state.message_buffer['analysis_start_time']
-            st.metric("⏱️ Duration", f"{current_duration:.1f}s")
+            duration_text = f"{current_duration:.1f}s"
         else:
-            st.metric("⏱️ Duration", "0s")
+            duration_text = "0s"
+        
+        st.markdown(custom_metric("⏱️ Duration", duration_text), unsafe_allow_html=True)
 
 def render_logging_section():
     """Render collapsible logging section"""
@@ -3070,6 +3158,55 @@ def main():
         # Metrics
         render_metrics()
         
+        # Configuration Summary
+        st.subheader("⚙️ Current Configuration")
+        if st.session_state.config:
+            config_date = st.session_state.config.get("analysis_date", "N/A")
+            if config_date != "N/A":
+                config_date = f"{config_date} (KST)"
+            
+            # Create compact configuration display with custom metrics
+            col_cfg1, col_cfg2, col_cfg3 = st.columns(3)
+            
+            def custom_metric(label, value):
+                return f"""
+                <div style="
+                    background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
+                    border: 1px solid rgba(66, 165, 245, 0.12);
+                    padding: 0.3rem 0.4rem;
+                    border-radius: 10px;
+                    box-shadow: 0 1px 3px rgba(66, 165, 245, 0.05);
+                    margin-bottom: 0.5rem;
+                    min-height: 35px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                ">
+                    <div style="
+                        color: #5f6368;
+                        font-weight: 500;
+                        font-size: 0.65rem;
+                        margin-bottom: 0.05rem;
+                    ">{label}</div>
+                    <div style="
+                        color: #1a73e8;
+                        font-weight: 600;
+                        font-size: 0.7rem;
+                    ">{value}</div>
+                </div>
+                """
+            
+            with col_cfg1:
+                st.markdown(custom_metric("📊 Ticker", st.session_state.config.get("ticker", "N/A")), unsafe_allow_html=True)
+                st.markdown(custom_metric("👥 Analysts", len(st.session_state.config.get("analysts", []))), unsafe_allow_html=True)
+            with col_cfg2:
+                st.markdown(custom_metric("📅 Date", config_date), unsafe_allow_html=True)
+                st.markdown(custom_metric("🔍 Research Depth", f"{st.session_state.config.get('research_depth', 'N/A')} rounds"), unsafe_allow_html=True)
+            with col_cfg3:
+                st.markdown(custom_metric("🤖 Provider", st.session_state.config.get("llm_provider", "N/A").title()), unsafe_allow_html=True)
+        else:
+            st.info("No configuration set yet. Please configure in the sidebar.")
+        
         # Agent Status
         render_agent_status()
         
@@ -3079,24 +3216,6 @@ def main():
     with col2:
         # Logging Section
         render_logging_section()
-        
-        # Configuration Summary
-        st.subheader("⚙️ Current Configuration")
-        if st.session_state.config:
-            config_date = st.session_state.config.get("analysis_date", "N/A")
-            if config_date != "N/A":
-                config_date = f"{config_date} (KST)"
-            
-            config_data = {
-                "📊 Ticker": st.session_state.config.get("ticker", "N/A"),
-                "📅 Date": config_date,
-                "👥 Analysts": len(st.session_state.config.get("analysts", [])),
-                "🔍 Research Depth": f"{st.session_state.config.get('research_depth', 'N/A')} rounds",
-                "🤖 Provider": st.session_state.config.get("llm_provider", "N/A").title()
-            }
-            
-            for key, value in config_data.items():
-                st.metric(key, value)
     
     with tab2:
         # Financial Indicators Visualization Tab
