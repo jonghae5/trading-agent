@@ -336,7 +336,7 @@ class Toolkit:
         """
 
         data_income_stmt = interface.get_simfin_income_statements(
-            ticker, freq
+            ticker, freq, curr_date
         )
 
         return data_income_stmt
