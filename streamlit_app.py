@@ -2291,6 +2291,14 @@ def render_welcome_header():
         </p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Add architecture diagram
+    st.markdown("### 🏗️ 시스템 아키텍처")
+    try:
+        st.image("assets/schema.png", caption="트레이딩 에이전트 시스템 아키텍처", use_container_width=True)
+    except Exception as e:
+        st.warning(f"아키텍처 다이어그램을 로드할 수 없습니다: {e}")
+        st.info("아키텍처 다이어그램이 assets/schema.png 경로에 있는지 확인해주세요.")
 
 def render_configuration_section():
     """Render the configuration section in sidebar"""
