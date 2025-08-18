@@ -1050,7 +1050,7 @@ def create_market_agent_dashboard():
         
         with col1:
             # 티커 입력
-            default_ticker = "AAPL"
+            default_ticker = "SPY"
             ticker = st.text_input(
                 "주식 티커 심볼", 
                 value=default_ticker,
