@@ -3,7 +3,7 @@ from .reddit_utils import fetch_top_from_category
 from .yfin_utils import *
 from .stockstats_utils import *
 from .googlenews_utils import *
-from .finnhub_utils import get_data_in_range
+from .finnhub_utils import get_data_in_range, fetch_company_news_online, fetch_insider_sentiment_online, fetch_insider_transactions_online, fetch_balance_sheet_online, fetch_income_statement_online, fetch_cash_flow_online
 from dateutil.relativedelta import relativedelta
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -25,14 +25,14 @@ def get_finnhub_news(
     look_back_days: Annotated[int, "how many days to look back"],
 ):
     """
-    Retrieve news about a company within a time frame
+    Retrieve news about a company within a time frame using Finnhub API
 
     Args
         ticker (str): ticker for the company you are interested in
-        start_date (str): Start date in yyyy-mm-dd format
-        end_date (str): End date in yyyy-mm-dd format
+        curr_date (str): Current date in yyyy-mm-dd format
+        look_back_days (int): how many days to look back
     Returns
-        str: dataframe containing the news of the company in the time frame
+        str: formatted string containing the news of the company in the time frame
 
     """
 
@@ -40,20 +40,21 @@ def get_finnhub_news(
     before = start_date - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
-    result = get_data_in_range(ticker, before, curr_date, "news_data", DATA_DIR)
-
+    result = fetch_company_news_online(ticker, before, curr_date)
+    
     if len(result) == 0:
         return ""
 
     combined_result = ""
-    for day, data in result.items():
-        if len(data) == 0:
-            continue
-        for entry in data:
-            current_news = (
-                "### " + entry["headline"] + f" ({day})" + "\n" + entry["summary"]
-            )
-            combined_result += current_news + "\n\n"
+    for entry in result:
+        headline = entry.get("headline", "No headline")
+        summary = entry.get("summary", "No summary")
+        publish_date = datetime.fromtimestamp(entry.get("datetime", 0)).strftime("%Y-%m-%d") if entry.get("datetime") else "Unknown date"
+        
+        current_news = (
+            "### " + headline + f" ({publish_date})" + "\n" + summary
+        )
+        combined_result += current_news + "\n\n"
 
     return f"## {ticker} News, from {before} to {curr_date}:\n" + str(combined_result)
 
@@ -67,30 +68,35 @@ def get_finnhub_company_insider_sentiment(
     look_back_days: Annotated[int, "number of days to look back"],
 ):
     """
-    Retrieve insider sentiment about a company (retrieved from public SEC information) for the past 15 days
+    Retrieve insider sentiment about a company using Finnhub API (retrieved from public SEC information)
     Args:
         ticker (str): ticker symbol of the company
         curr_date (str): current date you are trading on, yyyy-mm-dd
+        look_back_days (int): number of days to look back
     Returns:
-        str: a report of the sentiment in the past 15 days starting at curr_date
+        str: a report of the sentiment data
     """
 
     date_obj = datetime.strptime(curr_date, "%Y-%m-%d")
     before = date_obj - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
-    data = get_data_in_range(ticker, before, curr_date, "insider_senti", DATA_DIR)
-
+    data = fetch_insider_sentiment_online(ticker, before, curr_date)
+    
     if len(data) == 0:
         return ""
 
     result_str = ""
     seen_dicts = []
-    for date, senti_list in data.items():
-        for entry in senti_list:
-            if entry not in seen_dicts:
-                result_str += f"### {entry['year']}-{entry['month']}:\nChange: {entry['change']}\nMonthly Share Purchase Ratio: {entry['mspr']}\n\n"
-                seen_dicts.append(entry)
+    for entry in data:
+        if entry not in seen_dicts:
+            year = entry.get('year', 'Unknown')
+            month = entry.get('month', 'Unknown') 
+            change = entry.get('change', 'Unknown')
+            mspr = entry.get('mspr', 'Unknown')
+            
+            result_str += f"### {year}-{month}:\nChange: {change}\nMonthly Share Purchase Ratio: {mspr}\n\n"
+            seen_dicts.append(entry)
 
     return (
         f"## {ticker} Insider Sentiment Data for {before} to {curr_date}:\n"
@@ -108,31 +114,37 @@ def get_finnhub_company_insider_transactions(
     look_back_days: Annotated[int, "how many days to look back"],
 ):
     """
-    Retrieve insider transcaction information about a company (retrieved from public SEC information) for the past 15 days
+    Retrieve insider transaction information about a company using Finnhub API (retrieved from public SEC information)
     Args:
         ticker (str): ticker symbol of the company
         curr_date (str): current date you are trading at, yyyy-mm-dd
+        look_back_days (int): how many days to look back
     Returns:
-        str: a report of the company's insider transaction/trading informtaion in the past 15 days
+        str: a report of the company's insider transaction/trading information
     """
 
     date_obj = datetime.strptime(curr_date, "%Y-%m-%d")
     before = date_obj - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
 
-    data = get_data_in_range(ticker, before, curr_date, "insider_trans", DATA_DIR)
-
+    data = fetch_insider_transactions_online(ticker, before, curr_date)
+    
     if len(data) == 0:
         return ""
 
     result_str = ""
-
     seen_dicts = []
-    for date, senti_list in data.items():
-        for entry in senti_list:
-            if entry not in seen_dicts:
-                result_str += f"### Filing Date: {entry['filingDate']}, {entry['name']}:\nChange:{entry['change']}\nShares: {entry['share']}\nTransaction Price: {entry['transactionPrice']}\nTransaction Code: {entry['transactionCode']}\n\n"
-                seen_dicts.append(entry)
+    for entry in data:
+        if entry not in seen_dicts:
+            filing_date = entry.get('filingDate', 'Unknown')
+            name = entry.get('name', 'Unknown')
+            change = entry.get('change', 'Unknown')
+            share = entry.get('share', 'Unknown')
+            transaction_price = entry.get('transactionPrice', 'Unknown')
+            transaction_code = entry.get('transactionCode', 'Unknown')
+            
+            result_str += f"### Filing Date: {filing_date}, {name}:\nChange:{change}\nShares: {share}\nTransaction Price: {transaction_price}\nTransaction Code: {transaction_code}\n\n"
+            seen_dicts.append(entry)
 
     return (
         f"## {ticker} insider transactions from {before} to {curr_date}:\n"
@@ -149,43 +161,83 @@ def get_simfin_balance_sheet(
     ],
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ):
-    data_path = os.path.join(
-        DATA_DIR,
-        "fundamental_data",
-        "simfin_data_all",
-        "balance_sheet",
-        "companies",
-        "us",
-        f"us-balance-{freq}.csv",
-    )
-    df = pd.read_csv(data_path, sep=";")
-
-    # Convert date strings to datetime objects and remove any time components
-    df["Report Date"] = pd.to_datetime(df["Report Date"], utc=True).dt.normalize()
-    df["Publish Date"] = pd.to_datetime(df["Publish Date"], utc=True).dt.normalize()
-
-    # Convert the current date to datetime and normalize
-    curr_date_dt = pd.to_datetime(curr_date, utc=True).normalize()
-
-    # Filter the DataFrame for the given ticker and for reports that were published on or before the current date
-    filtered_df = df[(df["Ticker"] == ticker) & (df["Publish Date"] <= curr_date_dt)]
-
-    # Check if there are any available reports; if not, return a notification
-    if filtered_df.empty:
-        print("No balance sheet available before the given current date.")
-        return ""
-
-    # Get the most recent balance sheet by selecting the row with the latest Publish Date
-    latest_balance_sheet = filtered_df.loc[filtered_df["Publish Date"].idxmax()]
-
-    # drop the SimFinID column
-    latest_balance_sheet = latest_balance_sheet.drop("SimFinId")
-
-    return (
-        f"## {freq} balance sheet for {ticker} released on {str(latest_balance_sheet['Publish Date'])[0:10]}: \n"
-        + str(latest_balance_sheet)
-        + "\n\nThis includes metadata like reporting dates and currency, share details, and a breakdown of assets, liabilities, and equity. Assets are grouped as current (liquid items like cash and receivables) and noncurrent (long-term investments and property). Liabilities are split between short-term obligations and long-term debts, while equity reflects shareholder funds such as paid-in capital and retained earnings. Together, these components ensure that total assets equal the sum of liabilities and equity."
-    )
+    """
+    Retrieve balance sheet data for a company using online Finnhub API
+    
+    Args:
+        ticker (str): ticker symbol of the company
+        freq (str): reporting frequency - "annual" or "quarterly"
+        curr_date (str): current date you are trading at, yyyy-mm-dd
+    
+    Returns:
+        str: formatted balance sheet data
+    """
+    # curr_date를 to_date로 사용하여 해당 날짜 이전의 재무제표만 가져오기
+    data = fetch_balance_sheet_online(ticker, freq, to_date=curr_date)
+    
+    if not data or 'data' not in data:
+        return f"No balance sheet data available for {ticker}"
+    
+    # Get the most recent report
+    reports = data['data']
+    if not reports:
+        return f"No {freq} balance sheet reports found for {ticker}"
+    
+    latest_report = reports[0]  # Reports are typically ordered by date (most recent first)
+    
+    # Extract balance sheet information
+    report_date = latest_report.get('filedDate', 'Unknown')
+    period = latest_report.get('period', 'Unknown')
+    year = latest_report.get('year', 'Unknown')
+    
+    result_str = f"## {freq.title()} Balance Sheet for {ticker} (Period: {period}, Year: {year}, Filed: {report_date}):\n\n"
+    
+    # Extract balance sheet data from the report
+    if 'report' in latest_report and 'bs' in latest_report['report']:
+        bs_data = latest_report['report']['bs']
+        
+        # Group the data by categories
+        assets = {}
+        liabilities = {}
+        equity = {}
+        
+        for item in bs_data:
+            concept = item.get('concept', '')
+            value = item.get('value', 0)
+            unit = item.get('unit', '')
+            
+            # Categorize based on common balance sheet concepts
+            if any(keyword in concept.lower() for keyword in ['asset', 'cash', 'inventory', 'receivable', 'investment']):
+                assets[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            elif any(keyword in concept.lower() for keyword in ['liability', 'debt', 'payable', 'accrued']):
+                liabilities[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            elif any(keyword in concept.lower() for keyword in ['equity', 'capital', 'retained', 'stockholder']):
+                equity[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+        
+        # Format the output
+        if assets:
+            result_str += "### Assets:\n"
+            for concept, value in assets.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+        
+        if liabilities:
+            result_str += "### Liabilities:\n"
+            for concept, value in liabilities.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+        
+        if equity:
+            result_str += "### Equity:\n"
+            for concept, value in equity.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+    else:
+        result_str += "Balance sheet details not available in the expected format.\n"
+    
+    result_str += "\nThis balance sheet shows the company's financial position, including assets (what the company owns), liabilities (what it owes), and equity (shareholders' ownership). The fundamental accounting equation Assets = Liabilities + Equity must balance."
+    
+    return result_str
 
 
 def get_simfin_cashflow(
@@ -196,43 +248,92 @@ def get_simfin_cashflow(
     ],
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ):
-    data_path = os.path.join(
-        DATA_DIR,
-        "fundamental_data",
-        "simfin_data_all",
-        "cash_flow",
-        "companies",
-        "us",
-        f"us-cashflow-{freq}.csv",
-    )
-    df = pd.read_csv(data_path, sep=";")
-
-    # Convert date strings to datetime objects and remove any time components
-    df["Report Date"] = pd.to_datetime(df["Report Date"], utc=True).dt.normalize()
-    df["Publish Date"] = pd.to_datetime(df["Publish Date"], utc=True).dt.normalize()
-
-    # Convert the current date to datetime and normalize
-    curr_date_dt = pd.to_datetime(curr_date, utc=True).normalize()
-
-    # Filter the DataFrame for the given ticker and for reports that were published on or before the current date
-    filtered_df = df[(df["Ticker"] == ticker) & (df["Publish Date"] <= curr_date_dt)]
-
-    # Check if there are any available reports; if not, return a notification
-    if filtered_df.empty:
-        print("No cash flow statement available before the given current date.")
-        return ""
-
-    # Get the most recent cash flow statement by selecting the row with the latest Publish Date
-    latest_cash_flow = filtered_df.loc[filtered_df["Publish Date"].idxmax()]
-
-    # drop the SimFinID column
-    latest_cash_flow = latest_cash_flow.drop("SimFinId")
-
-    return (
-        f"## {freq} cash flow statement for {ticker} released on {str(latest_cash_flow['Publish Date'])[0:10]}: \n"
-        + str(latest_cash_flow)
-        + "\n\nThis includes metadata like reporting dates and currency, share details, and a breakdown of cash movements. Operating activities show cash generated from core business operations, including net income adjustments for non-cash items and working capital changes. Investing activities cover asset acquisitions/disposals and investments. Financing activities include debt transactions, equity issuances/repurchases, and dividend payments. The net change in cash represents the overall increase or decrease in the company's cash position during the reporting period."
-    )
+    """
+    Retrieve cash flow statement data for a company using online Finnhub API
+    
+    Args:
+        ticker (str): ticker symbol of the company
+        freq (str): reporting frequency - "annual" or "quarterly"
+        curr_date (str): current date you are trading at, yyyy-mm-dd
+    
+    Returns:
+        str: formatted cash flow statement data
+    """
+    # curr_date를 to_date로 사용하여 해당 날짜 이전의 현금흐름표만 가져오기
+    data = fetch_cash_flow_online(ticker, freq, to_date=curr_date)
+    
+    if not data or 'data' not in data:
+        return f"No cash flow data available for {ticker}"
+    
+    # Get the most recent report
+    reports = data['data']
+    if not reports:
+        return f"No {freq} cash flow reports found for {ticker}"
+    
+    latest_report = reports[0]  # Reports are typically ordered by date (most recent first)
+    
+    # Extract cash flow information
+    report_date = latest_report.get('filedDate', 'Unknown')
+    period = latest_report.get('period', 'Unknown')
+    year = latest_report.get('year', 'Unknown')
+    
+    result_str = f"## {freq.title()} Cash Flow Statement for {ticker} (Period: {period}, Year: {year}, Filed: {report_date}):\n\n"
+    
+    # Extract cash flow data from the report
+    if 'report' in latest_report and 'cf' in latest_report['report']:
+        cf_data = latest_report['report']['cf']
+        
+        # Group the data by categories
+        operating = {}
+        investing = {}
+        financing = {}
+        other = {}
+        
+        for item in cf_data:
+            concept = item.get('concept', '')
+            value = item.get('value', 0)
+            unit = item.get('unit', '')
+            
+            # Categorize based on common cash flow concepts
+            if any(keyword in concept.lower() for keyword in ['operating', 'depreciation', 'working']):
+                operating[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            elif any(keyword in concept.lower() for keyword in ['investing', 'investment', 'acquisition', 'disposal']):
+                investing[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            elif any(keyword in concept.lower() for keyword in ['financing', 'debt', 'dividend', 'share', 'stock']):
+                financing[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            else:
+                other[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+        
+        # Format the output
+        if operating:
+            result_str += "### Operating Activities:\n"
+            for concept, value in operating.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+        
+        if investing:
+            result_str += "### Investing Activities:\n"
+            for concept, value in investing.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+        
+        if financing:
+            result_str += "### Financing Activities:\n"
+            for concept, value in financing.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+        
+        if other:
+            result_str += "### Other Items:\n"
+            for concept, value in other.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+    else:
+        result_str += "Cash flow statement details not available in the expected format.\n"
+    
+    result_str += "\nThis cash flow statement shows how cash moves in and out of the company through operating activities (core business), investing activities (asset purchases/sales), and financing activities (debt, equity, dividends)."
+    
+    return result_str
 
 
 def get_simfin_income_statements(
@@ -243,43 +344,84 @@ def get_simfin_income_statements(
     ],
     curr_date: Annotated[str, "current date you are trading at, yyyy-mm-dd"],
 ):
-    data_path = os.path.join(
-        DATA_DIR,
-        "fundamental_data",
-        "simfin_data_all",
-        "income_statements",
-        "companies",
-        "us",
-        f"us-income-{freq}.csv",
-    )
-    df = pd.read_csv(data_path, sep=";")
-
-    # Convert date strings to datetime objects and remove any time components
-    df["Report Date"] = pd.to_datetime(df["Report Date"], utc=True).dt.normalize()
-    df["Publish Date"] = pd.to_datetime(df["Publish Date"], utc=True).dt.normalize()
-
-    # Convert the current date to datetime and normalize
-    curr_date_dt = pd.to_datetime(curr_date, utc=True).normalize()
-
-    # Filter the DataFrame for the given ticker and for reports that were published on or before the current date
-    filtered_df = df[(df["Ticker"] == ticker) & (df["Publish Date"] <= curr_date_dt)]
-
-    # Check if there are any available reports; if not, return a notification
-    if filtered_df.empty:
-        print("No income statement available before the given current date.")
-        return ""
-
-    # Get the most recent income statement by selecting the row with the latest Publish Date
-    latest_income = filtered_df.loc[filtered_df["Publish Date"].idxmax()]
-
-    # drop the SimFinID column
-    latest_income = latest_income.drop("SimFinId")
-
-    return (
-        f"## {freq} income statement for {ticker} released on {str(latest_income['Publish Date'])[0:10]}: \n"
-        + str(latest_income)
-        + "\n\nThis includes metadata like reporting dates and currency, share details, and a comprehensive breakdown of the company's financial performance. Starting with Revenue, it shows Cost of Revenue and resulting Gross Profit. Operating Expenses are detailed, including SG&A, R&D, and Depreciation. The statement then shows Operating Income, followed by non-operating items and Interest Expense, leading to Pretax Income. After accounting for Income Tax and any Extraordinary items, it concludes with Net Income, representing the company's bottom-line profit or loss for the period."
-    )
+    """
+    Retrieve income statement data for a company using online Finnhub API
+    
+    Args:
+        ticker (str): ticker symbol of the company
+        freq (str): reporting frequency - "annual" or "quarterly"
+        curr_date (str): current date you are trading at, yyyy-mm-dd
+    
+    Returns:
+        str: formatted income statement data
+    """
+    # curr_date를 to_date로 사용하여 해당 날짜 이전의 손익계산서만 가져오기
+    data = fetch_income_statement_online(ticker, freq, to_date=curr_date)
+    
+    if not data or 'data' not in data:
+        return f"No income statement data available for {ticker}"
+    
+    # Get the most recent report
+    reports = data['data']
+    if not reports:
+        return f"No {freq} income statement reports found for {ticker}"
+    
+    latest_report = reports[0]  # Reports are typically ordered by date (most recent first)
+    
+    # Extract income statement information
+    report_date = latest_report.get('filedDate', 'Unknown')
+    period = latest_report.get('period', 'Unknown')
+    year = latest_report.get('year', 'Unknown')
+    
+    result_str = f"## {freq.title()} Income Statement for {ticker} (Period: {period}, Year: {year}, Filed: {report_date}):\n\n"
+    
+    # Extract income statement data from the report
+    if 'report' in latest_report and 'ic' in latest_report['report']:
+        ic_data = latest_report['report']['ic']
+        
+        # Group the data by categories
+        revenue = {}
+        expenses = {}
+        other_income = {}
+        
+        for item in ic_data:
+            concept = item.get('concept', '')
+            value = item.get('value', 0)
+            unit = item.get('unit', '')
+            
+            # Categorize based on common income statement concepts
+            if any(keyword in concept.lower() for keyword in ['revenue', 'sales', 'income']):
+                if not any(keyword in concept.lower() for keyword in ['expense', 'cost', 'loss']):
+                    revenue[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            elif any(keyword in concept.lower() for keyword in ['expense', 'cost', 'depreciation', 'amortization']):
+                expenses[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            else:
+                other_income[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+        
+        # Format the output
+        if revenue:
+            result_str += "### Revenue & Income:\n"
+            for concept, value in revenue.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+        
+        if expenses:
+            result_str += "### Expenses & Costs:\n"
+            for concept, value in expenses.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+        
+        if other_income:
+            result_str += "### Other Items:\n"
+            for concept, value in other_income.items():
+                result_str += f"- {concept}: {value}\n"
+            result_str += "\n"
+    else:
+        result_str += "Income statement details not available in the expected format.\n"
+    
+    result_str += "\nThis income statement shows the company's financial performance over a specific period, including revenues (money earned), expenses (costs incurred), and net income (profit or loss)."
+    
+    return result_str
 
 
 def get_google_news(

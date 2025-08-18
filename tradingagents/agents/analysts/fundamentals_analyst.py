@@ -10,15 +10,16 @@ def create_fundamentals_analyst(llm, toolkit):
         company_name = state["company_of_interest"]
 
         if toolkit.config["online_tools"]:
-            tools = [toolkit.get_fundamentals_openai]
-        else:
             tools = [
+                toolkit.get_fundamentals_openai,
                 toolkit.get_finnhub_company_insider_sentiment,
                 toolkit.get_finnhub_company_insider_transactions,
                 toolkit.get_simfin_balance_sheet,
                 toolkit.get_simfin_cashflow,
-                toolkit.get_simfin_income_stmt,
-            ]
+                toolkit.get_simfin_income_stmt
+                ]
+        else:
+            tools = []
 
         system_message = (
             "당신은 회사의 지난 주 펀더멘털 정보를 분석하는 임무를 맡은 연구원입니다. 재무 문서, 회사 프로필, 기본 회사 재무, 회사 재무 이력, 내부자 정서 및 내부자 거래 등 회사의 펀더멘털 정보에 대한 종합적인 보고서를 작성하여 트레이더들에게 정보를 제공하기 위해 회사의 펀더멘털 정보에 대한 전체적인 관점을 제공해 주세요. 가능한 한 많은 세부 사항을 포함시켜 주세요. 단순히 트렌드가 혼재되어 있다고 말하지 말고, 트레이더들이 결정을 내리는 데 도움이 될 수 있는 상세하고 세밀한 분석과 통찰력을 제공해 주세요."
