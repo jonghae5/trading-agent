@@ -3565,16 +3565,36 @@ def main():
                 
                 final_trade_decision = st.session_state.message_buffer['report_sections'].get('final_trade_decision')
                 if final_trade_decision:
-                    # Try to extract decision from final report (simple text parsing)
-                    if '매수' in final_trade_decision or 'BUY' in final_trade_decision.upper():
-                        final_decision = '매수'
-                    elif '매도' in final_trade_decision or 'SELL' in final_trade_decision.upper():
-                        final_decision = '매도'
-                    elif '보유' in final_trade_decision or 'HOLD' in final_trade_decision.upper():
-                        final_decision = '보유'
+                    # 빈도수 기반으로 결정 추출
+                    import re
+                    from collections import Counter
+
+                    # 한글/영문 모두 포함하여 후보 추출
+                    candidates = []
+                    candidates += re.findall(r'매수', final_trade_decision)
+                    candidates += re.findall(r'매도', final_trade_decision)
+                    candidates += re.findall(r'보유', final_trade_decision)
+                    candidates += re.findall(r'BUY', final_trade_decision.upper())
+                    candidates += re.findall(r'SELL', final_trade_decision.upper())
+                    candidates += re.findall(r'HOLD', final_trade_decision.upper())
+
+                    # 영문을 한글로 매핑
+                    mapped = []
+                    for c in candidates:
+                        if c.upper() == 'BUY':
+                            mapped.append('매수')
+                        elif c.upper() == 'SELL':
+                            mapped.append('매도')
+                        elif c.upper() == 'HOLD':
+                            mapped.append('보유')
+                        else:
+                            mapped.append(c)
+
+                    if mapped:
+                        freq = Counter(mapped)
+                        final_decision = freq.most_common(1)[0][0]
                     
                     # Try to extract confidence score (simple regex)
-                    import re
                     confidence_match = re.search(r'(\d{1,3})%', final_trade_decision)
                     if confidence_match:
                         confidence_score = float(confidence_match.group(1)) / 100.0
