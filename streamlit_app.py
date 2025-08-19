@@ -3,11 +3,7 @@ import datetime
 import time
 import logging
 import os
-from pathlib import Path
 from collections import deque
-import json
-import io
-from typing import Optional, List, Dict, Any
 import pandas as pd
 from dotenv import load_dotenv
 import pytz
@@ -15,7 +11,6 @@ import yfinance as yf
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-import requests
 import numpy as np
 from db_manager import DatabaseManager
 
