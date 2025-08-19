@@ -293,6 +293,15 @@ def get_fred_macro_indicators() -> Optional[Dict]:
             error_msg = sanitize_log_message(str(e))
             logger.warning(f"[FRED] Failed to fetch CPI: {error_msg}")
         
+        # 절대 부채 (Total Public Debt)
+        try:
+            debt = fred.get_series('GFDEBTN', start='2000-01-01')  # 2000년부터 시작 (장기 트렌드 확인)
+            if debt is not None and len(debt) > 0:
+                indicators['total_debt'] = debt.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Total Debt: {error_msg}")
+        
         return indicators if indicators else None
         
     except Exception as e:
@@ -398,7 +407,8 @@ def create_financial_indicators_charts():
                 ("소매판매(FRED)", fred_macro.get('retail_sales')),
                 ("주택시장지수(FRED)", fred_macro.get('housing_market')),
                 ("실업률(FRED)", fred_macro.get('unemployment')),
-                ("CPI(FRED)", fred_macro.get('cpi'))
+                ("CPI(FRED)", fred_macro.get('cpi')),
+                ("절대부채(FRED)", fred_macro.get('total_debt'))
             ]
             indicators_status.extend(fred_indicators)
         
@@ -624,6 +634,299 @@ def create_financial_indicators_charts():
                     )
                     st.plotly_chart(fig, use_container_width=True)
                     st.caption("💡 GDP 성장 = 경기 확장, 감소 = 경기 둔화")
+            
+            # 절대 부채 (FRED 공식 데이터)
+            if fred_macro and 'total_debt' in fred_macro:
+                debt_data = fred_macro['total_debt']
+                if not debt_data.empty:
+                    current_debt = debt_data.iloc[-1] / 1000  # 조 달러로 변환
+                    prev_debt = debt_data.iloc[-2] / 1000 if len(debt_data) > 1 else current_debt
+                    
+                    # QoQ 증가율 계산 (분기별 데이터)
+                    debt_qoq = debt_data.pct_change() * 100
+                    current_debt_qoq = debt_qoq.iloc[-1] if not debt_qoq.empty else 0
+                    
+                    # YoY 증가율 계산 (4분기 전 대비)
+                    debt_yoy = debt_data.pct_change(periods=4) * 100
+                    current_debt_yoy = debt_yoy.iloc[-1] if not debt_yoy.empty else 0
+                    
+                    # 부채 수준에 따른 색상
+                    if current_debt > 35:  # 35조 달러 이상
+                        debt_status = "🔴 매우높음"
+                        debt_color = "#ef4444"
+                    elif current_debt > 30:  # 30-35조
+                        debt_status = "🟡 높음"
+                        debt_color = "#f59e0b"
+                    elif current_debt > 25:  # 25-30조
+                        debt_status = "🟢 보통"
+                        debt_color = "#10b981"
+                    else:  # 25조 미만
+                        debt_status = "🔵 낮음"
+                        debt_color = "#3b82f6"
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, {debt_color}, #6366f1); padding: 8px 12px; border-radius:20px; margin: 8px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <span style="color: white; font-weight: bold; font-size: 14px;">🏛️ 미국 절대부채</span>
+                    <span style="color: white; font-size: 12px; margin-left: 10px;">${current_debt:.1f}조 | QoQ {current_debt_qoq:+.1f}% | YoY {current_debt_yoy:+.1f}% | {debt_status}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 절대 부채 원본 시계열 차트
+                    fig = go.Figure()
+                    
+                    # 부채 라인 (조 달러 단위)
+                    debt_in_trillions = debt_data / 1000
+                    fig.add_trace(go.Scatter(
+                        x=debt_data.index,
+                        y=debt_in_trillions.values,
+                        mode='lines',
+                        name='Total Public Debt',
+                        line=dict(color=debt_color, width=3),
+                        fill='tozeroy',
+                        fillcolor=f'rgba({int(debt_color[1:3], 16)}, {int(debt_color[3:5], 16)}, {int(debt_color[5:7], 16)}, 0.1)'
+                    ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < debt_data.index.min() or target_date > debt_data.index.max():
+                                continue
+                                
+                            if target_date in debt_data.index:
+                                exact_date = target_date
+                                exact_value = debt_in_trillions.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(debt_data.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = debt_data.index[nearest_idx]
+                                exact_value = debt_in_trillions.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
+                    fig.update_layout(
+                        title='미국 절대부채 (GFDEBTN) 시계열',
+                        height=200,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='조 달러 (Trillions USD)'
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # 절대 부채 증가율 차트 (YoY, QoQ)
+                    fig2 = go.Figure()
+                    
+                    # YoY 증가율
+                    fig2.add_trace(go.Scatter(
+                        x=debt_yoy.index,
+                        y=debt_yoy.values,
+                        mode='lines',
+                        name='YoY Growth Rate',
+                        line=dict(color='#3b82f6', width=2)
+                    ))
+                    
+                    # QoQ 증가율 (보조축)
+                    fig2.add_trace(go.Scatter(
+                        x=debt_qoq.index,
+                        y=debt_qoq.values,
+                        mode='lines',
+                        name='QoQ Growth Rate',
+                        line=dict(color='#f59e0b', width=2),
+                        yaxis='y2'
+                    ))
+                    
+                    # 위기 시점 표시
+                    if crisis_x_dates:
+                        crisis_y_yoy = []
+                        for crisis_date in crisis_x_dates:
+                            if crisis_date in debt_yoy.index:
+                                crisis_y_yoy.append(debt_yoy.loc[crisis_date])
+                            else:
+                                time_diffs = np.abs(debt_yoy.index.astype('int64') - crisis_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                crisis_y_yoy.append(debt_yoy.iloc[nearest_idx])
+                        
+                        fig2.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_yoy,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=10,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=9, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=False
+                        ))
+                    
+                    fig2.update_layout(
+                        title='절대부채 증가율 (YoY, QoQ)',
+                        height=200,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis=dict(title='YoY %', side='left'),
+                        yaxis2=dict(title='QoQ %', side='right', overlaying='y'),
+                        xaxis=dict(title='Date')
+                    )
+                    
+                    st.plotly_chart(fig2, use_container_width=True)
+                    
+                    # Debt-to-GDP 비율 계산 및 차트
+                    if fred_macro and 'gdp' in fred_macro:
+                        gdp_data = fred_macro['gdp']
+                        if not gdp_data.empty:
+                            # 두 시계열을 같은 날짜로 맞춤 (분기별 데이터)
+                            common_dates = debt_data.index.intersection(gdp_data.index)
+                            if len(common_dates) > 0:
+                                debt_aligned = debt_data.loc[common_dates]
+                                gdp_aligned = gdp_data.loc[common_dates]
+                                
+                                # Debt-to-GDP 비율 계산 (%)
+                                debt_to_gdp = (debt_aligned / gdp_aligned) * 100
+                                
+                                current_debt_to_gdp = debt_to_gdp.iloc[-1]
+                                
+                                # Debt-to-GDP 비율에 따른 색상
+                                if current_debt_to_gdp > 120:  # 120% 이상
+                                    ratio_status = "🔴 위험"
+                                    ratio_color = "#ef4444"
+                                elif current_debt_to_gdp > 100:  # 100-120%
+                                    ratio_status = "🟡 높음"
+                                    ratio_color = "#f59e0b"
+                                elif current_debt_to_gdp > 80:  # 80-100%
+                                    ratio_status = "🟢 보통"
+                                    ratio_color = "#10b981"
+                                else:  # 80% 미만
+                                    ratio_status = "🔵 낮음"
+                                    ratio_color = "#3b82f6"
+                                
+                                fig3 = go.Figure()
+                                
+                                fig3.add_trace(go.Scatter(
+                                    x=debt_to_gdp.index,
+                                    y=debt_to_gdp.values,
+                                    mode='lines',
+                                    name='Debt-to-GDP Ratio',
+                                    line=dict(color=ratio_color, width=3),
+                                    fill='tozeroy',
+                                    fillcolor=f'rgba({int(ratio_color[1:3], 16)}, {int(ratio_color[3:5], 16)}, {int(ratio_color[5:7], 16)}, 0.1)'
+                                ))
+                                
+                                # 위기 시점 표시
+                                if crisis_x_dates:
+                                    crisis_y_ratio = []
+                                    valid_crisis_dates = []
+                                    valid_crisis_labels = []
+                                    for i, crisis_date in enumerate(crisis_x_dates):
+                                        if crisis_date in debt_to_gdp.index:
+                                            crisis_y_ratio.append(debt_to_gdp.loc[crisis_date])
+                                            valid_crisis_dates.append(crisis_date)
+                                            valid_crisis_labels.append(crisis_labels[i])
+                                        else:
+                                            time_diffs = np.abs(debt_to_gdp.index.astype('int64') - crisis_date.value)
+                                            if len(time_diffs) > 0:
+                                                nearest_idx = time_diffs.argmin()
+                                                crisis_y_ratio.append(debt_to_gdp.iloc[nearest_idx])
+                                                valid_crisis_dates.append(debt_to_gdp.index[nearest_idx])
+                                                valid_crisis_labels.append(crisis_labels[i])
+                                    
+                                    if valid_crisis_dates:
+                                        fig3.add_trace(go.Scatter(
+                                            x=valid_crisis_dates,
+                                            y=crisis_y_ratio,
+                                            mode='markers+text',
+                                            marker=dict(
+                                                symbol='triangle-down',
+                                                size=10,
+                                                color='red',
+                                                line=dict(width=2, color='darkred')
+                                            ),
+                                            text=valid_crisis_labels,
+                                            textposition='top center',
+                                            textfont=dict(size=9, color='red'),
+                                            name='경제 위기 시점',
+                                            showlegend=True
+                                        ))
+                                
+                                # 위험 구간 표시
+                                fig3.add_hline(y=80, line_dash="dot", line_color="green", annotation_text="안전 구간 (80%)")
+                                fig3.add_hline(y=100, line_dash="dash", line_color="orange", annotation_text="주의 구간 (100%)")
+                                fig3.add_hline(y=120, line_dash="dash", line_color="red", annotation_text="위험 구간 (120%)")
+                                
+                                fig3.update_layout(
+                                    title=f'Debt-to-GDP 비율 - 현재: {current_debt_to_gdp:.1f}% ({ratio_status})',
+                                    height=200,
+                                    showlegend=True,
+                                    legend=dict(
+                                        orientation="h",
+                                        yanchor="bottom",
+                                        y=1.02,
+                                        xanchor="center",
+                                        x=0.5
+                                    ),
+                                    margin=dict(l=20, r=20, t=40, b=20),
+                                    yaxis_title='Debt-to-GDP (%)'
+                                )
+                                
+                                st.plotly_chart(fig3, use_container_width=True)
+                                st.caption("💡 Debt-to-GDP 비율이 높을수록 재정 건전성 우려. 일반적으로 100% 초과 시 주의 필요")
             
             # 하이일드 스프레드 (FRED 공식 데이터) 이동
             if fred_macro and 'high_yield_spread' in fred_macro:
@@ -2016,7 +2319,8 @@ def create_financial_indicators_charts():
                         'retail_sales': '소매판매',
                         'housing_market': '주택시장지수',
                         'unemployment': '실업률',
-                        'cpi': '소비자물가지수'
+                        'cpi': '소비자물가지수',
+                        'total_debt': '절대부채'
                     }
                     name = korean_names.get(key, key)
                     correlation_data_dict[name] = data
