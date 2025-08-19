@@ -2811,7 +2811,7 @@ def render_report_history():
                 "Analysis Date": session['analysis_date'][:16] if session['analysis_date'] else '',
                 "Status": session['status'],
                 "Decision": session['final_decision'] or '-',
-                "Confidence": f"{session['confidence_score']:.1%}" if session['confidence_score'] else '-',
+                "Confidence": f"{session['confidence_score']}" if session['confidence_score'] else '-',
                 "Completed": session['completed_at'][:16] if session['completed_at'] else '-'
             })
         

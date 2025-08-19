@@ -256,4 +256,4 @@ class TradingAgentsGraph:
 
     def extract_confidence_score(self, full_signal):
         """Extract the confidence score from a signal."""
-        return self.confidence_processor.extract_confidence_score(full_signal)
+        return self.confidence_processor.process_confidence(full_signal)
