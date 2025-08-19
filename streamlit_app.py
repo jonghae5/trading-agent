@@ -12,12 +12,85 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import numpy as np
+from typing import Dict, List, Optional, Tuple, Any, Union
 from db_manager import DatabaseManager
 
-# KST 시간대 설정
+# Security and Configuration Constants
+SESSION_DURATION_SECONDS = 3600  # 1 hour
+MAX_LOGIN_ATTEMPTS = 5
+BLOCK_DURATION_MINUTES = 15
+CACHE_TTL_SECONDS = 300  # 5 minutes
+MAX_MESSAGE_BUFFER_SIZE = 200
+MAX_LOG_DISPLAY_SIZE = 50
+
+# UI Constants
+DEFAULT_TICKER = "SPY"
+DEFAULT_RESEARCH_DEPTH = 3
+MIN_PASSWORD_LENGTH = 8
+MAX_TICKER_LENGTH = 10
+
+# Time zone settings
 KST = pytz.timezone('Asia/Seoul')
 
-def get_kst_now():
+# Environment variables validation
+def validate_environment() -> bool:
+    """Validate required environment variables are set"""
+    required_vars = []  # Add any required env vars here
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    
+    if missing_vars:
+        st.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+        return False
+    return True
+
+def sanitize_ticker(ticker: str) -> str:
+    """Sanitize and validate ticker input"""
+    if not ticker:
+        return ""
+    
+    # Remove dangerous characters and limit length
+    sanitized = ''.join(c for c in ticker.upper() if c.isalnum())
+    return sanitized[:MAX_TICKER_LENGTH]
+
+def validate_ticker(ticker: str) -> bool:
+    """Validate ticker format"""
+    if not ticker:
+        return False
+    
+    # Basic validation: only alphanumeric, reasonable length
+    return (ticker.isalnum() and 
+            1 <= len(ticker) <= MAX_TICKER_LENGTH and
+            ticker.isascii())
+
+def validate_date_input(date_input: Any) -> bool:
+    """Validate date input"""
+    if not date_input:
+        return False
+    
+    try:
+        if isinstance(date_input, str):
+            datetime.datetime.strptime(date_input, "%Y-%m-%d")
+        elif hasattr(date_input, 'strftime'):
+            # It's a date object
+            pass
+        else:
+            return False
+        return True
+    except (ValueError, AttributeError):
+        return False
+
+def sanitize_log_message(message: str) -> str:
+    """Sanitize log messages to prevent log injection"""
+    if not isinstance(message, str):
+        message = str(message)
+    
+    # Remove newlines and control characters that could be used for log injection
+    sanitized = ''.join(c for c in message if c.isprintable() and c not in '\n\r\t')
+    
+    # Limit length to prevent log spam
+    return sanitized[:1000] + "..." if len(sanitized) > 1000 else sanitized
+
+def get_kst_now() -> datetime.datetime:
     """현재 KST 시간을 반환 (timezone-aware)"""
     return datetime.datetime.now(KST)
 
@@ -42,13 +115,24 @@ def get_kst_date():
     return get_kst_now().date()
 
 # Financial Indicators Functions
-@st.cache_data(ttl=300)  # Cache for 5 minutes
-def get_high_yield_spread():
-    """미국 하이일드 스프레드 인덱스 데이터 가져오기"""
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
+def get_high_yield_spread() -> Optional[pd.DataFrame]:
+    """미국 하이일드 스프레드 인덱스 데이터 가져오기 with improved error handling"""
     try:
-        # HYG (하이일드 ETF)와 10년 국채 수익률 데이터 가져오기 - 3년 장기 트렌드
-        hyg_data = yf.download('HYG', period='5y', interval='1d')
-        treasury_data = yf.download('^TNX', period='5y', interval='1d')
+        with st.spinner("Loading high yield spread data..."):
+            # Download with timeout and progress tracking
+            hyg_data = yf.download('HYG', period='5y', interval='1d', timeout=10)
+            treasury_data = yf.download('^TNX', period='5y', interval='1d', timeout=10)
+        
+        # Validate data
+        if hyg_data.empty or treasury_data.empty:
+            st.warning("Failed to fetch high yield spread data - market may be closed")
+            return None
+        
+        # Check for required columns
+        if 'Close' not in hyg_data.columns or 'Close' not in treasury_data.columns:
+            st.error("Missing price data in high yield spread indicators")
+            return None
         
         # Close 컬럼만 선택하고 인덱스를 reset
         hyg_df = hyg_data[['Close']].reset_index()
@@ -61,12 +145,34 @@ def get_high_yield_spread():
         # 날짜로 병합
         spread_data = pd.merge(hyg_df, treasury_df, on='Date', how='inner')
         
-        return spread_data.dropna()
+        # Validate merged data
+        if spread_data.empty:
+            st.warning("No overlapping data for high yield spread calculation")
+            return None
+        
+        # Remove invalid values
+        spread_data = spread_data.dropna()
+        
+        # Basic sanity checks
+        if len(spread_data) < 10:
+            st.warning("Insufficient data points for high yield spread analysis")
+            return None
+        
+        return spread_data
+        
+    except TimeoutError:
+        st.error("Timeout loading high yield spread data")
+        return None
+    except ConnectionError:
+        st.error("Network connection error loading high yield spread data")
+        return None
     except Exception as e:
-        st.error(f"하이일드 스프레드 데이터 로딩 실패: {e}")
+        error_msg = sanitize_log_message(str(e))
+        st.error(f"하이일드 스프레드 데이터 로딩 실패: {error_msg}")
+        logger.error(f"[INDICATORS] High yield spread loading failed: {error_msg}")
         return None
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
 def get_fear_greed_index():
     """CNN 공포탐욕지수 가져오기 (대체 지표로 VIX 사용)"""
     try:
@@ -85,7 +191,7 @@ def get_fear_greed_index():
         st.error(f"공포탐욕지수(VIX) 데이터 로딩 실패: {e}")
         return None
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
 def get_put_call_ratio():
     """풋콜레이쇼 데이터 가져오기"""
     try:
@@ -112,7 +218,7 @@ def get_put_call_ratio():
         st.error(f"풋콜레이쇼 데이터 로딩 실패: {e}")
         return None
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
 def get_fred_data():
     """FRED 데이터 가져오기 (API 키 없이 공개 데이터 사용)"""
     try:
@@ -128,7 +234,7 @@ def get_fred_data():
         st.error(f"FRED 부동산 지수 데이터 로딩 실패: {e}")
         return None
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
 def get_additional_indicators():
     """추가 필수 지표들 로드"""
     indicators = {}
@@ -538,33 +644,78 @@ def show_step_status(step_number: int, total_steps: int, current_step: str):
         return st.info(f"{icon} {current_step} ({progress_percentage:.0f}% 완료)")
 
 # Market Agent 데이터 시각화 함수들
-@st.cache_data(ttl=300)  
-def get_stock_data_for_viz(symbol: str, period: str = "6mo"):
-    """주식 데이터 가져오기"""
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
+def get_stock_data_for_viz(symbol: str, period: str = "6mo") -> Optional[pd.DataFrame]:
+    """주식 데이터 가져오기 with enhanced error handling and validation"""
     try:
-        if not symbol or len(symbol.strip()) == 0:
+        # Input validation
+        if not symbol:
             return None
             
-        ticker = yf.Ticker(symbol.strip().upper())
-        data = ticker.history(period=period)
+        # Sanitize and validate the symbol
+        clean_symbol = sanitize_ticker(symbol)
+        if not validate_ticker(clean_symbol):
+            st.error(f"Invalid ticker symbol: {symbol}")
+            return None
+        
+        # Validate period parameter
+        valid_periods = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max']
+        if period not in valid_periods:
+            st.warning(f"Invalid period '{period}', using default '6mo'")
+            period = "6mo"
+            
+        # Fetch data with timeout and error handling
+        ticker = yf.Ticker(clean_symbol)
+        
+        # Add progress indicator for slow requests
+        with st.spinner(f"Loading data for {clean_symbol}..."):
+            data = ticker.history(period=period, timeout=10)
         
         if data.empty:
-            st.error(f"{symbol} 데이터를 찾을 수 없습니다. 유효한 티커 심볼인지 확인해주세요.")
+            st.error(f"No data found for {clean_symbol}. Please verify the ticker symbol.")
+            return None
+        
+        # Basic data validation
+        if len(data) < 2:
+            st.warning(f"Insufficient data for {clean_symbol} (only {len(data)} data points)")
+            return None
+            
+        # Check for missing essential columns
+        required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+        missing_columns = [col for col in required_columns if col not in data.columns]
+        if missing_columns:
+            st.error(f"Missing required data columns for {clean_symbol}: {missing_columns}")
             return None
             
         return data
+        
+    except TimeoutError:
+        st.error(f"Timeout loading data for {symbol}. Please try again later.")
+        return None
+    except ConnectionError:
+        st.error("Network connection error. Please check your internet connection.")
+        return None
     except Exception as e:
-        st.error(f"데이터 로딩 실패 ({symbol}): {e}")
+        error_msg = sanitize_log_message(str(e))
+        st.error(f"Data loading failed for {symbol}: {error_msg}")
+        logger.error(f"[STOCK_DATA] Failed to load data for {symbol}: {error_msg}")
         return None
 
-@st.cache_data(ttl=300)
-def calculate_technical_indicators(data):
-    """기술적 지표 계산"""
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
+def calculate_technical_indicators(data: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
+    """기술적 지표 계산 with improved error handling and validation"""
     if data is None or data.empty:
         return None
     
     try:
         df = data.copy()
+        
+        # Validate required columns
+        required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            st.error(f"Missing required columns for technical analysis: {missing_columns}")
+            return None
         
         # 인덱스가 날짜인 경우 Date 컬럼으로 저장
         if isinstance(df.index, pd.DatetimeIndex):
@@ -573,64 +724,111 @@ def calculate_technical_indicators(data):
         else:
             df = df.reset_index()
         
-        # 충분한 데이터가 있는지 확인
-        # if len(df) < 200:
-        #     st.warning("기술적 지표 계산을 위해서는 더 긴 기간의 데이터가 필요합니다.")
+        # Minimum data validation
+        min_data_points = 50  # Need at least 50 data points for meaningful indicators
+        if len(df) < min_data_points:
+            st.warning(f"Insufficient data for technical analysis (need at least {min_data_points} points, got {len(df)})")
+            return df  # Return basic data without indicators
         
-        # 기본 이동평균들
-        df['sma_10'] = df['Close'].rolling(window=10).mean()
-        df['sma_20'] = df['Close'].rolling(window=20).mean()
-        df['sma_50'] = df['Close'].rolling(window=50).mean()
-        df['sma_200'] = df['Close'].rolling(window=200).mean()
+        # 기본 이동평균들 (with validation)
+        try:
+            df['sma_10'] = df['Close'].rolling(window=min(10, len(df))).mean()
+            df['sma_20'] = df['Close'].rolling(window=min(20, len(df))).mean()
+            df['sma_50'] = df['Close'].rolling(window=min(50, len(df))).mean()
+            df['sma_200'] = df['Close'].rolling(window=min(200, len(df))).mean()
+        except Exception as e:
+            logger.warning(f"[INDICATORS] SMA calculation error: {sanitize_log_message(str(e))}")
         
         # 지수이동평균
-        df['ema_10'] = df['Close'].ewm(span=10).mean()
-        df['ema_20'] = df['Close'].ewm(span=20).mean()
+        try:
+            df['ema_10'] = df['Close'].ewm(span=10).mean()
+            df['ema_20'] = df['Close'].ewm(span=20).mean()
+        except Exception as e:
+            logger.warning(f"[INDICATORS] EMA calculation error: {sanitize_log_message(str(e))}")
         
-        # RSI 계산
-        delta = df['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        df['rsi'] = 100 - (100 / (1 + rs))
+        # RSI 계산 (with zero division protection)
+        try:
+            delta = df['Close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            
+            # Prevent division by zero
+            loss = loss.replace(0, 0.0001)
+            rs = gain / loss
+            df['rsi'] = 100 - (100 / (1 + rs))
+            
+            # Clamp RSI values to valid range [0, 100]
+            df['rsi'] = df['rsi'].clip(0, 100)
+        except Exception as e:
+            logger.warning(f"[INDICATORS] RSI calculation error: {sanitize_log_message(str(e))}")
         
         # MACD 계산
-        ema_12 = df['Close'].ewm(span=12).mean()
-        ema_26 = df['Close'].ewm(span=26).mean()
-        df['macd'] = ema_12 - ema_26
-        df['macd_signal'] = df['macd'].ewm(span=9).mean()
-        df['macd_histogram'] = df['macd'] - df['macd_signal']
+        try:
+            ema_12 = df['Close'].ewm(span=12).mean()
+            ema_26 = df['Close'].ewm(span=26).mean()
+            df['macd'] = ema_12 - ema_26
+            df['macd_signal'] = df['macd'].ewm(span=9).mean()
+            df['macd_histogram'] = df['macd'] - df['macd_signal']
+        except Exception as e:
+            logger.warning(f"[INDICATORS] MACD calculation error: {sanitize_log_message(str(e))}")
         
-        # 볼린저 밴드
-        df['bb_middle'] = df['Close'].rolling(window=20).mean()
-        bb_std = df['Close'].rolling(window=20).std()
-        df['bb_upper'] = df['bb_middle'] + (bb_std * 2)
-        df['bb_lower'] = df['bb_middle'] - (bb_std * 2)
+        # 볼린저 밴드 (with validation)
+        try:
+            df['bb_middle'] = df['Close'].rolling(window=20).mean()
+            bb_std = df['Close'].rolling(window=20).std()
+            
+            # Ensure standard deviation is valid
+            bb_std = bb_std.fillna(0)
+            df['bb_upper'] = df['bb_middle'] + (bb_std * 2)
+            df['bb_lower'] = df['bb_middle'] - (bb_std * 2)
+        except Exception as e:
+            logger.warning(f"[INDICATORS] Bollinger Bands calculation error: {sanitize_log_message(str(e))}")
         
-        # ATR 계산
-        high_low = df['High'] - df['Low']
-        high_close = abs(df['High'] - df['Close'].shift())
-        low_close = abs(df['Low'] - df['Close'].shift())
-        true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-        df['atr'] = true_range.rolling(window=14).mean()
+        # ATR 계산 (with validation)
+        try:
+            high_low = df['High'] - df['Low']
+            high_close = abs(df['High'] - df['Close'].shift())
+            low_close = abs(df['Low'] - df['Close'].shift())
+            true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+            df['atr'] = true_range.rolling(window=14).mean()
+        except Exception as e:
+            logger.warning(f"[INDICATORS] ATR calculation error: {sanitize_log_message(str(e))}")
         
-        # VWMA 계산
-        def vwma(price, volume, window=20):
-            return (price * volume).rolling(window=window).sum() / volume.rolling(window=window).sum()
+        # VWMA 계산 (with zero volume protection)
+        try:
+            def vwma(price: pd.Series, volume: pd.Series, window: int = 20) -> pd.Series:
+                volume_safe = volume.replace(0, 1)  # Prevent division by zero
+                return (price * volume_safe).rolling(window=window).sum() / volume_safe.rolling(window=window).sum()
+            
+            df['vwma'] = vwma(df['Close'], df['Volume'], 20)
+        except Exception as e:
+            logger.warning(f"[INDICATORS] VWMA calculation error: {sanitize_log_message(str(e))}")
         
-        df['vwma'] = vwma(df['Close'], df['Volume'], 20)
-        
-        # 스토캐스틱 계산
-        low_min = df['Low'].rolling(window=14).min()
-        high_max = df['High'].rolling(window=14).max()
-        df['stoch_k'] = 100 * (df['Close'] - low_min) / (high_max - low_min)
-        df['stoch_d'] = df['stoch_k'].rolling(window=3).mean()
+        # 스토캐스틱 계산 (with zero division protection)
+        try:
+            low_min = df['Low'].rolling(window=14).min()
+            high_max = df['High'].rolling(window=14).max()
+            
+            # Prevent division by zero
+            range_diff = high_max - low_min
+            range_diff = range_diff.replace(0, 0.0001)
+            
+            df['stoch_k'] = 100 * (df['Close'] - low_min) / range_diff
+            df['stoch_d'] = df['stoch_k'].rolling(window=3).mean()
+            
+            # Clamp values to valid range [0, 100]
+            df['stoch_k'] = df['stoch_k'].clip(0, 100)
+            df['stoch_d'] = df['stoch_d'].clip(0, 100)
+        except Exception as e:
+            logger.warning(f"[INDICATORS] Stochastic calculation error: {sanitize_log_message(str(e))}")
         
         return df
         
     except Exception as e:
-        st.error(f"기술적 지표 계산 실패: {e}")
-        return None
+        error_msg = sanitize_log_message(str(e))
+        st.error(f"Technical indicators calculation failed: {error_msg}")
+        logger.error(f"[INDICATORS] Calculation failed: {error_msg}")
+        return data  # Return original data if calculation fails
 
 def create_price_chart(data, symbol):
     """가격 차트 생성"""
@@ -1045,14 +1243,20 @@ def create_market_agent_dashboard():
         col1, col2, col3 = st.columns([2, 2, 3])
         
         with col1:
-            # 티커 입력
-            default_ticker = "SPY"
-            ticker = st.text_input(
+            # 티커 입력 with validation
+            ticker_input = st.text_input(
                 "주식 티커 심볼", 
-                value=default_ticker,
+                value=DEFAULT_TICKER,
                 help="예: AAPL, TSLA, GOOGL, SPY",
-                key="market_ticker"
-            ).upper()
+                key="market_ticker",
+                max_chars=MAX_TICKER_LENGTH
+            )
+            
+            # Sanitize and validate ticker
+            ticker = sanitize_ticker(ticker_input)
+            if ticker_input and not validate_ticker(ticker):
+                st.error("⚠️ Invalid ticker symbol. Please use only letters and numbers.")
+                ticker = DEFAULT_TICKER
         
         with col2:
             # 기간 선택
@@ -1141,8 +1345,8 @@ def create_market_agent_dashboard():
         high_52w = stock_data['High'].tail(252).max()  # 약 1년
         low_52w = stock_data['Low'].tail(252).min()
     
-        # RSI 계산
-        rsi_badge = ""
+        # RSI 계산 (removed unused rsi_badge variable)
+        rsi_info = ""
         if technical_data is not None and 'rsi' in technical_data.columns:
             current_rsi = technical_data['rsi'].iloc[-1]
             if not pd.isna(current_rsi):
@@ -1155,7 +1359,7 @@ def create_market_agent_dashboard():
                 else:
                     rsi_status = "중립"
                     rsi_color = "#4488ff"
-                rsi_badge = f'<span style="background-color: {rsi_color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold;">{rsi_status}</span>'
+                rsi_info = f'<span style="background-color: {rsi_color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold;">{rsi_status}</span>'
     
         # 가격 변화 색상
         price_color = "#44ff44" if price_change >= 0 else "#ff4444"
@@ -1317,7 +1521,6 @@ try:
     from tradingagents.graph.trading_graph import TradingAgentsGraph
     from tradingagents.default_config import DEFAULT_CONFIG
     from cli.models import AnalystType
-    from cli.utils import ANALYST_ORDER
 except ImportError as e:
     st.error(f"Failed to import trading modules: {e}")
     st.stop()
@@ -1915,13 +2118,26 @@ def setup_logging():
 # Initialize logger
 logger = setup_logging()
 
-# Initialize Database Manager
+# Initialize Database Manager with error handling
 @st.cache_resource
-def get_db_manager():
-    return DatabaseManager()
+def get_db_manager() -> Optional[DatabaseManager]:
+    """Initialize database manager with error handling"""
+    try:
+        db_manager = DatabaseManager()
+        return db_manager
+    except Exception as e:
+        error_msg = sanitize_log_message(str(e))
+        st.error(f"Failed to initialize database manager: {error_msg}")
+        logger.error(f"[DATABASE] Initialization failed: {error_msg}")
+        return None
 
 # DB 매니저 인스턴스
 db_manager = get_db_manager()
+
+# Check if database is available
+if db_manager is None:
+    st.error("❌ Database is not available. Some features may not work correctly.")
+    st.stop()
 
 def get_session_file(username=None):
     """Get session file path for specific user"""
@@ -2031,7 +2247,7 @@ def init_auth_session_state():
     if 'login_time' not in st.session_state:
         st.session_state.login_time = None
     if 'session_duration' not in st.session_state:
-        st.session_state.session_duration = 3600  # 1 hour in seconds
+        st.session_state.session_duration = SESSION_DURATION_SECONDS
 
 def is_session_expired():
     """Check if user session has expired using database"""
@@ -2099,6 +2315,17 @@ def is_blocked():
 def authenticate_user(username: str, password: str) -> bool:
     """Authenticate user with username and password using database"""
     try:
+        # Input validation
+        if not username or not password:
+            return False
+        
+        # Sanitize inputs to prevent injection
+        username = sanitize_log_message(username.strip())
+        
+        # Basic validation
+        if len(username) > 50 or len(password) < MIN_PASSWORD_LENGTH:
+            return False
+        
         if db_manager.verify_user(username, password):
             # 인증 성공 - 세션 생성
             session_id = db_manager.create_session(username, duration_hours=1)
@@ -2119,10 +2346,10 @@ def authenticate_user(username: str, password: str) -> bool:
             st.session_state.login_attempts += 1
             logger.warning(f"[AUTH] Failed login attempt for {username}: {st.session_state.login_attempts}/5")
             
-            # 클라이언트 사이드 차단 (5회 시도시 15분)
-            if st.session_state.login_attempts >= 5:
-                st.session_state.blocked_until = get_kst_naive_now() + datetime.timedelta(minutes=15)
-                logger.warning("[AUTH] User blocked for 5 failed attempts (15 minutes)")
+            # 클라이언트 사이드 차단
+            if st.session_state.login_attempts >= MAX_LOGIN_ATTEMPTS:
+                st.session_state.blocked_until = get_kst_naive_now() + datetime.timedelta(minutes=BLOCK_DURATION_MINUTES)
+                logger.warning(f"[AUTH] User blocked for {MAX_LOGIN_ATTEMPTS} failed attempts ({BLOCK_DURATION_MINUTES} minutes)")
             
             return False
     except Exception as e:
@@ -2217,8 +2444,8 @@ def init_session_state():
     
     if 'message_buffer' not in st.session_state:
         st.session_state.message_buffer = {
-            'messages': deque(maxlen=200),
-            'tool_calls': deque(maxlen=200),
+            'messages': deque(maxlen=MAX_MESSAGE_BUFFER_SIZE),
+            'tool_calls': deque(maxlen=MAX_MESSAGE_BUFFER_SIZE),
             'agent_status': {
                 "Market Analyst": "pending",
                 "Social Analyst": "pending", 
@@ -2354,12 +2581,18 @@ def render_configuration_section():
         
         # Step 1: Ticker Symbol
         st.markdown("**1. 📈 Ticker Symbol**")
-        ticker = st.text_input(
+        ticker_input = st.text_input(
             "Enter ticker symbol", 
-            value=st.session_state.config.get("ticker", "SPY"),
-            help="Stock ticker symbol to analyze (e.g., SPY, TSLA, SPY)",
-            placeholder="Enter symbol..."
-        ).upper()
+            value=st.session_state.config.get("ticker", DEFAULT_TICKER),
+            help="Stock ticker symbol to analyze (e.g., SPY, TSLA, AAPL)",
+            placeholder="Enter symbol...",
+            max_chars=MAX_TICKER_LENGTH
+        )
+        
+        # Sanitize and validate ticker input
+        ticker = sanitize_ticker(ticker_input)
+        if ticker_input and not validate_ticker(ticker):
+            st.error("⚠️ Invalid ticker symbol. Use only letters and numbers (max 10 characters).")
         
         # Step 2: Analysis Date  
         st.markdown("**2. 📅 Analysis Date (KST)**")
@@ -2412,7 +2645,7 @@ def render_configuration_section():
             "⛰️ Medium (3 rounds)": 3, 
             "🌋 Deep (5 rounds)": 5
         }
-        current_depth = st.session_state.config.get("research_depth", 3)
+        current_depth = st.session_state.config.get("research_depth", DEFAULT_RESEARCH_DEPTH)
         depth_key = next((k for k, v in depth_options.items() if v == current_depth), "⛰️ Medium (3 rounds)")
         
         research_depth = st.selectbox(
@@ -2476,19 +2709,34 @@ def render_configuration_section():
         submitted = st.form_submit_button("💾 Save Configuration", type="primary")
         
         if submitted:
-            # Store configuration
-            st.session_state.config = {
-                "ticker": ticker,
-                "analysis_date": analysis_date.strftime("%Y-%m-%d"),
-                "analysts": selected_analysts,
-                "research_depth": depth_options[research_depth],
-                "llm_provider": llm_provider.lower(),
-                "backend_url": provider_urls[llm_provider],
-                "shallow_thinker": shallow_thinker,
-                "deep_thinker": deep_thinker
-            }
-            st.session_state.config_set = True
-            st.sidebar.success("✅ Configuration saved!")
+            # Validate inputs before saving
+            validation_errors = []
+            
+            if not ticker or not validate_ticker(ticker):
+                validation_errors.append("Invalid ticker symbol")
+            
+            if not validate_date_input(analysis_date):
+                validation_errors.append("Invalid analysis date")
+            
+            if not selected_analysts:
+                validation_errors.append("At least one analyst must be selected")
+            
+            if validation_errors:
+                st.sidebar.error("❌ Configuration errors:\n" + "\n".join(f"• {error}" for error in validation_errors))
+            else:
+                # Store validated configuration
+                st.session_state.config = {
+                    "ticker": ticker,
+                    "analysis_date": analysis_date.strftime("%Y-%m-%d"),
+                    "analysts": selected_analysts,
+                    "research_depth": depth_options[research_depth],
+                    "llm_provider": llm_provider.lower(),
+                    "backend_url": provider_urls[llm_provider],
+                    "shallow_thinker": shallow_thinker,
+                    "deep_thinker": deep_thinker
+                }
+                st.session_state.config_set = True
+                st.sidebar.success("✅ Configuration saved!")
     
     # Show current configuration status
     if st.session_state.config_set and st.session_state.config:
@@ -2666,7 +2914,7 @@ def render_report_history():
                         if available_sections:
                             section_tabs = st.tabs([section_titles.get(s, s) for s in available_sections])
                             
-                            for tab_idx, (section_type, tab) in enumerate(zip(available_sections, section_tabs)):
+                            for section_type, tab in zip(available_sections, section_tabs):
                                 with tab:
                                     for section in sections_by_type[section_type]:
                                         st.markdown(f"**Agent:** {section['agent_name']}")
@@ -2764,7 +3012,7 @@ def render_agent_status():
             # Create a container for the flow within each column
             flow_html = ""
             
-            for i, agent in enumerate(agents):
+            for agent in agents:
                 status = st.session_state.message_buffer['agent_status'].get(agent, "pending")
                 
                 if status == "pending":
@@ -2865,7 +3113,7 @@ def render_logging_section():
                             "Type": msg[1], 
                             "Content": msg[2][:200] + "..." if len(str(msg[2])) > 200 else str(msg[2])
                         }
-                        for msg in list(st.session_state.message_buffer['messages'])[-50:]  # Last 50 messages
+                        for msg in list(st.session_state.message_buffer['messages'])[-MAX_LOG_DISPLAY_SIZE:]
                     ])
                     st.dataframe(messages_df, use_container_width=True, hide_index=True)
             else:
@@ -2880,7 +3128,7 @@ def render_logging_section():
                         "Tool": call[1],
                         "Arguments": str(call[2])[:100] + "..." if len(str(call[2])) > 100 else str(call[2])
                     }
-                    for call in list(st.session_state.message_buffer['tool_calls'])[-50:]  # Last 50 tool calls
+                    for call in list(st.session_state.message_buffer['tool_calls'])[-MAX_LOG_DISPLAY_SIZE:]
                 ])
                 st.dataframe(tool_calls_df, use_container_width=True, hide_index=True)
             else:
@@ -2916,7 +3164,7 @@ def render_reports_section():
         if tabs:
             selected_tabs = st.tabs(tab_names)
             
-            for tab_idx, (tab, section) in enumerate(zip(selected_tabs, tabs)):
+            for tab, section in zip(selected_tabs, tabs):
                 with tab:
                     content = report_sections[section]
                     st.markdown(content)
@@ -2963,21 +3211,33 @@ def render_reports_section():
 def add_message(msg_type: str, content: str):
     """Add message to buffer"""
     timestamp = get_kst_naive_now().strftime("%H:%M:%S KST")
-    st.session_state.message_buffer['messages'].append((timestamp, msg_type, content))
+    
+    # Sanitize content for security
+    safe_content = sanitize_log_message(str(content))
+    safe_msg_type = sanitize_log_message(str(msg_type))
+    
+    st.session_state.message_buffer['messages'].append((timestamp, safe_msg_type, safe_content))
     if msg_type == "Reasoning":
         st.session_state.message_buffer['llm_call_count'] += 1
     
-    # Log the message
-    logger.info(f"[{msg_type}] {content[:200]}{'...' if len(content) > 200 else ''}")
+    # Log the message with sanitized content
+    log_content = safe_content[:200] + "..." if len(safe_content) > 200 else safe_content
+    logger.info(f"[{safe_msg_type}] {log_content}")
 
 def add_tool_call(tool_name: str, args: dict):
     """Add tool call to buffer"""
     timestamp = get_kst_naive_now().strftime("%H:%M:%S KST")
-    st.session_state.message_buffer['tool_calls'].append((timestamp, tool_name, args))
+    
+    # Sanitize inputs
+    safe_tool_name = sanitize_log_message(str(tool_name))
+    safe_args = {sanitize_log_message(str(k)): sanitize_log_message(str(v)) for k, v in (args or {}).items()}
+    
+    st.session_state.message_buffer['tool_calls'].append((timestamp, safe_tool_name, safe_args))
     st.session_state.message_buffer['tool_call_count'] += 1
     
-    # Log the tool call
-    logger.info(f"[TOOL] {tool_name} called with args: {str(args)[:100]}{'...' if len(str(args)) > 100 else ''}")
+    # Log the tool call with sanitized content
+    args_str = str(safe_args)[:100] + "..." if len(str(safe_args)) > 100 else str(safe_args)
+    logger.info(f"[TOOL] {safe_tool_name} called with args: {args_str}")
 
 def update_agent_status(agent: str, status: str):
     """Update agent status"""
@@ -3028,12 +3288,13 @@ def run_analysis():
         full_config["backend_url"] = config["backend_url"]
         full_config["llm_provider"] = config["llm_provider"]
         
-        # Initialize the graph
+        # Initialize the graph and store in session state
         graph = TradingAgentsGraph(
             [analyst.value for analyst in config["analysts"]], 
             config=full_config, 
             debug=True
         )
+        st.session_state.graph = graph
         
         # Reset message buffer
         st.session_state.message_buffer['analysis_start_time'] = time.time()
@@ -3183,26 +3444,38 @@ def get_session_info():
         'total': st.session_state.session_duration
     }
 
-def main():
-    """Main Streamlit application"""
-    # Initialize authentication first
-    init_auth_session_state()
-    
-    # Try to restore session from file
-    if not st.session_state.authenticated:
-        load_session()
-    
-    # Check if session expired
-    if is_session_expired():
-        clear_session()
-        st.error("🔒 Your session has expired. Please log in again.")
-        render_login_page()
-        return
-    
-    # Check authentication
-    if not st.session_state.authenticated:
-        render_login_page()
-        return
+def main() -> None:
+    """Main Streamlit application with enhanced security and error handling"""
+    try:
+        # Environment validation first
+        if not validate_environment():
+            st.error("❌ Environment validation failed. Please check configuration.")
+            st.stop()
+        
+        # Initialize authentication first
+        init_auth_session_state()
+        
+        # Try to restore session from database
+        if not st.session_state.authenticated:
+            load_session()
+        
+        # Check if session expired
+        if is_session_expired():
+            clear_session()
+            st.error("🔒 Your session has expired. Please log in again.")
+            render_login_page()
+            return
+        
+        # Check authentication
+        if not st.session_state.authenticated:
+            render_login_page()
+            return
+            
+    except Exception as e:
+        error_msg = sanitize_log_message(str(e))
+        st.error(f"❌ Application initialization failed: {error_msg}")
+        logger.error(f"[MAIN] Initialization error: {error_msg}")
+        st.stop()
     
     # Initialize main session state
     init_session_state()
@@ -3554,45 +3827,24 @@ def main():
             
             # Save analysis to database
             try:
-                # Extract final decision from reports
+                # Extract final decision using graph's process_signal method
                 final_decision = None
                 confidence_score = None
                 
                 final_trade_decision = st.session_state.message_buffer['report_sections'].get('final_trade_decision')
-                if final_trade_decision:
-                    # 빈도수 기반으로 결정 추출
-                    import re
-                    from collections import Counter
-
-                    # 한글/영문 모두 포함하여 후보 추출
-                    candidates = []
-                    candidates += re.findall(r'매수', final_trade_decision)
-                    candidates += re.findall(r'매도', final_trade_decision)
-                    candidates += re.findall(r'보유', final_trade_decision)
-                    candidates += re.findall(r'BUY', final_trade_decision.upper())
-                    candidates += re.findall(r'SELL', final_trade_decision.upper())
-                    candidates += re.findall(r'HOLD', final_trade_decision.upper())
-
-                    # 영문을 한글로 매핑
-                    mapped = []
-                    for c in candidates:
-                        if c.upper() == 'BUY':
-                            mapped.append('매수')
-                        elif c.upper() == 'SELL':
-                            mapped.append('매도')
-                        elif c.upper() == 'HOLD':
-                            mapped.append('보유')
-                        else:
-                            mapped.append(c)
-
-                    if mapped:
-                        freq = Counter(mapped)
-                        final_decision = freq.most_common(1)[0][0]
-                    
-                    # Try to extract confidence score (simple regex)
-                    confidence_match = re.search(r'(\d{1,3})%', final_trade_decision)
-                    if confidence_match:
-                        confidence_score = float(confidence_match.group(1)) / 100.0
+                if final_trade_decision and hasattr(st.session_state, 'graph') and st.session_state.graph:
+                    try:
+                        # Use graph's process_signal method to extract clean decision
+                        final_decision = st.session_state.graph.process_signal(final_trade_decision)
+                        
+                        # Use graph's extract_confidence method to extract confidence score
+                        confidence_score = st.session_state.graph.extract_confidence_score(final_trade_decision)
+                    except Exception as e:
+                        error_msg = sanitize_log_message(str(e))
+                        logger.warning(f"[ANALYSIS] Failed to process signal using graph method: {error_msg}")
+                        # Fallback to None if process_signal fails
+                        final_decision = "-"
+                        confidence_score = "-"
                 
                 # Create analysis session in DB
                 session_id = db_manager.create_analysis_session(

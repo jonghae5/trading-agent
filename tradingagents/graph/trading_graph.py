@@ -27,6 +27,7 @@ from .setup import GraphSetup
 from .propagation import Propagator
 from .reflection import Reflector
 from .signal_processing import SignalProcessor
+from .confidence_processing import ConfidenceProcessor
 
 
 class TradingAgentsGraph:
@@ -100,7 +101,7 @@ class TradingAgentsGraph:
         self.propagator = Propagator()
         self.reflector = Reflector(self.quick_thinking_llm)
         self.signal_processor = SignalProcessor(self.quick_thinking_llm)
-
+        self.confidence_processor = ConfidenceProcessor(self.quick_thinking_llm)
         # State tracking
         self.curr_state = None
         self.ticker = None
@@ -252,3 +253,7 @@ class TradingAgentsGraph:
     def process_signal(self, full_signal):
         """Process a signal to extract the core decision."""
         return self.signal_processor.process_signal(full_signal)
+
+    def extract_confidence_score(self, full_signal):
+        """Extract the confidence score from a signal."""
+        return self.confidence_processor.extract_confidence_score(full_signal)
