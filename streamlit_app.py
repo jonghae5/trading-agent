@@ -450,10 +450,76 @@ def create_financial_indicators_charts():
                         fill='tozeroy',
                         fillcolor='rgba(99, 102, 241, 0.1)'
                     ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < fed_rate.index.min() or target_date > fed_rate.index.max():
+                                continue
+                                
+                            if target_date in fed_rate.index:
+                                exact_date = target_date
+                                exact_value = fed_rate.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(fed_rate.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = fed_rate.index[nearest_idx]
+                                exact_value = fed_rate.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
                     fig.update_layout(
                         title='연방기준금리 추이',
                         height=200,
-                        showlegend=False,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
                         margin=dict(l=20, r=20, t=40, b=20),
                         yaxis_title='%'
                     )
@@ -484,10 +550,76 @@ def create_financial_indicators_charts():
                         name='GDP Growth Rate',
                         marker_color=['green' if x >= 0 else 'red' for x in gdp_growth_rate.values]
                     ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < gdp_growth_rate.index.min() or target_date > gdp_growth_rate.index.max():
+                                continue
+                                
+                            if target_date in gdp_growth_rate.index:
+                                exact_date = target_date
+                                exact_value = gdp_growth_rate.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(gdp_growth_rate.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = gdp_growth_rate.index[nearest_idx]
+                                exact_value = gdp_growth_rate.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
                     fig.update_layout(
                         title='GDP 성장률 (%)',
                         height=200,
-                        showlegend=False,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
                         margin=dict(l=20, r=20, t=40, b=20)
                     )
                     st.plotly_chart(fig, use_container_width=True)
@@ -536,6 +668,64 @@ def create_financial_indicators_charts():
                         fillcolor=f'rgba({int(spread_color[1:3], 16)}, {int(spread_color[3:5], 16)}, {int(spread_color[5:7], 16)}, 0.1)'
                     ))
                     
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < high_yield_data.index.min() or target_date > high_yield_data.index.max():
+                                continue
+                                
+                            if target_date in high_yield_data.index:
+                                exact_date = target_date
+                                exact_value = high_yield_data.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(high_yield_data.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = high_yield_data.index[nearest_idx]
+                                exact_value = high_yield_data.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
                     # 위험 구간 표시
                     fig.add_hline(y=3, line_dash="dot", line_color="green", annotation_text="안전 구간 (300bp)")
                     fig.add_hline(y=5, line_dash="dash", line_color="orange", annotation_text="주의 구간 (500bp)")
@@ -544,7 +734,14 @@ def create_financial_indicators_charts():
                     fig.update_layout(
                         title='하이일드 스프레드 추이',
                         height=200,
-                        showlegend=False,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
                         margin=dict(l=20, r=20, t=40, b=20),
                         yaxis_title='Basis Points (bp)'
                     )
@@ -579,10 +776,76 @@ def create_financial_indicators_charts():
                         fill='tozeroy',
                         fillcolor='rgba(255, 215, 0, 0.1)'
                     ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < dollar_data.index.min() or target_date > dollar_data.index.max():
+                                continue
+                                
+                            if target_date in dollar_data.index:
+                                exact_date = target_date
+                                exact_value = dollar_data.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(dollar_data.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = dollar_data.index[nearest_idx]
+                                exact_value = dollar_data.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
                     fig.update_layout(
                         title='달러 인덱스',
                         height=200,
-                        showlegend=False,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
                         margin=dict(l=20, r=20, t=40, b=20),
                         yaxis_title='Index'
                     )
@@ -623,11 +886,77 @@ def create_financial_indicators_charts():
                         line=dict(color=unemployment_color, width=2),
                         marker=dict(size=4)
                     ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < unemployment.index.min() or target_date > unemployment.index.max():
+                                continue
+                                
+                            if target_date in unemployment.index:
+                                exact_date = target_date
+                                exact_value = unemployment.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(unemployment.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = unemployment.index[nearest_idx]
+                                exact_value = unemployment.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
                     fig.add_hline(y=4, line_dash="dash", line_color="green", annotation_text="완전고용 기준")
                     fig.update_layout(
                         title='실업률 추이',
                         height=200,
-                        showlegend=False,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
                         margin=dict(l=20, r=20, t=40, b=20),
                         yaxis_title='%'
                     )
@@ -667,11 +996,77 @@ def create_financial_indicators_charts():
                         fill='tozeroy',
                         fillcolor=f'rgba({int(curve_color[1:3], 16)}, {int(curve_color[3:5], 16)}, {int(curve_color[5:7], 16)}, 0.1)'
                     ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < yield_data.index.min() or target_date > yield_data.index.max():
+                                continue
+                                
+                            if target_date in yield_data.index:
+                                exact_date = target_date
+                                exact_value = yield_data.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(yield_data.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = yield_data.index[nearest_idx]
+                                exact_value = yield_data.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
                     fig.add_hline(y=0, line_dash="dash", line_color="red", annotation_text="역전선 0%")
                     fig.update_layout(
                         title='10Y-2Y 수익률 곡선',
                         height=180,
-                        showlegend=False,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
                         margin=dict(l=20, r=20, t=40, b=20),
                         yaxis_title='Basis Points'
                     )
@@ -715,11 +1110,77 @@ def create_financial_indicators_charts():
                             fill='tozeroy',
                             fillcolor=f'rgba({int(inflation_color[1:3], 16)}, {int(inflation_color[3:5], 16)}, {int(inflation_color[5:7], 16)}, 0.1)'
                         ))
+                        
+                        # 주요 경제 위기 시점 표시
+                        crisis_dates = [
+                            ('2006-01-01', '부동산 버블 정점'),
+                            ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                            ('2012-01-01', '주택시장 회복'),
+                            ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                            ('2022-03-01', 'Fed 긴축 시작')
+                        ]
+
+                        # crisis_dates를 스캐터 플롯으로 추가
+                        crisis_x_dates = []
+                        crisis_y_values = []
+                        crisis_labels = []
+                        
+                        for date_str, label in crisis_dates:
+                            try:
+                                target_date = pd.to_datetime(date_str)
+                                
+                                if target_date < inflation_rate.index.min() or target_date > inflation_rate.index.max():
+                                    continue
+                                    
+                                if target_date in inflation_rate.index:
+                                    exact_date = target_date
+                                    exact_value = inflation_rate.loc[exact_date]
+                                else:
+                                    time_diffs = np.abs(inflation_rate.index.astype('int64') - target_date.value)
+                                    nearest_idx = time_diffs.argmin()
+                                    exact_date = inflation_rate.index[nearest_idx]
+                                    exact_value = inflation_rate.iloc[nearest_idx]
+                                
+                                if pd.isna(exact_date) or pd.isna(exact_value):
+                                    continue
+                                    
+                                crisis_x_dates.append(exact_date)
+                                crisis_y_values.append(exact_value)
+                                crisis_labels.append(label)
+                                
+                            except Exception:
+                                continue
+                        
+                        if crisis_x_dates:
+                            fig.add_trace(go.Scatter(
+                                x=crisis_x_dates,
+                                y=crisis_y_values,
+                                mode='markers+text',
+                                marker=dict(
+                                    symbol='triangle-down',
+                                    size=12,
+                                    color='red',
+                                    line=dict(width=2, color='darkred')
+                                ),
+                                text=crisis_labels,
+                                textposition='top center',
+                                textfont=dict(size=10, color='red'),
+                                name='경제 위기 시점',
+                                showlegend=True
+                            ))
+                        
                         fig.add_hline(y=2, line_dash="dash", line_color="gray", annotation_text="FED 목표 2%")
                         fig.update_layout(
                             title='CPI 인플레이션율 (YoY)',
                             height=200,
-                            showlegend=False,
+                            showlegend=True,
+                            legend=dict(
+                                orientation="h",
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="center",
+                                x=0.5
+                            ),
                             margin=dict(l=20, r=20, t=40, b=20),
                             yaxis_title='%'
                         )
@@ -762,11 +1223,77 @@ def create_financial_indicators_charts():
                         fill='tozeroy',
                         fillcolor=f'rgba({int(manufacturing_color[1:3], 16)}, {int(manufacturing_color[3:5], 16)}, {int(manufacturing_color[5:7], 16)}, 0.1)'
                     ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < manufacturing_growth.index.min() or target_date > manufacturing_growth.index.max():
+                                continue
+                                
+                            if target_date in manufacturing_growth.index:
+                                exact_date = target_date
+                                exact_value = manufacturing_growth.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(manufacturing_growth.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = manufacturing_growth.index[nearest_idx]
+                                exact_value = manufacturing_growth.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
                     fig.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="기준선 0%")
                     fig.update_layout(
                         title='제조업 지수 성장률 (YoY)',
                         height=200,
-                        showlegend=False,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
                         margin=dict(l=20, r=20, t=40, b=20),
                         yaxis_title='%'
                     )
@@ -798,11 +1325,77 @@ def create_financial_indicators_charts():
                         name='M2 Growth Rate',
                         line=dict(color='#7c3aed', width=2)
                     ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < m2_growth.index.min() or target_date > m2_growth.index.max():
+                                continue
+                                
+                            if target_date in m2_growth.index:
+                                exact_date = target_date
+                                exact_value = m2_growth.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(m2_growth.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = m2_growth.index[nearest_idx]
+                                exact_value = m2_growth.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
                     fig.add_hline(y=0, line_dash="dash", line_color="gray")
                     fig.update_layout(
                         title='M2 통화량 증가율 (YoY)',
                         height=200,
-                        showlegend=False,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
                         margin=dict(l=20, r=20, t=40, b=20),
                         yaxis_title='%'
                     )
@@ -870,10 +1463,73 @@ def create_financial_indicators_charts():
                     name='Fear Greed Index',
                     line=dict(color=fg_color, width=2)
                 ))
+                
+                # 주요 경제 위기 시점 표시
+                crisis_dates = [
+                    ('2006-01-01', '부동산 버블 정점'),
+                    ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                    ('2012-01-01', '주택시장 회복'),
+                    ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                    ('2022-03-01', 'Fed 긴축 시작')
+                ]
+
+                # crisis_dates를 스캐터 플롯으로 추가
+                crisis_x_dates = []
+                crisis_y_values = []
+                crisis_labels = []
+                
+                for date_str, label in crisis_dates:
+                    try:
+                        target_date = pd.to_datetime(date_str)
+                        
+                        if target_date < fg_data['Date'].min() or target_date > fg_data['Date'].max():
+                            continue
+                            
+                        # 가장 가까운 날짜 찾기
+                        time_diffs = np.abs((fg_data['Date'] - target_date).dt.days)
+                        nearest_idx = time_diffs.argmin()
+                        exact_date = fg_data['Date'].iloc[nearest_idx]
+                        exact_value = fg_data['Fear_Greed'].iloc[nearest_idx]
+                        
+                        if pd.isna(exact_date) or pd.isna(exact_value):
+                            continue
+                            
+                        crisis_x_dates.append(exact_date)
+                        crisis_y_values.append(exact_value)
+                        crisis_labels.append(label)
+                        
+                    except Exception:
+                        continue
+                
+                if crisis_x_dates:
+                    fig.add_trace(go.Scatter(
+                        x=crisis_x_dates,
+                        y=crisis_y_values,
+                        mode='markers+text',
+                        marker=dict(
+                            symbol='triangle-down',
+                            size=12,
+                            color='red',
+                            line=dict(width=2, color='darkred')
+                        ),
+                        text=crisis_labels,
+                        textposition='top center',
+                        textfont=dict(size=10, color='red'),
+                        name='경제 위기 시점',
+                        showlegend=True
+                    ))
+                
                 fig.update_layout(
                     title='공포탐욕지수 (VIX 기반)',
                     height=200,
-                    showlegend=False,
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="center",
+                        x=0.5
+                    ),
                     margin=dict(l=20, r=20, t=40, b=20),
                     yaxis_title='Index (0-100)'
                 )
@@ -928,10 +1584,76 @@ def create_financial_indicators_charts():
                         fill='tozeroy',
                         fillcolor='rgba(44, 62, 80, 0.1)'
                     ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < oil_data.index.min() or target_date > oil_data.index.max():
+                                continue
+                                
+                            if target_date in oil_data.index:
+                                exact_date = target_date
+                                exact_value = oil_data.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(oil_data.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = oil_data.index[nearest_idx]
+                                exact_value = oil_data.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
                     fig.update_layout(
                         title='원유가격 (WTI)',
                         height=200,
-                        showlegend=False,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
                         margin=dict(l=20, r=20, t=40, b=20),
                         yaxis_title='USD'
                     )
@@ -974,11 +1696,77 @@ def create_financial_indicators_charts():
                     line=dict(color=retail_color, width=2),
                     marker=dict(size=3)
                 ))
+                
+                # 주요 경제 위기 시점 표시
+                crisis_dates = [
+                    ('2006-01-01', '부동산 버블 정점'),
+                    ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                    ('2012-01-01', '주택시장 회복'),
+                    ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                    ('2022-03-01', 'Fed 긴축 시작')
+                ]
+
+                # crisis_dates를 스캐터 플롯으로 추가
+                crisis_x_dates = []
+                crisis_y_values = []
+                crisis_labels = []
+                
+                for date_str, label in crisis_dates:
+                    try:
+                        target_date = pd.to_datetime(date_str)
+                        
+                        if target_date < retail_growth.index.min() or target_date > retail_growth.index.max():
+                            continue
+                            
+                        if target_date in retail_growth.index:
+                            exact_date = target_date
+                            exact_value = retail_growth.loc[exact_date]
+                        else:
+                            time_diffs = np.abs(retail_growth.index.astype('int64') - target_date.value)
+                            nearest_idx = time_diffs.argmin()
+                            exact_date = retail_growth.index[nearest_idx]
+                            exact_value = retail_growth.iloc[nearest_idx]
+                        
+                        if pd.isna(exact_date) or pd.isna(exact_value):
+                            continue
+                            
+                        crisis_x_dates.append(exact_date)
+                        crisis_y_values.append(exact_value)
+                        crisis_labels.append(label)
+                        
+                    except Exception:
+                        continue
+                
+                if crisis_x_dates:
+                    fig.add_trace(go.Scatter(
+                        x=crisis_x_dates,
+                        y=crisis_y_values,
+                        mode='markers+text',
+                        marker=dict(
+                            symbol='triangle-down',
+                            size=12,
+                            color='red',
+                            line=dict(width=2, color='darkred')
+                        ),
+                        text=crisis_labels,
+                        textposition='top center',
+                        textfont=dict(size=10, color='red'),
+                        name='경제 위기 시점',
+                        showlegend=True
+                    ))
+                
                 fig.add_hline(y=0, line_dash="dash", line_color="gray")
                 fig.update_layout(
                     title='소매판매 성장률 (YoY)',
                     height=200,
-                    showlegend=False,
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="center",
+                        x=0.5
+                    ),
                     margin=dict(l=20, r=20, t=40, b=20),
                     yaxis_title='%'
                 )
@@ -1118,6 +1906,64 @@ def create_financial_indicators_charts():
                     marker=dict(size=2)
                 ))
                 
+                # 주요 경제 위기 시점 표시
+                crisis_dates = [
+                    ('2006-01-01', '부동산 버블 정점'),
+                    ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                    ('2012-01-01', '주택시장 회복'),
+                    ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                    ('2022-03-01', 'Fed 긴축 시작')
+                ]
+
+                # crisis_dates를 스캐터 플롯으로 추가
+                crisis_x_dates = []
+                crisis_y_values = []
+                crisis_labels = []
+                
+                for date_str, label in crisis_dates:
+                    try:
+                        target_date = pd.to_datetime(date_str)
+                        
+                        if target_date < housing_growth.index.min() or target_date > housing_growth.index.max():
+                            continue
+                            
+                        if target_date in housing_growth.index:
+                            exact_date = target_date
+                            exact_value = housing_growth.loc[exact_date]
+                        else:
+                            time_diffs = np.abs(housing_growth.index.astype('int64') - target_date.value)
+                            nearest_idx = time_diffs.argmin()
+                            exact_date = housing_growth.index[nearest_idx]
+                            exact_value = housing_growth.iloc[nearest_idx]
+                        
+                        if pd.isna(exact_date) or pd.isna(exact_value):
+                            continue
+                            
+                        crisis_x_dates.append(exact_date)
+                        crisis_y_values.append(exact_value)
+                        crisis_labels.append(label)
+                        
+                    except Exception:
+                        continue
+                
+                if crisis_x_dates:
+                    fig2.add_trace(go.Scatter(
+                        x=crisis_x_dates,
+                        y=crisis_y_values,
+                        mode='markers+text',
+                        marker=dict(
+                            symbol='triangle-down',
+                            size=12,
+                            color='red',
+                            line=dict(width=2, color='darkred')
+                        ),
+                        text=crisis_labels,
+                        textposition='top center',
+                        textfont=dict(size=10, color='red'),
+                        name='경제 위기 시점',
+                        showlegend=True
+                    ))
+                
                 # 건전성 기준선
                 fig2.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="기준선")
                 fig2.add_hline(y=8, line_dash="dot", line_color="orange", annotation_text="과열 주의")
@@ -1127,7 +1973,14 @@ def create_financial_indicators_charts():
                 fig2.update_layout(
                     title='주택시장 성장률 (YoY)',
                     height=200,
-                    showlegend=False,
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="center",
+                        x=0.5
+                    ),
                     margin=dict(l=20, r=20, t=40, b=20),
                     yaxis_title='%'
                 )
