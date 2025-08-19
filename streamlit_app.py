@@ -434,6 +434,557 @@ def create_financial_indicators_charts():
         fred_col1, fred_col2, fred_col3 = st.columns(3)
         
         with fred_col1:
+            # GDP
+            if fred_macro and 'gdp' in fred_macro:
+                gdp_data = fred_macro['gdp']
+                if not gdp_data.empty:
+                    current_gdp = gdp_data.iloc[-1] / 1000  # 조 달러로 변환
+                    prev_gdp = gdp_data.iloc[-2] / 1000 if len(gdp_data) > 1 else current_gdp
+                    gdp_growth = ((current_gdp - prev_gdp) / prev_gdp) * 100
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, #059669, #10b981); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">📈 GDP</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">${current_gdp:.1f}조 | QoQ {gdp_growth:+.1f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # GDP 성장률 차트
+                    gdp_growth_rate = gdp_data.pct_change() * 100
+                    fig = go.Figure()
+                    fig.add_trace(go.Bar(
+                        x=gdp_growth_rate.index,
+                        y=gdp_growth_rate.values,
+                        name='GDP Growth Rate',
+                        marker_color=['green' if x >= 0 else 'red' for x in gdp_growth_rate.values]
+                    ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < gdp_growth_rate.index.min() or target_date > gdp_growth_rate.index.max():
+                                continue
+                                
+                            if target_date in gdp_growth_rate.index:
+                                exact_date = target_date
+                                exact_value = gdp_growth_rate.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(gdp_growth_rate.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = gdp_growth_rate.index[nearest_idx]
+                                exact_value = gdp_growth_rate.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
+                    fig.update_layout(
+                        title='GDP 성장률 (%)',
+                        height=200,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
+                        margin=dict(l=20, r=20, t=40, b=20)
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 GDP 성장 = 경기 확장, 감소 = 경기 둔화")
+            
+            # 제조업 지수 (Industrial Production 또는 Manufacturing Employment)
+            if fred_macro and 'pmi' in fred_macro:
+                manufacturing_data = fred_macro['pmi']
+                if not manufacturing_data.empty:
+                    # YoY 성장률 계산 (지수이므로)
+                    manufacturing_growth = manufacturing_data.pct_change(periods=12) * 100
+                    current_growth = manufacturing_growth.iloc[-1] if not manufacturing_growth.empty else 0
+                    current_index = manufacturing_data.iloc[-1]
+                    
+                    # 제조업 상태에 따른 색상 (성장률 기준)
+                    if current_growth > 3:
+                        manufacturing_color = "#10b981"  # 강한 성장
+                    elif current_growth > 0:
+                        manufacturing_color = "#3b82f6"  # 성장
+                    elif current_growth > -3:
+                        manufacturing_color = "#f59e0b"  # 둔화
+                    else:
+                        manufacturing_color = "#ef4444"  # 위축
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, {manufacturing_color}, #64748b); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">🏭 제조업 지수</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_index:.1f} | YoY {current_growth:+.1f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 제조업 성장률 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=manufacturing_growth.index,
+                        y=manufacturing_growth.values,
+                        mode='lines',
+                        name='Manufacturing Growth Rate',
+                        line=dict(color=manufacturing_color, width=2),
+                        fill='tozeroy',
+                        fillcolor=f'rgba({int(manufacturing_color[1:3], 16)}, {int(manufacturing_color[3:5], 16)}, {int(manufacturing_color[5:7], 16)}, 0.1)'
+                    ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < manufacturing_growth.index.min() or target_date > manufacturing_growth.index.max():
+                                continue
+                                
+                            if target_date in manufacturing_growth.index:
+                                exact_date = target_date
+                                exact_value = manufacturing_growth.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(manufacturing_growth.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = manufacturing_growth.index[nearest_idx]
+                                exact_value = manufacturing_growth.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
+                    fig.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="기준선 0%")
+                    fig.update_layout(
+                        title='제조업 지수 성장률 (YoY)',
+                        height=200,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='%'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 양수 = 제조업 성장, 음수 = 제조업 위축")
+
+            # CPI (인플레이션)
+            if fred_macro and 'cpi' in fred_macro:
+                cpi_data = fred_macro['cpi']
+                if not cpi_data.empty:
+                    # YoY 인플레이션율 계산
+                    inflation_rate = cpi_data.pct_change(periods=12) * 100  # 12개월 전 대비
+                    if not inflation_rate.empty:
+                        current_inflation = inflation_rate.iloc[-1]
+                        
+                        # 인플레이션 상태에 따른 색상
+                        if current_inflation < 2:
+                            inflation_color = "#3b82f6"  # 파랑 (디플레이션 우려)
+                        elif current_inflation <= 3:
+                            inflation_color = "#10b981"  # 녹색 (목표 수준)
+                        elif current_inflation <= 5:
+                            inflation_color = "#f59e0b"  # 주황 (높음)
+                        else:
+                            inflation_color = "#ef4444"  # 빨강 (매우 높음)
+                        
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(90deg, {inflation_color}, #6366f1); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                            <span style="color: white; font-weight: bold; font-size: 14px;">📊 CPI 인플레이션</span>
+                            <span style="color: white; font-size: 12px; margin-left: 10px;">{current_inflation:.1f}% YoY</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # 인플레이션율 차트
+                        fig = go.Figure()
+                        fig.add_trace(go.Scatter(
+                            x=inflation_rate.index,
+                            y=inflation_rate.values,
+                            mode='lines',
+                            name='CPI Inflation YoY',
+                            line=dict(color=inflation_color, width=2),
+                            fill='tozeroy',
+                            fillcolor=f'rgba({int(inflation_color[1:3], 16)}, {int(inflation_color[3:5], 16)}, {int(inflation_color[5:7], 16)}, 0.1)'
+                        ))
+                        
+                        # 주요 경제 위기 시점 표시
+                        crisis_dates = [
+                            ('2006-01-01', '부동산 버블 정점'),
+                            ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                            ('2012-01-01', '주택시장 회복'),
+                            ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                            ('2022-03-01', 'Fed 긴축 시작')
+                        ]
+
+                        # crisis_dates를 스캐터 플롯으로 추가
+                        crisis_x_dates = []
+                        crisis_y_values = []
+                        crisis_labels = []
+                        
+                        for date_str, label in crisis_dates:
+                            try:
+                                target_date = pd.to_datetime(date_str)
+                                
+                                if target_date < inflation_rate.index.min() or target_date > inflation_rate.index.max():
+                                    continue
+                                    
+                                if target_date in inflation_rate.index:
+                                    exact_date = target_date
+                                    exact_value = inflation_rate.loc[exact_date]
+                                else:
+                                    time_diffs = np.abs(inflation_rate.index.astype('int64') - target_date.value)
+                                    nearest_idx = time_diffs.argmin()
+                                    exact_date = inflation_rate.index[nearest_idx]
+                                    exact_value = inflation_rate.iloc[nearest_idx]
+                                
+                                if pd.isna(exact_date) or pd.isna(exact_value):
+                                    continue
+                                    
+                                crisis_x_dates.append(exact_date)
+                                crisis_y_values.append(exact_value)
+                                crisis_labels.append(label)
+                                
+                            except Exception:
+                                continue
+                        
+                        if crisis_x_dates:
+                            fig.add_trace(go.Scatter(
+                                x=crisis_x_dates,
+                                y=crisis_y_values,
+                                mode='markers+text',
+                                marker=dict(
+                                    symbol='triangle-down',
+                                    size=12,
+                                    color='red',
+                                    line=dict(width=2, color='darkred')
+                                ),
+                                text=crisis_labels,
+                                textposition='top center',
+                                textfont=dict(size=10, color='red'),
+                                name='경제 위기 시점',
+                                showlegend=True
+                            ))
+                        
+                        fig.add_hline(y=2, line_dash="dash", line_color="gray", annotation_text="FED 목표 2%")
+                        fig.update_layout(
+                            title='CPI 인플레이션율 (YoY)',
+                            height=200,
+                            showlegend=True,
+                            legend=dict(
+                                orientation="h",
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="center",
+                                x=0.5
+                            ),
+                            margin=dict(l=20, r=20, t=40, b=20),
+                            yaxis_title='%'
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                        st.caption("💡 2% 목표치. 높으면 긴축 압력, 낮으면 완화 신호")
+        
+            if fred_macro and 'unemployment' in fred_macro:
+                unemployment = fred_macro['unemployment']
+                if not unemployment.empty:
+                    current_unemployment = unemployment.iloc[-1]
+                    prev_unemployment = unemployment.iloc[-2] if len(unemployment) > 1 else current_unemployment
+                    unemployment_change = current_unemployment - prev_unemployment
+                    
+                    # 실업률 상태에 따른 색상
+                    if current_unemployment < 4:
+                        unemployment_color = "#10b981"  # 녹색 (양호)
+                    elif current_unemployment < 6:
+                        unemployment_color = "#f59e0b"  # 주황 (보통)
+                    else:
+                        unemployment_color = "#ef4444"  # 빨강 (나쁨)
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, {unemployment_color}, #6b7280); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">👥 실업률</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_unemployment:.1f}% | 전월대비 {unemployment_change:+.1f}%p</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 실업률 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=unemployment.index,
+                        y=unemployment.values,
+                        mode='lines+markers',
+                        name='Unemployment Rate',
+                        line=dict(color=unemployment_color, width=2),
+                        marker=dict(size=4)
+                    ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < unemployment.index.min() or target_date > unemployment.index.max():
+                                continue
+                                
+                            if target_date in unemployment.index:
+                                exact_date = target_date
+                                exact_value = unemployment.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(unemployment.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = unemployment.index[nearest_idx]
+                                exact_value = unemployment.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
+                    fig.add_hline(y=4, line_dash="dash", line_color="green", annotation_text="완전고용 기준")
+                    fig.update_layout(
+                        title='실업률 추이',
+                        height=200,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='%'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 실업률 하락 = 경기 회복, 상승 = 경기 둔화")
+              # 수익률 곡선 (FRED)
+            
+            # 실업률
+            if fred_additional and 'yield_spread' in fred_additional:
+                yield_data = fred_additional['yield_spread']
+                if not yield_data.empty:
+                    current_spread = yield_data.iloc[-1]
+                    
+                    if current_spread < 0:
+                        curve_status = "⚠️ 역전"
+                        curve_color = "#ef4444"
+                    elif current_spread < 100:  # 1% 미만
+                        curve_status = "🟡 평탄"
+                        curve_color = "#f59e0b"
+                    else:
+                        curve_status = "✅ 정상"
+                        curve_color = "#10b981"
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, {curve_color}, #6366f1); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">📊 수익률곡선</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_spread:.2f}bp ({curve_status})</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 수익률 곡선 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=yield_data.index,
+                        y=yield_data.values,
+                        mode='lines',
+                        name='Yield Spread',
+                        line=dict(color=curve_color, width=2),
+                        fill='tozeroy',
+                        fillcolor=f'rgba({int(curve_color[1:3], 16)}, {int(curve_color[3:5], 16)}, {int(curve_color[5:7], 16)}, 0.1)'
+                    ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < yield_data.index.min() or target_date > yield_data.index.max():
+                                continue
+                                
+                            if target_date in yield_data.index:
+                                exact_date = target_date
+                                exact_value = yield_data.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(yield_data.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = yield_data.index[nearest_idx]
+                                exact_value = yield_data.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
+                    fig.add_hline(y=0, line_dash="dash", line_color="red", annotation_text="역전선 0%")
+                    fig.update_layout(
+                        title='10Y-2Y 수익률 곡선',
+                        height=180,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='Basis Points'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 양수=정상, 음수=역전(경기침체 신호)")
+            
+         
+             # 달러 인덱스 이동
+        with fred_col2:
             # 기준금리
             if fred_macro and 'federal_rate' in fred_macro:
                 fed_rate = fred_macro['federal_rate']
@@ -536,105 +1087,6 @@ def create_financial_indicators_charts():
                     st.plotly_chart(fig, use_container_width=True)
                     st.caption("💡 금리 상승 = 주식 약세 압력, 하락 = 유동성 증가")
         
-            # GDP
-            if fred_macro and 'gdp' in fred_macro:
-                gdp_data = fred_macro['gdp']
-                if not gdp_data.empty:
-                    current_gdp = gdp_data.iloc[-1] / 1000  # 조 달러로 변환
-                    prev_gdp = gdp_data.iloc[-2] / 1000 if len(gdp_data) > 1 else current_gdp
-                    gdp_growth = ((current_gdp - prev_gdp) / prev_gdp) * 100
-                    
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(90deg, #059669, #10b981); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                        <span style="color: white; font-weight: bold; font-size: 14px;">📈 GDP</span>
-                        <span style="color: white; font-size: 12px; margin-left: 10px;">${current_gdp:.1f}조 | QoQ {gdp_growth:+.1f}%</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # GDP 성장률 차트
-                    gdp_growth_rate = gdp_data.pct_change() * 100
-                    fig = go.Figure()
-                    fig.add_trace(go.Bar(
-                        x=gdp_growth_rate.index,
-                        y=gdp_growth_rate.values,
-                        name='GDP Growth Rate',
-                        marker_color=['green' if x >= 0 else 'red' for x in gdp_growth_rate.values]
-                    ))
-                    
-                    # 주요 경제 위기 시점 표시
-                    crisis_dates = [
-                        ('2006-01-01', '부동산 버블 정점'),
-                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
-                        ('2012-01-01', '주택시장 회복'),
-                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
-                        ('2022-03-01', 'Fed 긴축 시작')
-                    ]
-
-                    # crisis_dates를 스캐터 플롯으로 추가
-                    crisis_x_dates = []
-                    crisis_y_values = []
-                    crisis_labels = []
-                    
-                    for date_str, label in crisis_dates:
-                        try:
-                            target_date = pd.to_datetime(date_str)
-                            
-                            if target_date < gdp_growth_rate.index.min() or target_date > gdp_growth_rate.index.max():
-                                continue
-                                
-                            if target_date in gdp_growth_rate.index:
-                                exact_date = target_date
-                                exact_value = gdp_growth_rate.loc[exact_date]
-                            else:
-                                time_diffs = np.abs(gdp_growth_rate.index.astype('int64') - target_date.value)
-                                nearest_idx = time_diffs.argmin()
-                                exact_date = gdp_growth_rate.index[nearest_idx]
-                                exact_value = gdp_growth_rate.iloc[nearest_idx]
-                            
-                            if pd.isna(exact_date) or pd.isna(exact_value):
-                                continue
-                                
-                            crisis_x_dates.append(exact_date)
-                            crisis_y_values.append(exact_value)
-                            crisis_labels.append(label)
-                            
-                        except Exception:
-                            continue
-                    
-                    if crisis_x_dates:
-                        fig.add_trace(go.Scatter(
-                            x=crisis_x_dates,
-                            y=crisis_y_values,
-                            mode='markers+text',
-                            marker=dict(
-                                symbol='triangle-down',
-                                size=12,
-                                color='red',
-                                line=dict(width=2, color='darkred')
-                            ),
-                            text=crisis_labels,
-                            textposition='top center',
-                            textfont=dict(size=10, color='red'),
-                            name='경제 위기 시점',
-                            showlegend=True
-                        ))
-                    
-                    fig.update_layout(
-                        title='GDP 성장률 (%)',
-                        height=200,
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=1.02,
-                            xanchor="center",
-                            x=0.5
-                        ),
-                        margin=dict(l=20, r=20, t=40, b=20)
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.caption("💡 GDP 성장 = 경기 확장, 감소 = 경기 둔화")
-            
             # 절대 부채 (FRED 공식 데이터)
             if fred_macro and 'total_debt' in fred_macro:
                 debt_data = fred_macro['total_debt']
@@ -928,7 +1380,110 @@ def create_financial_indicators_charts():
                                 st.plotly_chart(fig3, use_container_width=True)
                                 st.caption("💡 Debt-to-GDP 비율이 높을수록 재정 건전성 우려. 일반적으로 100% 초과 시 주의 필요")
             
-            # 하이일드 스프레드 (FRED 공식 데이터) 이동
+            # M2 통화량
+            if fred_macro and 'm2' in fred_macro:
+                m2_data = fred_macro['m2']
+                if not m2_data.empty:
+                    current_m2 = m2_data.iloc[-1] / 1000  # 조 달러로 변환
+                    # YoY 증가율 계산
+                    m2_growth = m2_data.pct_change(periods=12) * 100
+                    current_m2_growth = m2_growth.iloc[-1] if not m2_growth.empty else 0
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, #7c3aed, #a855f7); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">💰 M2 통화량</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">${current_m2:.1f}조 | YoY {current_m2_growth:+.1f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # M2 성장률 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=m2_growth.index,
+                        y=m2_growth.values,
+                        mode='lines',
+                        name='M2 Growth Rate',
+                        line=dict(color='#7c3aed', width=2)
+                    ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < m2_growth.index.min() or target_date > m2_growth.index.max():
+                                continue
+                                
+                            if target_date in m2_growth.index:
+                                exact_date = target_date
+                                exact_value = m2_growth.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(m2_growth.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = m2_growth.index[nearest_idx]
+                                exact_value = m2_growth.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
+                    fig.add_hline(y=0, line_dash="dash", line_color="gray")
+                    fig.update_layout(
+                        title='M2 통화량 증가율 (YoY)',
+                        height=200,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='%'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 통화량 증가 = 유동성 공급, 감소 = 긴축")
+            
+                        # 하이일드 스프레드 (FRED 공식 데이터) 이동
+            # 하이일드 스프레드
             if fred_macro and 'high_yield_spread' in fred_macro:
                 high_yield_data = fred_macro['high_yield_spread']
                 if not high_yield_data.empty:
@@ -1052,658 +1607,7 @@ def create_financial_indicators_charts():
                     st.plotly_chart(fig, use_container_width=True)
                     st.caption("💡 ICE BofA US High Yield Index Option-Adjusted Spread. 높을수록 신용위험 증가, 경기침체 신호")
                 
-            # 달러 인덱스 이동
-            if fred_additional and 'dollar_index' in fred_additional:
-                dollar_data = fred_additional['dollar_index']
-                if not dollar_data.empty:
-                    current_dollar = dollar_data.iloc[-1]
-                    # 30일 변화율 계산 (일별 데이터이므로)
-                    prev_dollar = dollar_data.iloc[-22] if len(dollar_data) > 22 else dollar_data.iloc[0]  # 대략 1개월
-                    dollar_change = ((current_dollar - prev_dollar) / prev_dollar) * 100
-                    
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(90deg, #FFD700, #FFA000); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                        <span style="color: white; font-weight: bold; font-size: 14px;">💵 달러 인덱스</span>
-                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_dollar:.2f} | 30일 {dollar_change:+.2f}%</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # 달러 인덱스 차트
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=dollar_data.index,
-                        y=dollar_data.values,
-                        mode='lines',
-                        name='Dollar Index',
-                        line=dict(color='#FFD700', width=2),
-                        fill='tozeroy',
-                        fillcolor='rgba(255, 215, 0, 0.1)'
-                    ))
-                    
-                    # 주요 경제 위기 시점 표시
-                    crisis_dates = [
-                        ('2006-01-01', '부동산 버블 정점'),
-                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
-                        ('2012-01-01', '주택시장 회복'),
-                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
-                        ('2022-03-01', 'Fed 긴축 시작')
-                    ]
-
-                    # crisis_dates를 스캐터 플롯으로 추가
-                    crisis_x_dates = []
-                    crisis_y_values = []
-                    crisis_labels = []
-                    
-                    for date_str, label in crisis_dates:
-                        try:
-                            target_date = pd.to_datetime(date_str)
-                            
-                            if target_date < dollar_data.index.min() or target_date > dollar_data.index.max():
-                                continue
-                                
-                            if target_date in dollar_data.index:
-                                exact_date = target_date
-                                exact_value = dollar_data.loc[exact_date]
-                            else:
-                                time_diffs = np.abs(dollar_data.index.astype('int64') - target_date.value)
-                                nearest_idx = time_diffs.argmin()
-                                exact_date = dollar_data.index[nearest_idx]
-                                exact_value = dollar_data.iloc[nearest_idx]
-                            
-                            if pd.isna(exact_date) or pd.isna(exact_value):
-                                continue
-                                
-                            crisis_x_dates.append(exact_date)
-                            crisis_y_values.append(exact_value)
-                            crisis_labels.append(label)
-                            
-                        except Exception:
-                            continue
-                    
-                    if crisis_x_dates:
-                        fig.add_trace(go.Scatter(
-                            x=crisis_x_dates,
-                            y=crisis_y_values,
-                            mode='markers+text',
-                            marker=dict(
-                                symbol='triangle-down',
-                                size=12,
-                                color='red',
-                                line=dict(width=2, color='darkred')
-                            ),
-                            text=crisis_labels,
-                            textposition='top center',
-                            textfont=dict(size=10, color='red'),
-                            name='경제 위기 시점',
-                            showlegend=True
-                        ))
-                    
-                    fig.update_layout(
-                        title='달러 인덱스',
-                        height=200,
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=1.02,
-                            xanchor="center",
-                            x=0.5
-                        ),
-                        margin=dict(l=20, r=20, t=40, b=20),
-                        yaxis_title='Index'
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.caption("💡 달러 강세 → 신흥국/금 약세, 달러 약세 → 원자재/신흥국 강세")
-          
-        with fred_col2:
-            # 실업률
-            if fred_macro and 'unemployment' in fred_macro:
-                unemployment = fred_macro['unemployment']
-                if not unemployment.empty:
-                    current_unemployment = unemployment.iloc[-1]
-                    prev_unemployment = unemployment.iloc[-2] if len(unemployment) > 1 else current_unemployment
-                    unemployment_change = current_unemployment - prev_unemployment
-                    
-                    # 실업률 상태에 따른 색상
-                    if current_unemployment < 4:
-                        unemployment_color = "#10b981"  # 녹색 (양호)
-                    elif current_unemployment < 6:
-                        unemployment_color = "#f59e0b"  # 주황 (보통)
-                    else:
-                        unemployment_color = "#ef4444"  # 빨강 (나쁨)
-                    
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(90deg, {unemployment_color}, #6b7280); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                        <span style="color: white; font-weight: bold; font-size: 14px;">👥 실업률</span>
-                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_unemployment:.1f}% | 전월대비 {unemployment_change:+.1f}%p</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # 실업률 차트
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=unemployment.index,
-                        y=unemployment.values,
-                        mode='lines+markers',
-                        name='Unemployment Rate',
-                        line=dict(color=unemployment_color, width=2),
-                        marker=dict(size=4)
-                    ))
-                    
-                    # 주요 경제 위기 시점 표시
-                    crisis_dates = [
-                        ('2006-01-01', '부동산 버블 정점'),
-                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
-                        ('2012-01-01', '주택시장 회복'),
-                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
-                        ('2022-03-01', 'Fed 긴축 시작')
-                    ]
-
-                    # crisis_dates를 스캐터 플롯으로 추가
-                    crisis_x_dates = []
-                    crisis_y_values = []
-                    crisis_labels = []
-                    
-                    for date_str, label in crisis_dates:
-                        try:
-                            target_date = pd.to_datetime(date_str)
-                            
-                            if target_date < unemployment.index.min() or target_date > unemployment.index.max():
-                                continue
-                                
-                            if target_date in unemployment.index:
-                                exact_date = target_date
-                                exact_value = unemployment.loc[exact_date]
-                            else:
-                                time_diffs = np.abs(unemployment.index.astype('int64') - target_date.value)
-                                nearest_idx = time_diffs.argmin()
-                                exact_date = unemployment.index[nearest_idx]
-                                exact_value = unemployment.iloc[nearest_idx]
-                            
-                            if pd.isna(exact_date) or pd.isna(exact_value):
-                                continue
-                                
-                            crisis_x_dates.append(exact_date)
-                            crisis_y_values.append(exact_value)
-                            crisis_labels.append(label)
-                            
-                        except Exception:
-                            continue
-                    
-                    if crisis_x_dates:
-                        fig.add_trace(go.Scatter(
-                            x=crisis_x_dates,
-                            y=crisis_y_values,
-                            mode='markers+text',
-                            marker=dict(
-                                symbol='triangle-down',
-                                size=12,
-                                color='red',
-                                line=dict(width=2, color='darkred')
-                            ),
-                            text=crisis_labels,
-                            textposition='top center',
-                            textfont=dict(size=10, color='red'),
-                            name='경제 위기 시점',
-                            showlegend=True
-                        ))
-                    
-                    fig.add_hline(y=4, line_dash="dash", line_color="green", annotation_text="완전고용 기준")
-                    fig.update_layout(
-                        title='실업률 추이',
-                        height=200,
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=1.02,
-                            xanchor="center",
-                            x=0.5
-                        ),
-                        margin=dict(l=20, r=20, t=40, b=20),
-                        yaxis_title='%'
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.caption("💡 실업률 하락 = 경기 회복, 상승 = 경기 둔화")
-              # 수익률 곡선 (FRED)
-            if fred_additional and 'yield_spread' in fred_additional:
-                yield_data = fred_additional['yield_spread']
-                if not yield_data.empty:
-                    current_spread = yield_data.iloc[-1]
-                    
-                    if current_spread < 0:
-                        curve_status = "⚠️ 역전"
-                        curve_color = "#ef4444"
-                    elif current_spread < 100:  # 1% 미만
-                        curve_status = "🟡 평탄"
-                        curve_color = "#f59e0b"
-                    else:
-                        curve_status = "✅ 정상"
-                        curve_color = "#10b981"
-                    
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(90deg, {curve_color}, #6366f1); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                        <span style="color: white; font-weight: bold; font-size: 14px;">📊 수익률곡선</span>
-                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_spread:.2f}bp ({curve_status})</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # 수익률 곡선 차트
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=yield_data.index,
-                        y=yield_data.values,
-                        mode='lines',
-                        name='Yield Spread',
-                        line=dict(color=curve_color, width=2),
-                        fill='tozeroy',
-                        fillcolor=f'rgba({int(curve_color[1:3], 16)}, {int(curve_color[3:5], 16)}, {int(curve_color[5:7], 16)}, 0.1)'
-                    ))
-                    
-                    # 주요 경제 위기 시점 표시
-                    crisis_dates = [
-                        ('2006-01-01', '부동산 버블 정점'),
-                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
-                        ('2012-01-01', '주택시장 회복'),
-                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
-                        ('2022-03-01', 'Fed 긴축 시작')
-                    ]
-
-                    # crisis_dates를 스캐터 플롯으로 추가
-                    crisis_x_dates = []
-                    crisis_y_values = []
-                    crisis_labels = []
-                    
-                    for date_str, label in crisis_dates:
-                        try:
-                            target_date = pd.to_datetime(date_str)
-                            
-                            if target_date < yield_data.index.min() or target_date > yield_data.index.max():
-                                continue
-                                
-                            if target_date in yield_data.index:
-                                exact_date = target_date
-                                exact_value = yield_data.loc[exact_date]
-                            else:
-                                time_diffs = np.abs(yield_data.index.astype('int64') - target_date.value)
-                                nearest_idx = time_diffs.argmin()
-                                exact_date = yield_data.index[nearest_idx]
-                                exact_value = yield_data.iloc[nearest_idx]
-                            
-                            if pd.isna(exact_date) or pd.isna(exact_value):
-                                continue
-                                
-                            crisis_x_dates.append(exact_date)
-                            crisis_y_values.append(exact_value)
-                            crisis_labels.append(label)
-                            
-                        except Exception:
-                            continue
-                    
-                    if crisis_x_dates:
-                        fig.add_trace(go.Scatter(
-                            x=crisis_x_dates,
-                            y=crisis_y_values,
-                            mode='markers+text',
-                            marker=dict(
-                                symbol='triangle-down',
-                                size=12,
-                                color='red',
-                                line=dict(width=2, color='darkred')
-                            ),
-                            text=crisis_labels,
-                            textposition='top center',
-                            textfont=dict(size=10, color='red'),
-                            name='경제 위기 시점',
-                            showlegend=True
-                        ))
-                    
-                    fig.add_hline(y=0, line_dash="dash", line_color="red", annotation_text="역전선 0%")
-                    fig.update_layout(
-                        title='10Y-2Y 수익률 곡선',
-                        height=180,
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=1.02,
-                            xanchor="center",
-                            x=0.5
-                        ),
-                        margin=dict(l=20, r=20, t=40, b=20),
-                        yaxis_title='Basis Points'
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.caption("💡 양수=정상, 음수=역전(경기침체 신호)")
-            
-            # CPI (인플레이션)
-            if fred_macro and 'cpi' in fred_macro:
-                cpi_data = fred_macro['cpi']
-                if not cpi_data.empty:
-                    # YoY 인플레이션율 계산
-                    inflation_rate = cpi_data.pct_change(periods=12) * 100  # 12개월 전 대비
-                    if not inflation_rate.empty:
-                        current_inflation = inflation_rate.iloc[-1]
-                        
-                        # 인플레이션 상태에 따른 색상
-                        if current_inflation < 2:
-                            inflation_color = "#3b82f6"  # 파랑 (디플레이션 우려)
-                        elif current_inflation <= 3:
-                            inflation_color = "#10b981"  # 녹색 (목표 수준)
-                        elif current_inflation <= 5:
-                            inflation_color = "#f59e0b"  # 주황 (높음)
-                        else:
-                            inflation_color = "#ef4444"  # 빨강 (매우 높음)
-                        
-                        st.markdown(f"""
-                        <div style="background: linear-gradient(90deg, {inflation_color}, #6366f1); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                            <span style="color: white; font-weight: bold; font-size: 14px;">📊 CPI 인플레이션</span>
-                            <span style="color: white; font-size: 12px; margin-left: 10px;">{current_inflation:.1f}% YoY</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # 인플레이션율 차트
-                        fig = go.Figure()
-                        fig.add_trace(go.Scatter(
-                            x=inflation_rate.index,
-                            y=inflation_rate.values,
-                            mode='lines',
-                            name='CPI Inflation YoY',
-                            line=dict(color=inflation_color, width=2),
-                            fill='tozeroy',
-                            fillcolor=f'rgba({int(inflation_color[1:3], 16)}, {int(inflation_color[3:5], 16)}, {int(inflation_color[5:7], 16)}, 0.1)'
-                        ))
-                        
-                        # 주요 경제 위기 시점 표시
-                        crisis_dates = [
-                            ('2006-01-01', '부동산 버블 정점'),
-                            ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
-                            ('2012-01-01', '주택시장 회복'),
-                            ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
-                            ('2022-03-01', 'Fed 긴축 시작')
-                        ]
-
-                        # crisis_dates를 스캐터 플롯으로 추가
-                        crisis_x_dates = []
-                        crisis_y_values = []
-                        crisis_labels = []
-                        
-                        for date_str, label in crisis_dates:
-                            try:
-                                target_date = pd.to_datetime(date_str)
-                                
-                                if target_date < inflation_rate.index.min() or target_date > inflation_rate.index.max():
-                                    continue
-                                    
-                                if target_date in inflation_rate.index:
-                                    exact_date = target_date
-                                    exact_value = inflation_rate.loc[exact_date]
-                                else:
-                                    time_diffs = np.abs(inflation_rate.index.astype('int64') - target_date.value)
-                                    nearest_idx = time_diffs.argmin()
-                                    exact_date = inflation_rate.index[nearest_idx]
-                                    exact_value = inflation_rate.iloc[nearest_idx]
-                                
-                                if pd.isna(exact_date) or pd.isna(exact_value):
-                                    continue
-                                    
-                                crisis_x_dates.append(exact_date)
-                                crisis_y_values.append(exact_value)
-                                crisis_labels.append(label)
-                                
-                            except Exception:
-                                continue
-                        
-                        if crisis_x_dates:
-                            fig.add_trace(go.Scatter(
-                                x=crisis_x_dates,
-                                y=crisis_y_values,
-                                mode='markers+text',
-                                marker=dict(
-                                    symbol='triangle-down',
-                                    size=12,
-                                    color='red',
-                                    line=dict(width=2, color='darkred')
-                                ),
-                                text=crisis_labels,
-                                textposition='top center',
-                                textfont=dict(size=10, color='red'),
-                                name='경제 위기 시점',
-                                showlegend=True
-                            ))
-                        
-                        fig.add_hline(y=2, line_dash="dash", line_color="gray", annotation_text="FED 목표 2%")
-                        fig.update_layout(
-                            title='CPI 인플레이션율 (YoY)',
-                            height=200,
-                            showlegend=True,
-                            legend=dict(
-                                orientation="h",
-                                yanchor="bottom",
-                                y=1.02,
-                                xanchor="center",
-                                x=0.5
-                            ),
-                            margin=dict(l=20, r=20, t=40, b=20),
-                            yaxis_title='%'
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                        st.caption("💡 2% 목표치. 높으면 긴축 압력, 낮으면 완화 신호")
-        # 제조업 지수 (Industrial Production 또는 Manufacturing Employment)
-            if fred_macro and 'pmi' in fred_macro:
-                manufacturing_data = fred_macro['pmi']
-                if not manufacturing_data.empty:
-                    # YoY 성장률 계산 (지수이므로)
-                    manufacturing_growth = manufacturing_data.pct_change(periods=12) * 100
-                    current_growth = manufacturing_growth.iloc[-1] if not manufacturing_growth.empty else 0
-                    current_index = manufacturing_data.iloc[-1]
-                    
-                    # 제조업 상태에 따른 색상 (성장률 기준)
-                    if current_growth > 3:
-                        manufacturing_color = "#10b981"  # 강한 성장
-                    elif current_growth > 0:
-                        manufacturing_color = "#3b82f6"  # 성장
-                    elif current_growth > -3:
-                        manufacturing_color = "#f59e0b"  # 둔화
-                    else:
-                        manufacturing_color = "#ef4444"  # 위축
-                    
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(90deg, {manufacturing_color}, #64748b); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                        <span style="color: white; font-weight: bold; font-size: 14px;">🏭 제조업 지수</span>
-                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_index:.1f} | YoY {current_growth:+.1f}%</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # 제조업 성장률 차트
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=manufacturing_growth.index,
-                        y=manufacturing_growth.values,
-                        mode='lines',
-                        name='Manufacturing Growth Rate',
-                        line=dict(color=manufacturing_color, width=2),
-                        fill='tozeroy',
-                        fillcolor=f'rgba({int(manufacturing_color[1:3], 16)}, {int(manufacturing_color[3:5], 16)}, {int(manufacturing_color[5:7], 16)}, 0.1)'
-                    ))
-                    
-                    # 주요 경제 위기 시점 표시
-                    crisis_dates = [
-                        ('2006-01-01', '부동산 버블 정점'),
-                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
-                        ('2012-01-01', '주택시장 회복'),
-                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
-                        ('2022-03-01', 'Fed 긴축 시작')
-                    ]
-
-                    # crisis_dates를 스캐터 플롯으로 추가
-                    crisis_x_dates = []
-                    crisis_y_values = []
-                    crisis_labels = []
-                    
-                    for date_str, label in crisis_dates:
-                        try:
-                            target_date = pd.to_datetime(date_str)
-                            
-                            if target_date < manufacturing_growth.index.min() or target_date > manufacturing_growth.index.max():
-                                continue
-                                
-                            if target_date in manufacturing_growth.index:
-                                exact_date = target_date
-                                exact_value = manufacturing_growth.loc[exact_date]
-                            else:
-                                time_diffs = np.abs(manufacturing_growth.index.astype('int64') - target_date.value)
-                                nearest_idx = time_diffs.argmin()
-                                exact_date = manufacturing_growth.index[nearest_idx]
-                                exact_value = manufacturing_growth.iloc[nearest_idx]
-                            
-                            if pd.isna(exact_date) or pd.isna(exact_value):
-                                continue
-                                
-                            crisis_x_dates.append(exact_date)
-                            crisis_y_values.append(exact_value)
-                            crisis_labels.append(label)
-                            
-                        except Exception:
-                            continue
-                    
-                    if crisis_x_dates:
-                        fig.add_trace(go.Scatter(
-                            x=crisis_x_dates,
-                            y=crisis_y_values,
-                            mode='markers+text',
-                            marker=dict(
-                                symbol='triangle-down',
-                                size=12,
-                                color='red',
-                                line=dict(width=2, color='darkred')
-                            ),
-                            text=crisis_labels,
-                            textposition='top center',
-                            textfont=dict(size=10, color='red'),
-                            name='경제 위기 시점',
-                            showlegend=True
-                        ))
-                    
-                    fig.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="기준선 0%")
-                    fig.update_layout(
-                        title='제조업 지수 성장률 (YoY)',
-                        height=200,
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=1.02,
-                            xanchor="center",
-                            x=0.5
-                        ),
-                        margin=dict(l=20, r=20, t=40, b=20),
-                        yaxis_title='%'
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.caption("💡 양수 = 제조업 성장, 음수 = 제조업 위축")
         with fred_col3:
-            # M2 통화량
-            if fred_macro and 'm2' in fred_macro:
-                m2_data = fred_macro['m2']
-                if not m2_data.empty:
-                    current_m2 = m2_data.iloc[-1] / 1000  # 조 달러로 변환
-                    # YoY 증가율 계산
-                    m2_growth = m2_data.pct_change(periods=12) * 100
-                    current_m2_growth = m2_growth.iloc[-1] if not m2_growth.empty else 0
-                    
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(90deg, #7c3aed, #a855f7); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                        <span style="color: white; font-weight: bold; font-size: 14px;">💰 M2 통화량</span>
-                        <span style="color: white; font-size: 12px; margin-left: 10px;">${current_m2:.1f}조 | YoY {current_m2_growth:+.1f}%</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # M2 성장률 차트
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=m2_growth.index,
-                        y=m2_growth.values,
-                        mode='lines',
-                        name='M2 Growth Rate',
-                        line=dict(color='#7c3aed', width=2)
-                    ))
-                    
-                    # 주요 경제 위기 시점 표시
-                    crisis_dates = [
-                        ('2006-01-01', '부동산 버블 정점'),
-                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
-                        ('2012-01-01', '주택시장 회복'),
-                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
-                        ('2022-03-01', 'Fed 긴축 시작')
-                    ]
-
-                    # crisis_dates를 스캐터 플롯으로 추가
-                    crisis_x_dates = []
-                    crisis_y_values = []
-                    crisis_labels = []
-                    
-                    for date_str, label in crisis_dates:
-                        try:
-                            target_date = pd.to_datetime(date_str)
-                            
-                            if target_date < m2_growth.index.min() or target_date > m2_growth.index.max():
-                                continue
-                                
-                            if target_date in m2_growth.index:
-                                exact_date = target_date
-                                exact_value = m2_growth.loc[exact_date]
-                            else:
-                                time_diffs = np.abs(m2_growth.index.astype('int64') - target_date.value)
-                                nearest_idx = time_diffs.argmin()
-                                exact_date = m2_growth.index[nearest_idx]
-                                exact_value = m2_growth.iloc[nearest_idx]
-                            
-                            if pd.isna(exact_date) or pd.isna(exact_value):
-                                continue
-                                
-                            crisis_x_dates.append(exact_date)
-                            crisis_y_values.append(exact_value)
-                            crisis_labels.append(label)
-                            
-                        except Exception:
-                            continue
-                    
-                    if crisis_x_dates:
-                        fig.add_trace(go.Scatter(
-                            x=crisis_x_dates,
-                            y=crisis_y_values,
-                            mode='markers+text',
-                            marker=dict(
-                                symbol='triangle-down',
-                                size=12,
-                                color='red',
-                                line=dict(width=2, color='darkred')
-                            ),
-                            text=crisis_labels,
-                            textposition='top center',
-                            textfont=dict(size=10, color='red'),
-                            name='경제 위기 시점',
-                            showlegend=True
-                        ))
-                    
-                    fig.add_hline(y=0, line_dash="dash", line_color="gray")
-                    fig.update_layout(
-                        title='M2 통화량 증가율 (YoY)',
-                        height=200,
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=1.02,
-                            xanchor="center",
-                            x=0.5
-                        ),
-                        margin=dict(l=20, r=20, t=40, b=20),
-                        yaxis_title='%'
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.caption("💡 통화량 증가 = 유동성 공급, 감소 = 긴축")
             
             # 풋콜레이쇼 이동
             current_pc = pc_data['Put_Call_Ratio'].iloc[-1] if pc_data is not None and len(pc_data) > 0 else 0
@@ -1839,7 +1743,6 @@ def create_financial_indicators_charts():
                 st.plotly_chart(fig, use_container_width=True)
                 st.caption("💡 VIX는 변동성 지수, 높을수록 시장 불안정. 지수는 VIX 역산 (0=극도공포, 100=극도탐욕)")
             
-            
             # 금 가격 이동
             if additional_data.get('gold') is not None and len(additional_data['gold']) > 0:
                 gold_data = additional_data['gold']
@@ -1862,6 +1765,7 @@ def create_financial_indicators_charts():
             
             # 원유가격 이동 (FRED 데이터 사용)
             if fred_additional and 'oil_price' in fred_additional:
+                
                 oil_data = fred_additional['oil_price']
                 if not oil_data.empty:
                     current_oil = oil_data.iloc[-1]
@@ -1962,6 +1866,108 @@ def create_financial_indicators_charts():
                     )
                     st.plotly_chart(fig, use_container_width=True)
                     st.caption("💡 인플레이션 선행지표, 상승 시 에너지/운송비용 증가로 물가 압력")
+            # 달러인덱스 이동
+            if fred_additional and 'dollar_index' in fred_additional:
+                dollar_data = fred_additional['dollar_index']
+                if not dollar_data.empty:
+                    current_dollar = dollar_data.iloc[-1]
+                    # 30일 변화율 계산 (일별 데이터이므로)
+                    prev_dollar = dollar_data.iloc[-22] if len(dollar_data) > 22 else dollar_data.iloc[0]  # 대략 1개월
+                    dollar_change = ((current_dollar - prev_dollar) / prev_dollar) * 100
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, #FFD700, #FFA000); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">💵 달러 인덱스</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_dollar:.2f} | 30일 {dollar_change:+.2f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 달러 인덱스 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=dollar_data.index,
+                        y=dollar_data.values,
+                        mode='lines',
+                        name='Dollar Index',
+                        line=dict(color='#FFD700', width=2),
+                        fill='tozeroy',
+                        fillcolor='rgba(255, 215, 0, 0.1)'
+                    ))
+                    
+                    # 주요 경제 위기 시점 표시
+                    crisis_dates = [
+                        ('2006-01-01', '부동산 버블 정점'),
+                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                        ('2012-01-01', '주택시장 회복'),
+                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                        ('2022-03-01', 'Fed 긴축 시작')
+                    ]
+
+                    # crisis_dates를 스캐터 플롯으로 추가
+                    crisis_x_dates = []
+                    crisis_y_values = []
+                    crisis_labels = []
+                    
+                    for date_str, label in crisis_dates:
+                        try:
+                            target_date = pd.to_datetime(date_str)
+                            
+                            if target_date < dollar_data.index.min() or target_date > dollar_data.index.max():
+                                continue
+                                
+                            if target_date in dollar_data.index:
+                                exact_date = target_date
+                                exact_value = dollar_data.loc[exact_date]
+                            else:
+                                time_diffs = np.abs(dollar_data.index.astype('int64') - target_date.value)
+                                nearest_idx = time_diffs.argmin()
+                                exact_date = dollar_data.index[nearest_idx]
+                                exact_value = dollar_data.iloc[nearest_idx]
+                            
+                            if pd.isna(exact_date) or pd.isna(exact_value):
+                                continue
+                                
+                            crisis_x_dates.append(exact_date)
+                            crisis_y_values.append(exact_value)
+                            crisis_labels.append(label)
+                            
+                        except Exception:
+                            continue
+                    
+                    if crisis_x_dates:
+                        fig.add_trace(go.Scatter(
+                            x=crisis_x_dates,
+                            y=crisis_y_values,
+                            mode='markers+text',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=crisis_labels,
+                            textposition='top center',
+                            textfont=dict(size=10, color='red'),
+                            name='경제 위기 시점',
+                            showlegend=True
+                        ))
+                    
+                    fig.update_layout(
+                        title='달러 인덱스',
+                        height=200,
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="center",
+                            x=0.5
+                        ),
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='Index'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 달러 강세 → 신흥국/금 약세, 달러 약세 → 원자재/신흥국 강세")
         
         # 소매판매 지수 추가
         if fred_macro and 'retail_sales' in fred_macro:
