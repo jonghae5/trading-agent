@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import numpy as np
+from fredapi import Fred
 from typing import Dict, List, Optional, Tuple, Any, Union
 from db_manager import DatabaseManager
 
@@ -237,36 +238,10 @@ def get_fred_data():
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def get_additional_indicators():
     """추가 필수 지표들 로드"""
-    indicators = {}
-    
-    # 달러 인덱스
-    try:
-        dxy_data = yf.download('DX-Y.NYB', period='5y', interval='1d')
-        if not dxy_data.empty:
-            dxy_df = dxy_data[['Close']].reset_index()
-            dxy_df.columns = ['Date', 'DXY']
-            indicators['dxy'] = dxy_df
-    except:
-        indicators['dxy'] = None
-    
-    # 수익률 곡선 (10Y-2Y)
-    try:
-        ten_year = yf.download('^TNX', period='5y', interval='1d')
-        two_year = yf.download('^IRX', period='5y', interval='1d')
-        if not ten_year.empty and not two_year.empty:
-            ten_y_df = ten_year[['Close']].reset_index()
-            two_y_df = two_year[['Close']].reset_index()
-            ten_y_df.columns = ['Date', '10Y']
-            two_y_df.columns = ['Date', '2Y']
-            yield_spread = pd.merge(ten_y_df, two_y_df, on='Date', how='inner')
-            yield_spread['Yield_Spread'] = yield_spread['10Y'] - (yield_spread['2Y'] / 4)
-            indicators['yield_curve'] = yield_spread
-    except:
-        indicators['yield_curve'] = None
-    
+    indicators = {}    
     # 금 가격
     try:
-        gold_data = yf.download('GC=F', period='5y', interval='1d')
+        gold_data = yf.download('GC=F', period='5y', interval='1mo')
         if not gold_data.empty:
             gold_df = gold_data[['Close']].reset_index()
             gold_df.columns = ['Date', 'Gold']
@@ -274,47 +249,833 @@ def get_additional_indicators():
     except:
         indicators['gold'] = None
     
-    # 원유 가격
-    try:
-        oil_data = yf.download('CL=F', period='5y', interval='1d')
-        if not oil_data.empty:
-            oil_df = oil_data[['Close']].reset_index()
-            oil_df.columns = ['Date', 'Oil']
-            indicators['oil'] = oil_df
-    except:
-        indicators['oil'] = None
-    
     return indicators
+
+# ==============================
+# ① FRED API 거시경제 지표 함수들
+# ==============================
+
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
+def get_fred_macro_indicators() -> Optional[Dict]:
+    """FRED API를 사용하여 주요 거시경제 지표들을 가져오는 함수"""
+    try:
+        from fredapi import Fred
+        FRED_AVAILABLE = True
+    except ImportError:
+        FRED_AVAILABLE = False
+    
+    if not FRED_AVAILABLE:
+        return None
+    
+    # FRED API Key를 환경 변수에서 가져오기
+    fred_api_key = os.getenv('FRED_API_KEY')
+    if not fred_api_key:
+        st.warning("FRED_API_KEY 환경 변수를 설정해주세요.")
+        return None
+    
+    try:
+        fred = Fred(api_key=fred_api_key)
+        indicators = {}
+        
+        # 미국 기준금리 (Federal Funds Rate)
+        try:
+            federal_rate = fred.get_series('FEDFUNDS', start='2015-01-01')
+            if federal_rate is not None and len(federal_rate) > 0:
+                indicators['federal_rate'] = federal_rate.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Federal Funds Rate: {error_msg}")
+        
+        # 미국 GDP
+        try:
+            gdp = fred.get_series('GDP', start='2015-01-01')
+            if gdp is not None and len(gdp) > 0:
+                indicators['gdp'] = gdp.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch GDP: {error_msg}")
+        
+        # 구매관리자지수 (PMI) - ISM Manufacturing PMI 
+        try:
+            # ISM Manufacturing PMI의 정확한 시리즈 코드
+            pmi = fred.get_series('MANEMP', start='2015-01-01')  # Manufacturing Employment Index
+            if pmi is not None and len(pmi) > 0:
+                indicators['pmi'] = pmi.dropna()
+            else:
+                # 대체 지표: Industrial Production Index
+                pmi = fred.get_series('INDPRO', start='2015-01-01')
+                if pmi is not None and len(pmi) > 0:
+                    indicators['pmi'] = pmi.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Manufacturing indicators: {error_msg}")
+        
+        # 통화량 (M2)
+        try:
+            m2 = fred.get_series('M2SL', start='2015-01-01')
+            if m2 is not None and len(m2) > 0:
+                indicators['m2'] = m2.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch M2: {error_msg}")
+        
+        # Case-Shiller 주택가격지수
+        try:
+            house_price_index = fred.get_series('CSUSHPINSA', start='2015-01-01')
+            if house_price_index is not None and len(house_price_index) > 0:
+                indicators['case_shiller'] = house_price_index.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Case-Shiller Index: {error_msg}")
+        
+        # 소매판매 (Retail Sales) - 소비 동향을 나타내는 중요 지표
+        try:
+            retail_sales = fred.get_series('RSAFS', start='2015-01-01')  # Advance Retail Sales: Retail Trade
+            if retail_sales is not None and len(retail_sales) > 0:
+                indicators['retail_sales'] = retail_sales.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Retail Sales: {error_msg}")
+        
+        # 주택시장 추가 지표 (USAUCSFRCONDOSMSAMID)
+        try:
+            housing_market = fred.get_series('USAUCSFRCONDOSMSAMID', start='2000-01-01')
+            if housing_market is not None and len(housing_market) > 0:
+                indicators['housing_market'] = housing_market.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Housing Market data: {error_msg}")
+        
+
+        
+        # High Yield Spread - ICE BofA US High Yield Index Option-Adjusted Spread
+        try:
+            high_yield_spread = fred.get_series('BAMLH0A0HYM2', start='2015-01-01')
+            if high_yield_spread is not None and len(high_yield_spread) > 0:
+                indicators['high_yield_spread'] = high_yield_spread.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch High Yield Spread: {error_msg}")
+        
+        # 실업률
+        try:
+            unemployment = fred.get_series('UNRATE', start='2015-01-01')
+            if unemployment is not None and len(unemployment) > 0:
+                indicators['unemployment'] = unemployment.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Unemployment Rate: {error_msg}")
+        
+        # 소비자물가지수 (CPI)
+        try:
+            cpi = fred.get_series('CPIAUCSL', start='2015-01-01')
+            if cpi is not None and len(cpi) > 0:
+                indicators['cpi'] = cpi.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch CPI: {error_msg}")
+        
+        return indicators if indicators else None
+        
+    except Exception as e:
+        error_msg = sanitize_log_message(str(e))
+        logger.error(f"[FRED] Failed to initialize FRED client: {error_msg}")
+        return None
+
+@st.cache_data(ttl=CACHE_TTL_SECONDS)
+def get_additional_fred_indicators() -> Optional[Dict]:
+    """추가 FRED 경제 지표들"""
+    try:
+        from fredapi import Fred
+        FRED_AVAILABLE = True
+    except ImportError:
+        FRED_AVAILABLE = False
+    
+    if not FRED_AVAILABLE:
+        return None
+    
+    fred_api_key = os.getenv('FRED_API_KEY')
+    if not fred_api_key:
+        return None
+    
+    try:
+        fred = Fred(api_key=fred_api_key)
+        indicators = {}
+        
+        # VIX Index (CBOE Volatility Index)
+        try:
+            vix = fred.get_series('VIXCLS', start='2015-01-01')
+            if vix is not None and len(vix) > 0:
+                indicators['vix'] = vix.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch VIX: {error_msg}")
+        
+        # 달러 인덱스 (Trade Weighted U.S. Dollar Index)
+        try:
+            dollar_index = fred.get_series('DTWEXBGS', start='2015-01-01')
+            if dollar_index is not None and len(dollar_index) > 0:
+                indicators['dollar_index'] = dollar_index.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Dollar Index: {error_msg}")
+        
+        # 10년-2년 수익률 곡선
+        try:
+            ten_year_yield = fred.get_series('DGS10', start='2015-01-01')
+            two_year_yield = fred.get_series('DGS2', start='2015-01-01')
+            if ten_year_yield is not None and two_year_yield is not None:
+                yield_spread = ten_year_yield - two_year_yield
+                indicators['yield_spread'] = yield_spread.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Yield Spread: {error_msg}")
+        
+        
+        # 원유 가격 (WTI Oil Price)
+        try:
+            oil_price = fred.get_series('DCOILWTICO', start='2015-01-01')
+            if oil_price is not None and len(oil_price) > 0:
+                indicators['oil_price'] = oil_price.dropna()
+        except Exception as e:
+            error_msg = sanitize_log_message(str(e))
+            logger.warning(f"[FRED] Failed to fetch Oil Price: {error_msg}")
+        
+        return indicators if indicators else None
+        
+    except Exception as e:
+        error_msg = sanitize_log_message(str(e))
+        logger.error(f"[FRED] Failed to fetch additional FRED indicators: {error_msg}")
+        return None
 
 def create_financial_indicators_charts():
     """통합 금융 지표 대시보드 - 모든 지표 + 상관관계 분석"""
     st.header("📊 거시 경제 대시보드")
     
-    # 모든 데이터 로드
+    # 모든 데이터 로드 (기존 + 새로운 FRED 지표)
     spread_data = get_high_yield_spread()
     fg_data = get_fear_greed_index()
     pc_data = get_put_call_ratio()
     fred_data = get_fred_data()
     additional_data = get_additional_indicators()
     
-    # 데이터 로딩 상태 간단히 표시
+    # 새로운 FRED 지표들 로드
+    fred_macro = get_fred_macro_indicators()
+    fred_additional = get_additional_fred_indicators()
+    
+    # 데이터 로딩 상태 간단히 표시 (확장된 지표 포함)
     with st.expander("🔍 데이터 로딩 상태", expanded=False):
         indicators_status = [
             ("하이일드 스프레드", spread_data),
             ("공포탐욕지수", fg_data),
             ("풋콜레이쇼", pc_data),
             ("부동산지수", fred_data),
-            ("달러인덱스", additional_data.get('dxy')),
-            ("수익률곡선", additional_data.get('yield_curve')),
             ("금가격", additional_data.get('gold')),
-            ("원유가격", additional_data.get('oil'))
         ]
+        
+        # FRED 지표들 상태도 추가
+        if fred_macro:
+            fred_indicators = [
+                ("기준금리(FRED)", fred_macro.get('federal_rate')),
+                ("GDP(FRED)", fred_macro.get('gdp')),
+                ("제조업지수(FRED)", fred_macro.get('pmi')),
+                ("M2통화량(FRED)", fred_macro.get('m2')),
+                ("케이스실러지수(FRED)", fred_macro.get('case_shiller')),
+                ("하이일드스프레드(FRED)", fred_macro.get('high_yield_spread')),
+                ("소매판매(FRED)", fred_macro.get('retail_sales')),
+                ("주택시장지수(FRED)", fred_macro.get('housing_market')),
+                ("실업률(FRED)", fred_macro.get('unemployment')),
+                ("CPI(FRED)", fred_macro.get('cpi'))
+            ]
+            indicators_status.extend(fred_indicators)
+        
+        if fred_additional:
+            additional_fred = [
+                ("VIX(FRED)", fred_additional.get('vix')),
+                ("달러인덱스(FRED)", fred_additional.get('dollar_index')),
+                ("수익률곡선(FRED)", fred_additional.get('yield_spread')),
+                ("원유가격(FRED)", fred_additional.get('oil_price'))
+            ]
+            indicators_status.extend(additional_fred)
         
         for name, data in indicators_status:
             status = "✅ 성공" if data is not None and len(data) > 0 else "❌ 실패"
             st.write(f"- {name}: {status}")
     
-    # 2x4 그리드로 지표들 배치
+    # 새로운 FRED 지표들 섹션 추가
+    if fred_macro or fred_additional:
+        st.markdown("---")
+        st.subheader("🏦 FRED 거시경제 지표")
+        
+        # FRED 지표들을 위한 3열 레이아웃
+        fred_col1, fred_col2, fred_col3 = st.columns(3)
+        
+        with fred_col1:
+            # 기준금리
+            if fred_macro and 'federal_rate' in fred_macro:
+                fed_rate = fred_macro['federal_rate']
+                if not fed_rate.empty:
+                    current_rate = fed_rate.iloc[-1]
+                    prev_rate = fed_rate.iloc[-2] if len(fed_rate) > 1 else current_rate
+                    rate_change = current_rate - prev_rate
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, #6366f1, #8b5cf6); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">🏦 연방기준금리</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_rate:.2f}% | 전월대비 {rate_change:+.2f}%p</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 기준금리 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=fed_rate.index,
+                        y=fed_rate.values,
+                        mode='lines',
+                        name='Federal Funds Rate',
+                        line=dict(color='#6366f1', width=3),
+                        fill='tozeroy',
+                        fillcolor='rgba(99, 102, 241, 0.1)'
+                    ))
+                    fig.update_layout(
+                        title='연방기준금리 추이',
+                        height=200,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='%'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 금리 상승 = 주식 약세 압력, 하락 = 유동성 증가")
+        
+            # GDP
+            if fred_macro and 'gdp' in fred_macro:
+                gdp_data = fred_macro['gdp']
+                if not gdp_data.empty:
+                    current_gdp = gdp_data.iloc[-1] / 1000  # 조 달러로 변환
+                    prev_gdp = gdp_data.iloc[-2] / 1000 if len(gdp_data) > 1 else current_gdp
+                    gdp_growth = ((current_gdp - prev_gdp) / prev_gdp) * 100
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, #059669, #10b981); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">📈 GDP</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">${current_gdp:.1f}조 | QoQ {gdp_growth:+.1f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # GDP 성장률 차트
+                    gdp_growth_rate = gdp_data.pct_change() * 100
+                    fig = go.Figure()
+                    fig.add_trace(go.Bar(
+                        x=gdp_growth_rate.index,
+                        y=gdp_growth_rate.values,
+                        name='GDP Growth Rate',
+                        marker_color=['green' if x >= 0 else 'red' for x in gdp_growth_rate.values]
+                    ))
+                    fig.update_layout(
+                        title='GDP 성장률 (%)',
+                        height=200,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20)
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 GDP 성장 = 경기 확장, 감소 = 경기 둔화")
+         # 달러 인덱스 (FRED)
+            if fred_additional and 'dollar_index' in fred_additional:
+                dollar_data = fred_additional['dollar_index']
+                if not dollar_data.empty:
+                    current_dollar = dollar_data.iloc[-1]
+                    # 30일 변화율 계산 (일별 데이터이므로)
+                    prev_dollar = dollar_data.iloc[-22] if len(dollar_data) > 22 else dollar_data.iloc[0]  # 대략 1개월
+                    dollar_change = ((current_dollar - prev_dollar) / prev_dollar) * 100
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, #FFD700, #FFA000); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">💵 달러 인덱스</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_dollar:.2f} | 30일 {dollar_change:+.2f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 달러 인덱스 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=dollar_data.index,
+                        y=dollar_data.values,
+                        mode='lines',
+                        name='Dollar Index',
+                        line=dict(color='#FFD700', width=2),
+                        fill='tozeroy',
+                        fillcolor='rgba(255, 215, 0, 0.1)'
+                    ))
+                    fig.update_layout(
+                        title='달러 인덱스 (FRED)',
+                        height=180,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='Index'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 달러 강세 → 신흥국/금 약세, 달러 약세 → 원자재/신흥국 강세")
+            
+          
+        with fred_col2:
+            # 실업률
+            if fred_macro and 'unemployment' in fred_macro:
+                unemployment = fred_macro['unemployment']
+                if not unemployment.empty:
+                    current_unemployment = unemployment.iloc[-1]
+                    prev_unemployment = unemployment.iloc[-2] if len(unemployment) > 1 else current_unemployment
+                    unemployment_change = current_unemployment - prev_unemployment
+                    
+                    # 실업률 상태에 따른 색상
+                    if current_unemployment < 4:
+                        unemployment_color = "#10b981"  # 녹색 (양호)
+                    elif current_unemployment < 6:
+                        unemployment_color = "#f59e0b"  # 주황 (보통)
+                    else:
+                        unemployment_color = "#ef4444"  # 빨강 (나쁨)
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, {unemployment_color}, #6b7280); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">👥 실업률</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_unemployment:.1f}% | 전월대비 {unemployment_change:+.1f}%p</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 실업률 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=unemployment.index,
+                        y=unemployment.values,
+                        mode='lines+markers',
+                        name='Unemployment Rate',
+                        line=dict(color=unemployment_color, width=2),
+                        marker=dict(size=4)
+                    ))
+                    fig.add_hline(y=4, line_dash="dash", line_color="green", annotation_text="완전고용 기준")
+                    fig.update_layout(
+                        title='실업률 추이',
+                        height=200,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='%'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 실업률 하락 = 경기 회복, 상승 = 경기 둔화")
+              # 수익률 곡선 (FRED)
+            if fred_additional and 'yield_spread' in fred_additional:
+                yield_data = fred_additional['yield_spread']
+                if not yield_data.empty:
+                    current_spread = yield_data.iloc[-1]
+                    
+                    if current_spread < 0:
+                        curve_status = "⚠️ 역전"
+                        curve_color = "#ef4444"
+                    elif current_spread < 100:  # 1% 미만
+                        curve_status = "🟡 평탄"
+                        curve_color = "#f59e0b"
+                    else:
+                        curve_status = "✅ 정상"
+                        curve_color = "#10b981"
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, {curve_color}, #6366f1); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">📊 수익률곡선</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_spread:.2f}bp ({curve_status})</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 수익률 곡선 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=yield_data.index,
+                        y=yield_data.values,
+                        mode='lines',
+                        name='Yield Spread',
+                        line=dict(color=curve_color, width=2),
+                        fill='tozeroy',
+                        fillcolor=f'rgba({int(curve_color[1:3], 16)}, {int(curve_color[3:5], 16)}, {int(curve_color[5:7], 16)}, 0.1)'
+                    ))
+                    fig.add_hline(y=0, line_dash="dash", line_color="red", annotation_text="역전선 0%")
+                    fig.update_layout(
+                        title='10Y-2Y 수익률 곡선 (FRED)',
+                        height=180,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='Basis Points'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 양수=정상, 음수=역전(경기침체 신호)")
+            
+            # CPI (인플레이션)
+            if fred_macro and 'cpi' in fred_macro:
+                cpi_data = fred_macro['cpi']
+                if not cpi_data.empty:
+                    # YoY 인플레이션율 계산
+                    inflation_rate = cpi_data.pct_change(periods=12) * 100  # 12개월 전 대비
+                    if not inflation_rate.empty:
+                        current_inflation = inflation_rate.iloc[-1]
+                        
+                        # 인플레이션 상태에 따른 색상
+                        if current_inflation < 2:
+                            inflation_color = "#3b82f6"  # 파랑 (디플레이션 우려)
+                        elif current_inflation <= 3:
+                            inflation_color = "#10b981"  # 녹색 (목표 수준)
+                        elif current_inflation <= 5:
+                            inflation_color = "#f59e0b"  # 주황 (높음)
+                        else:
+                            inflation_color = "#ef4444"  # 빨강 (매우 높음)
+                        
+                        st.markdown(f"""
+                        <div style="background: linear-gradient(90deg, {inflation_color}, #6366f1); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                            <span style="color: white; font-weight: bold; font-size: 14px;">📊 CPI 인플레이션</span>
+                            <span style="color: white; font-size: 12px; margin-left: 10px;">{current_inflation:.1f}% YoY</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # 인플레이션율 차트
+                        fig = go.Figure()
+                        fig.add_trace(go.Scatter(
+                            x=inflation_rate.index,
+                            y=inflation_rate.values,
+                            mode='lines',
+                            name='CPI Inflation YoY',
+                            line=dict(color=inflation_color, width=2),
+                            fill='tozeroy',
+                            fillcolor=f'rgba({int(inflation_color[1:3], 16)}, {int(inflation_color[3:5], 16)}, {int(inflation_color[5:7], 16)}, 0.1)'
+                        ))
+                        fig.add_hline(y=2, line_dash="dash", line_color="gray", annotation_text="FED 목표 2%")
+                        fig.update_layout(
+                            title='CPI 인플레이션율 (YoY)',
+                            height=200,
+                            showlegend=False,
+                            margin=dict(l=20, r=20, t=40, b=20),
+                            yaxis_title='%'
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                        st.caption("💡 2% 목표치. 높으면 긴축 압력, 낮으면 완화 신호")
+        
+        with fred_col3:
+            # M2 통화량
+            if fred_macro and 'm2' in fred_macro:
+                m2_data = fred_macro['m2']
+                if not m2_data.empty:
+                    current_m2 = m2_data.iloc[-1] / 1000  # 조 달러로 변환
+                    # YoY 증가율 계산
+                    m2_growth = m2_data.pct_change(periods=12) * 100
+                    current_m2_growth = m2_growth.iloc[-1] if not m2_growth.empty else 0
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, #7c3aed, #a855f7); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">💰 M2 통화량</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">${current_m2:.1f}조 | YoY {current_m2_growth:+.1f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # M2 성장률 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=m2_growth.index,
+                        y=m2_growth.values,
+                        mode='lines',
+                        name='M2 Growth Rate',
+                        line=dict(color='#7c3aed', width=2)
+                    ))
+                    fig.add_hline(y=0, line_dash="dash", line_color="gray")
+                    fig.update_layout(
+                        title='M2 통화량 증가율 (YoY)',
+                        height=200,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='%'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 통화량 증가 = 유동성 공급, 감소 = 긴축")
+            # 제조업 지수 (Industrial Production 또는 Manufacturing Employment)
+            if fred_macro and 'pmi' in fred_macro:
+                manufacturing_data = fred_macro['pmi']
+                if not manufacturing_data.empty:
+                    # YoY 성장률 계산 (지수이므로)
+                    manufacturing_growth = manufacturing_data.pct_change(periods=12) * 100
+                    current_growth = manufacturing_growth.iloc[-1] if not manufacturing_growth.empty else 0
+                    current_index = manufacturing_data.iloc[-1]
+                    
+                    # 제조업 상태에 따른 색상 (성장률 기준)
+                    if current_growth > 3:
+                        manufacturing_color = "#10b981"  # 강한 성장
+                    elif current_growth > 0:
+                        manufacturing_color = "#3b82f6"  # 성장
+                    elif current_growth > -3:
+                        manufacturing_color = "#f59e0b"  # 둔화
+                    else:
+                        manufacturing_color = "#ef4444"  # 위축
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, {manufacturing_color}, #64748b); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">🏭 제조업 지수</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">{current_index:.1f} | YoY {current_growth:+.1f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 제조업 성장률 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=manufacturing_growth.index,
+                        y=manufacturing_growth.values,
+                        mode='lines',
+                        name='Manufacturing Growth Rate',
+                        line=dict(color=manufacturing_color, width=2),
+                        fill='tozeroy',
+                        fillcolor=f'rgba({int(manufacturing_color[1:3], 16)}, {int(manufacturing_color[3:5], 16)}, {int(manufacturing_color[5:7], 16)}, 0.1)'
+                    ))
+                    fig.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="기준선 0%")
+                    fig.update_layout(
+                        title='제조업 지수 성장률 (YoY)',
+                        height=200,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='%'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 양수 = 제조업 성장, 음수 = 제조업 위축")
+            # 원유 가격 (FRED)
+            if fred_additional and 'oil_price' in fred_additional:
+                oil_data = fred_additional['oil_price']
+                if not oil_data.empty:
+                    current_oil = oil_data.iloc[-1]
+                    # 30일 변화율 계산
+                    prev_oil = oil_data.iloc[-22] if len(oil_data) > 22 else oil_data.iloc[0]
+                    oil_change = ((current_oil - prev_oil) / prev_oil) * 100
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, #CD5C5C, #FF6B6B); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">🛢️ 원유가격</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">${current_oil:.2f} | 30일 {oil_change:+.2f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 원유가격 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=oil_data.index,
+                        y=oil_data.values,
+                        mode='lines',
+                        name='Oil Price',
+                        line=dict(color='#CD5C5C', width=2),
+                        fill='tozeroy',
+                        fillcolor='rgba(205, 92, 92, 0.1)'
+                    ))
+                    fig.update_layout(
+                        title='원유 가격 (WTI, FRED)',
+                        height=180,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='USD/Barrel'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 인플레이션 선행지표, 상승 시 에너지/운송비용 증가로 물가 압력")
+        
+        # 소매판매 지수 추가
+        if fred_macro and 'retail_sales' in fred_macro:
+            retail_data = fred_macro['retail_sales']
+            if not retail_data.empty:
+                # YoY 성장률 계산
+                retail_growth = retail_data.pct_change(periods=12) * 100
+                current_retail_growth = retail_growth.iloc[-1] if not retail_growth.empty else 0
+                current_retail = retail_data.iloc[-1] / 1000  # 천억 달러로 변환
+                
+                # 소매판매 상태에 따른 색상
+                if current_retail_growth > 5:
+                    retail_color = "#10b981"  # 강한 성장
+                elif current_retail_growth > 2:
+                    retail_color = "#3b82f6"  # 성장
+                elif current_retail_growth > -2:
+                    retail_color = "#f59e0b"  # 둔화
+                else:
+                    retail_color = "#ef4444"  # 위축
+                
+                st.markdown(f"""
+                <div style="background: linear-gradient(90deg, {retail_color}, #9333ea); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                    <span style="color: white; font-weight: bold; font-size: 14px;">🛒 소매판매</span>
+                    <span style="color: white; font-size: 12px; margin-left: 10px;">${current_retail:.0f}천억 | YoY {current_retail_growth:+.1f}%</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # 소매판매 성장률 차트
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=retail_growth.index,
+                    y=retail_growth.values,
+                    mode='lines+markers',
+                    name='Retail Sales Growth',
+                    line=dict(color=retail_color, width=2),
+                    marker=dict(size=3)
+                ))
+                fig.add_hline(y=0, line_dash="dash", line_color="gray")
+                fig.update_layout(
+                    title='소매판매 성장률 (YoY)',
+                    height=200,
+                    showlegend=False,
+                    margin=dict(l=20, r=20, t=40, b=20),
+                    yaxis_title='%'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                st.caption("💡 소비 동향의 핵심 지표. 높을수록 경기 호조")
+        
+        # 주택시장 지수 (USAUCSFRCONDOSMSAMID)
+        if fred_macro and 'housing_market' in fred_macro:
+            housing_data = fred_macro['housing_market']
+            if not housing_data.empty:
+                current_housing = housing_data.iloc[-1]
+                # YoY 증가율 계산
+                housing_growth = housing_data.pct_change(periods=12) * 100
+                current_housing_growth = housing_growth.iloc[-1] if not housing_growth.empty else 0
+                
+                # 주택시장 상태에 따른 색상
+                if current_housing_growth > 15:
+                    housing_color = "#ef4444"  # 빨강 (과열)
+                elif current_housing_growth > 8:
+                    housing_color = "#f59e0b"  # 주황 (강한 상승)
+                elif current_housing_growth > 3:
+                    housing_color = "#10b981"  # 녹색 (건전한 상승)
+                elif current_housing_growth > -3:
+                    housing_color = "#3b82f6"  # 파랑 (보정)
+                else:
+                    housing_color = "#6366f1"  # 보라 (하락)
+                
+                st.markdown(f"""
+                <div style="background: linear-gradient(90deg, {housing_color}, #475569); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                    <span style="color: white; font-weight: bold; font-size: 14px;">🏘️ 주택시장 지수</span>
+                    <span style="color: white; font-size: 12px; margin-left: 10px;">{current_housing:.0f} | YoY {current_housing_growth:+.1f}%</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # 주택시장 지수 차트 (장기 트렌드)
+                print(housing_data.index)
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=housing_data.index,
+                    y=housing_data.values,
+                    mode='lines',
+                    name='Housing Market Index',
+                    line=dict(color=housing_color, width=2),
+                    fill='tozeroy',
+                    fillcolor=f'rgba({int(housing_color[1:3], 16)}, {int(housing_color[3:5], 16)}, {int(housing_color[5:7], 16)}, 0.1)'
+                ))
+                
+                # 주요 경제 위기 시점 표시 (2000년부터 데이터이므로)
+                crisis_dates = [
+                    ('2006-01-01', '부동산 버블 정점'),
+                    ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
+                    ('2012-01-01', '주택시장 회복'),
+                    ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
+                    ('2022-03-01', 'Fed 긴축 시작')
+                ]
+
+                # crisis_dates를 스캐터 플롯으로 한번에 그리기
+                crisis_x_dates = []
+                crisis_y_values = []
+                crisis_labels = []
+                
+                for date_str, label in crisis_dates:
+                    try:
+                        # date_str을 pandas Timestamp로 변환
+                        target_date = pd.to_datetime(date_str)
+                        
+                        # 데이터 인덱스 범위 확인
+                        if target_date < housing_data.index.min() or target_date > housing_data.index.max():
+                            continue
+                            
+                        # 향상된 날짜 매칭: 먼저 정확한 날짜가 있는지 확인
+                        if target_date in housing_data.index:
+                            # 정확한 날짜가 존재하는 경우
+                            exact_date = target_date
+                            exact_value = housing_data.loc[exact_date]
+                        else:
+                            # 정확한 날짜가 없으면 가장 가까운 날짜 찾기 (pandas 2.x 호환)
+                            time_diffs = np.abs(housing_data.index.astype('int64') - target_date.value)
+                            nearest_idx = time_diffs.argmin()
+                            exact_date = housing_data.index[nearest_idx]
+                            exact_value = housing_data.iloc[nearest_idx]
+                        
+                        # 유효한 날짜인지 확인
+                        if pd.isna(exact_date) or pd.isna(exact_value):
+                            continue
+                            
+                        # 리스트에 추가
+                        crisis_x_dates.append(exact_date)
+                        crisis_y_values.append(exact_value)
+                        crisis_labels.append(label)
+                        
+                    except Exception as e:
+                        logger.warning(f"[FRED] Crisis date annotation failed for {date_str}: {sanitize_log_message(str(e))}")
+                        continue  # 날짜 형식 문제 시 건너뛰기
+                
+                # 위기 시점을 스캐터 플롯으로 추가
+                if crisis_x_dates:
+                    fig.add_trace(go.Scatter(
+                        x=crisis_x_dates,
+                        y=crisis_y_values,
+                        mode='markers+text',
+                        marker=dict(
+                            symbol='triangle-down',
+                            size=12,
+                            color='red',
+                            line=dict(width=2, color='darkred')
+                        ),
+                        text=crisis_labels,
+                        textposition='top center',
+                        textfont=dict(size=10, color='red'),
+                        name='경제 위기 시점',
+                        showlegend=True
+                    ))
+                fig.update_layout(
+                    title='주택시장 지수 장기 추이 (2000~)',
+                    height=250,
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="center",
+                        x=0.5
+                    ),
+                    margin=dict(l=20, r=20, t=40, b=20),
+                    yaxis_title='Index'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # YoY 성장률 차트
+                fig2 = go.Figure()
+                fig2.add_trace(go.Scatter(
+                    x=housing_growth.index,
+                    y=housing_growth.values,
+                    mode='lines+markers',
+                    name='Housing Growth Rate',
+                    line=dict(color=housing_color, width=2),
+                    marker=dict(size=2)
+                ))
+                
+                # 건전성 기준선
+                fig2.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="기준선")
+                fig2.add_hline(y=8, line_dash="dot", line_color="orange", annotation_text="과열 주의")
+                fig2.add_hline(y=15, line_dash="dot", line_color="red", annotation_text="과열 위험")
+                fig2.add_hline(y=-10, line_dash="dot", line_color="purple", annotation_text="급락 위험")
+                
+                fig2.update_layout(
+                    title='주택시장 성장률 (YoY)',
+                    height=200,
+                    showlegend=False,
+                    margin=dict(l=20, r=20, t=40, b=20),
+                    yaxis_title='%'
+                )
+                st.plotly_chart(fig2, use_container_width=True)
+                st.caption("💡 2000년부터 장기 데이터. 15% 초과 시 과열, -10% 미만 시 급락 위험")
+        
+        
+   
+    # 기존 지표들을 위한 2열 레이아웃
+    st.markdown("---")
+    st.subheader("📈 기존 시장 지표")
     col1, col2 = st.columns(2)
     
     with col1:
@@ -380,46 +1141,6 @@ def create_financial_indicators_charts():
             st.caption("💡 1.0 이상 = 풋옵션 우세(공포), 1.0 미만 = 콜옵션 우세(탐욕)")
         else:
             st.warning("풋콜레이쇼 데이터 없음")
-        
-        # 달러 인덱스
-        dxy_data = additional_data.get('dxy')
-        if dxy_data is not None and len(dxy_data) > 0:
-            current_dxy = dxy_data['DXY'].iloc[-1]
-            prev_dxy = dxy_data['DXY'].iloc[-30] if len(dxy_data) > 30 else dxy_data['DXY'].iloc[0]
-            dxy_change = ((current_dxy - prev_dxy) / prev_dxy) * 100
-            
-            st.markdown(f"""
-            <div style="background: linear-gradient(90deg, #FFD700, #FFA000); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                <span style="color: white; font-weight: bold; font-size: 14px;">💵 달러 인덱스</span>
-                <span style="color: white; font-size: 12px; margin-left: 10px;">{current_dxy:.2f} | 30일 {dxy_change:+.2f}%</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            dxy_chart = dxy_data.set_index('Date')[['DXY']]
-            st.line_chart(dxy_chart, color="#FFD700", height=200)
-            st.caption("💡 달러 강세 → 신흥국/금 약세, 달러 약세 → 원자재/신흥국 강세")
-        else:
-            st.warning("달러 인덱스 데이터 없음")
-        
-        # 금 가격
-        gold_data = additional_data.get('gold')
-        if gold_data is not None and len(gold_data) > 0:
-            current_gold = gold_data['Gold'].iloc[-1]
-            prev_gold = gold_data['Gold'].iloc[-30] if len(gold_data) > 30 else gold_data['Gold'].iloc[0]
-            gold_change = ((current_gold - prev_gold) / prev_gold) * 100
-            
-            st.markdown(f"""
-            <div style="background: linear-gradient(90deg, #FFD700, #FF6B35); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                <span style="color: white; font-weight: bold; font-size: 14px;">🥇 금 가격</span>
-                <span style="color: white; font-size: 12px; margin-left: 10px;">${current_gold:.2f} | 30일 {gold_change:+.2f}%</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            gold_chart = gold_data.set_index('Date')[['Gold']]
-            st.area_chart(gold_chart, color="#FFD700", height=200)
-            st.caption("💡 인플레이션 헤지 자산, 달러 약세/지정학적 리스크 시 상승")
-        else:
-            st.warning("금 가격 데이터 없음")
     
     with col2:
         # 공포탐욕지수 (VIX 기반)
@@ -457,72 +1178,28 @@ def create_financial_indicators_charts():
         else:
             st.warning("공포탐욕지수 데이터 없음")
         
-        # 부동산 지수
-        current_price = fred_data['Real_Estate_Index'].iloc[-1] if fred_data is not None and len(fred_data) > 0 else 0
-        change_pct = 0
-        if fred_data is not None and len(fred_data) > 20:
-            prev_price = fred_data['Real_Estate_Index'].iloc[-21]
-            change_pct = ((current_price - prev_price) / prev_price) * 100
-            
-        st.markdown(f"""
-        <div style="background: linear-gradient(90deg, #2ECC71, #00D2D3); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-            <span style="color: white; font-weight: bold; font-size: 14px;">🏠 부동산 지수</span>
-            <span style="color: white; font-size: 12px; margin-left: 10px;">${current_price:.2f} | 20일 {change_pct:+.2f}%</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if fred_data is not None and len(fred_data) > 0:
-            real_estate_chart = fred_data.set_index('Date')[['Real_Estate_Index']]
-            st.area_chart(real_estate_chart, color="#2ECC71", height=200)
-            st.caption("💡 VNQ REIT ETF로 부동산 시장 추적. 금리와 역상관, 인플레이션 헤지")
-        else:
-            st.warning("부동산 지수 데이터 없음")
-        
-        # 수익률 곡선
-        yield_data = additional_data.get('yield_curve')
-        if yield_data is not None and len(yield_data) > 0:
-            current_spread = yield_data['Yield_Spread'].iloc[-1]
-            
-            if current_spread < 0:
-                curve_status = "⚠️ 역전"
-                curve_color = "#FF4757"
-            else:
-                curve_status = "✅ 정상"
-                curve_color = "#26C6DA"
-                
-            st.markdown(f"""
-            <div style="background: linear-gradient(90deg, #8E44AD, {curve_color}); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                <span style="color: white; font-weight: bold; font-size: 14px;">📊 수익률 곡선</span>
-                <span style="color: white; font-size: 12px; margin-left: 10px;">{current_spread:.2f}bp ({curve_status})</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            spread_chart = yield_data.set_index('Date')[['Yield_Spread']]
-            st.line_chart(spread_chart, color="#8E44AD", height=200)
-            st.caption("💡 양수=정상(장기>단기금리), 음수=역전(경기침체 신호)")
-        else:
-            st.warning("수익률 곡선 데이터 없음")
-        
-        # 원유 가격
-        oil_data = additional_data.get('oil')
-        if oil_data is not None and len(oil_data) > 0:
-            current_oil = oil_data['Oil'].iloc[-1]
-            prev_oil = oil_data['Oil'].iloc[-30] if len(oil_data) > 30 else oil_data['Oil'].iloc[0]
-            oil_change = ((current_oil - prev_oil) / prev_oil) * 100
-            
-            st.markdown(f"""
-            <div style="background: linear-gradient(90deg, #CD5C5C, #FF6B6B); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                <span style="color: white; font-weight: bold; font-size: 14px;">🛢️ 원유 가격</span>
-                <span style="color: white; font-size: 12px; margin-left: 10px;">${current_oil:.2f} | 30일 {oil_change:+.2f}%</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            oil_chart = oil_data.set_index('Date')[['Oil']]
-            st.line_chart(oil_chart, color="#CD5C5C", height=200)
-            st.caption("💡 인플레이션 선행지표, 상승 시 에너지/운송비용 증가로 물가 압력")
-        else:
-            st.warning("원유 가격 데이터 없음")
     
+        
+        # 금 가격
+        gold_data = additional_data.get('gold')
+        if gold_data is not None and len(gold_data) > 0:
+            current_gold = gold_data['Gold'].iloc[-1]
+            prev_gold = gold_data['Gold'].iloc[-30] if len(gold_data) > 30 else gold_data['Gold'].iloc[0]
+            gold_change = ((current_gold - prev_gold) / prev_gold) * 100
+            
+            st.markdown(f"""
+            <div style="background: linear-gradient(90deg, #FFD700, #FF6B35); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                <span style="color: white; font-weight: bold; font-size: 14px;">🥇 금 가격</span>
+                <span style="color: white; font-size: 12px; margin-left: 10px;">${current_gold:.2f} | 30일 {gold_change:+.2f}%</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            gold_chart = gold_data.set_index('Date')[['Gold']]
+            st.area_chart(gold_chart, color="#FFD700", height=200)
+            st.caption("💡 인플레이션 헤지 자산, 달러 약세/지정학적 리스크 시 상승")
+        else:
+            st.warning("금 가격 데이터 없음")
+
     # 통합 상관관계 분석 섹션
     st.markdown("---")
     st.markdown("""
@@ -562,6 +1239,14 @@ def create_financial_indicators_charts():
         
         if additional_data.get('oil') is not None:
             correlation_data_dict['원유가격'] = additional_data['oil']['Oil']
+        
+        # FRED 추가 지표들
+        if fred_additional:
+            if fred_additional.get('gold_price') is not None:
+                correlation_data_dict['금가격(FRED)'] = fred_additional['gold_price']
+            
+            if fred_additional.get('oil_price') is not None:
+                correlation_data_dict['원유가격(FRED)'] = fred_additional['oil_price']
         
         if len(correlation_data_dict) >= 3:
             # 최소 길이로 데이터 맞추기
