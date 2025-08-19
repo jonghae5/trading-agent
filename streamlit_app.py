@@ -5471,8 +5471,32 @@ def main() -> None:
     # Configuration section (sidebar)
     config_valid = render_configuration_section()
     
+    # Mobile-optimized tabs CSS
+    st.markdown("""
+    <style>
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        padding: 0px 12px;
+        font-size: 14px;
+        min-width: fit-content;
+        white-space: nowrap;
+    }
+    @media (max-width: 640px) {
+        .stTabs [data-baseweb="tab"] {
+            font-size: 12px;
+            padding: 0px 8px;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Create tabs for different sections
-    tab1, tab2, tab3, tab4 = st.tabs(["🧠 AI 분석", "📚 분석 히스토리", "📈 Market Agent 주식 분석","📊 거시경제 지표",])
+    tab1, tab2, tab3, tab4 = st.tabs(["🧠 AI분석", "📚 히스토리", "📈 주식분석", "📊 거시경제"])
     
     with tab1:
         # Main content area for AI Analysis
