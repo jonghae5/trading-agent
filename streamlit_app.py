@@ -115,64 +115,6 @@ def get_kst_date():
     """현재 KST 날짜를 date 객체로 반환"""
     return get_kst_now().date()
 
-# Financial Indicators Functions
-@st.cache_data(ttl=CACHE_TTL_SECONDS)
-def get_high_yield_spread() -> Optional[pd.DataFrame]:
-    """미국 하이일드 스프레드 인덱스 데이터 가져오기 with improved error handling"""
-    try:
-        with st.spinner("Loading high yield spread data..."):
-            # Download with timeout and progress tracking
-            hyg_data = yf.download('HYG', period='5y', interval='1d', timeout=10)
-            treasury_data = yf.download('^TNX', period='5y', interval='1d', timeout=10)
-        
-        # Validate data
-        if hyg_data.empty or treasury_data.empty:
-            st.warning("Failed to fetch high yield spread data - market may be closed")
-            return None
-        
-        # Check for required columns
-        if 'Close' not in hyg_data.columns or 'Close' not in treasury_data.columns:
-            st.error("Missing price data in high yield spread indicators")
-            return None
-        
-        # Close 컬럼만 선택하고 인덱스를 reset
-        hyg_df = hyg_data[['Close']].reset_index()
-        treasury_df = treasury_data[['Close']].reset_index()
-        
-        # 컬럼명 변경
-        hyg_df.columns = ['Date', 'HYG_Price'] 
-        treasury_df.columns = ['Date', 'Treasury_10Y']
-        
-        # 날짜로 병합
-        spread_data = pd.merge(hyg_df, treasury_df, on='Date', how='inner')
-        
-        # Validate merged data
-        if spread_data.empty:
-            st.warning("No overlapping data for high yield spread calculation")
-            return None
-        
-        # Remove invalid values
-        spread_data = spread_data.dropna()
-        
-        # Basic sanity checks
-        if len(spread_data) < 10:
-            st.warning("Insufficient data points for high yield spread analysis")
-            return None
-        
-        return spread_data
-        
-    except TimeoutError:
-        st.error("Timeout loading high yield spread data")
-        return None
-    except ConnectionError:
-        st.error("Network connection error loading high yield spread data")
-        return None
-    except Exception as e:
-        error_msg = sanitize_log_message(str(e))
-        st.error(f"하이일드 스프레드 데이터 로딩 실패: {error_msg}")
-        logger.error(f"[INDICATORS] High yield spread loading failed: {error_msg}")
-        return None
-
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def get_fear_greed_index():
     """CNN 공포탐욕지수 가져오기 (대체 지표로 VIX 사용)"""
@@ -219,21 +161,6 @@ def get_put_call_ratio():
         st.error(f"풋콜레이쇼 데이터 로딩 실패: {e}")
         return None
 
-@st.cache_data(ttl=CACHE_TTL_SECONDS)
-def get_fred_data():
-    """FRED 데이터 가져오기 (API 키 없이 공개 데이터 사용)"""
-    try:
-        # Case-Shiller Home Price Index 대용으로 부동산 ETF 사용
-        real_estate_data = yf.download('VNQ', period='5y', interval='1d')
-        
-        # Close 컬럼만 선택하고 인덱스를 reset
-        fred_df = real_estate_data[['Close']].reset_index()
-        fred_df.columns = ['Date', 'Real_Estate_Index']
-        
-        return fred_df.dropna()
-    except Exception as e:
-        st.error(f"FRED 부동산 지수 데이터 로딩 실패: {e}")
-        return None
 
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
 def get_additional_indicators():
@@ -318,15 +245,6 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         except Exception as e:
             error_msg = sanitize_log_message(str(e))
             logger.warning(f"[FRED] Failed to fetch M2: {error_msg}")
-        
-        # Case-Shiller 주택가격지수
-        try:
-            house_price_index = fred.get_series('CSUSHPINSA', start='2015-01-01')
-            if house_price_index is not None and len(house_price_index) > 0:
-                indicators['case_shiller'] = house_price_index.dropna()
-        except Exception as e:
-            error_msg = sanitize_log_message(str(e))
-            logger.warning(f"[FRED] Failed to fetch Case-Shiller Index: {error_msg}")
         
         # 소매판매 (Retail Sales) - 소비 동향을 나타내는 중요 지표
         try:
@@ -453,10 +371,8 @@ def create_financial_indicators_charts():
     st.header("📊 거시 경제 대시보드")
     
     # 모든 데이터 로드 (기존 + 새로운 FRED 지표)
-    spread_data = get_high_yield_spread()
     fg_data = get_fear_greed_index()
     pc_data = get_put_call_ratio()
-    fred_data = get_fred_data()
     additional_data = get_additional_indicators()
     
     # 새로운 FRED 지표들 로드
@@ -466,10 +382,8 @@ def create_financial_indicators_charts():
     # 데이터 로딩 상태 간단히 표시 (확장된 지표 포함)
     with st.expander("🔍 데이터 로딩 상태", expanded=False):
         indicators_status = [
-            ("하이일드 스프레드", spread_data),
             ("공포탐욕지수", fg_data),
             ("풋콜레이쇼", pc_data),
-            ("부동산지수", fred_data),
             ("금가격", additional_data.get('gold')),
         ]
         
@@ -480,7 +394,6 @@ def create_financial_indicators_charts():
                 ("GDP(FRED)", fred_macro.get('gdp')),
                 ("제조업지수(FRED)", fred_macro.get('pmi')),
                 ("M2통화량(FRED)", fred_macro.get('m2')),
-                ("케이스실러지수(FRED)", fred_macro.get('case_shiller')),
                 ("하이일드스프레드(FRED)", fred_macro.get('high_yield_spread')),
                 ("소매판매(FRED)", fred_macro.get('retail_sales')),
                 ("주택시장지수(FRED)", fred_macro.get('housing_market')),
@@ -579,7 +492,67 @@ def create_financial_indicators_charts():
                     )
                     st.plotly_chart(fig, use_container_width=True)
                     st.caption("💡 GDP 성장 = 경기 확장, 감소 = 경기 둔화")
-         # 달러 인덱스 (FRED)
+            
+            # 하이일드 스프레드 (FRED 공식 데이터) 이동
+            if fred_macro and 'high_yield_spread' in fred_macro:
+                high_yield_data = fred_macro['high_yield_spread']
+                if not high_yield_data.empty:
+                    current_spread_bp = high_yield_data.iloc[-1]
+                    prev_spread_bp = high_yield_data.iloc[-2] if len(high_yield_data) > 1 else current_spread_bp
+                    spread_change = current_spread_bp - prev_spread_bp
+                    
+                    # 스프레드 상태에 따른 색상
+                    if current_spread_bp > 8:  # 8% 이상
+                        spread_status = "🔴 위험"
+                        spread_color = "#ef4444"
+                    elif current_spread_bp > 5:  # 5-8%
+                        spread_status = "🟡 주의"
+                        spread_color = "#f59e0b"
+                    elif current_spread_bp > 3:  # 3-5%
+                        spread_status = "🟢 보통"
+                        spread_color = "#10b981"
+                    else:  # 3% 미만
+                        spread_status = "🔵 안전"
+                        spread_color = "#3b82f6"
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, {spread_color}, #6366f1); padding: 8px 12px; border-radius:20px; margin: 8px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <span style="color: white; font-weight: bold; font-size: 14px;">🏛️ 하이일드 스프레드</span>
+                    <span style="color: white; font-size: 12px; margin-left: 10px;">{current_spread_bp:.0f}bp | 전일대비 {spread_change:+.0f}bp | {spread_status}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 하이일드 스프레드 차트
+                    fig = go.Figure()
+                    
+                    # 스프레드 라인
+                    fig.add_trace(go.Scatter(
+                        x=high_yield_data.index,
+                        y=high_yield_data.values,
+                        mode='lines',
+                        name='High Yield Spread',
+                        line=dict(color=spread_color, width=3),
+                        fill='tozeroy',
+                        fillcolor=f'rgba({int(spread_color[1:3], 16)}, {int(spread_color[3:5], 16)}, {int(spread_color[5:7], 16)}, 0.1)'
+                    ))
+                    
+                    # 위험 구간 표시
+                    fig.add_hline(y=3, line_dash="dot", line_color="green", annotation_text="안전 구간 (300bp)")
+                    fig.add_hline(y=5, line_dash="dash", line_color="orange", annotation_text="주의 구간 (500bp)")
+                    fig.add_hline(y=8, line_dash="dash", line_color="red", annotation_text="위험 구간 (800bp)")
+                    
+                    fig.update_layout(
+                        title='하이일드 스프레드 추이',
+                        height=200,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='Basis Points (bp)'
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 ICE BofA US High Yield Index Option-Adjusted Spread. 높을수록 신용위험 증가, 경기침체 신호")
+                
+            # 달러 인덱스 이동
             if fred_additional and 'dollar_index' in fred_additional:
                 dollar_data = fred_additional['dollar_index']
                 if not dollar_data.empty:
@@ -607,15 +580,14 @@ def create_financial_indicators_charts():
                         fillcolor='rgba(255, 215, 0, 0.1)'
                     ))
                     fig.update_layout(
-                        title='달러 인덱스 (FRED)',
-                        height=180,
+                        title='달러 인덱스',
+                        height=200,
                         showlegend=False,
                         margin=dict(l=20, r=20, t=40, b=20),
                         yaxis_title='Index'
                     )
                     st.plotly_chart(fig, use_container_width=True)
                     st.caption("💡 달러 강세 → 신흥국/금 약세, 달러 약세 → 원자재/신흥국 강세")
-            
           
         with fred_col2:
             # 실업률
@@ -697,7 +669,7 @@ def create_financial_indicators_charts():
                     ))
                     fig.add_hline(y=0, line_dash="dash", line_color="red", annotation_text="역전선 0%")
                     fig.update_layout(
-                        title='10Y-2Y 수익률 곡선 (FRED)',
+                        title='10Y-2Y 수익률 곡선',
                         height=180,
                         showlegend=False,
                         margin=dict(l=20, r=20, t=40, b=20),
@@ -753,44 +725,7 @@ def create_financial_indicators_charts():
                         )
                         st.plotly_chart(fig, use_container_width=True)
                         st.caption("💡 2% 목표치. 높으면 긴축 압력, 낮으면 완화 신호")
-        
-        with fred_col3:
-            # M2 통화량
-            if fred_macro and 'm2' in fred_macro:
-                m2_data = fred_macro['m2']
-                if not m2_data.empty:
-                    current_m2 = m2_data.iloc[-1] / 1000  # 조 달러로 변환
-                    # YoY 증가율 계산
-                    m2_growth = m2_data.pct_change(periods=12) * 100
-                    current_m2_growth = m2_growth.iloc[-1] if not m2_growth.empty else 0
-                    
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(90deg, #7c3aed, #a855f7); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                        <span style="color: white; font-weight: bold; font-size: 14px;">💰 M2 통화량</span>
-                        <span style="color: white; font-size: 12px; margin-left: 10px;">${current_m2:.1f}조 | YoY {current_m2_growth:+.1f}%</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # M2 성장률 차트
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=m2_growth.index,
-                        y=m2_growth.values,
-                        mode='lines',
-                        name='M2 Growth Rate',
-                        line=dict(color='#7c3aed', width=2)
-                    ))
-                    fig.add_hline(y=0, line_dash="dash", line_color="gray")
-                    fig.update_layout(
-                        title='M2 통화량 증가율 (YoY)',
-                        height=200,
-                        showlegend=False,
-                        margin=dict(l=20, r=20, t=40, b=20),
-                        yaxis_title='%'
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.caption("💡 통화량 증가 = 유동성 공급, 감소 = 긴축")
-            # 제조업 지수 (Industrial Production 또는 Manufacturing Employment)
+        # 제조업 지수 (Industrial Production 또는 Manufacturing Employment)
             if fred_macro and 'pmi' in fred_macro:
                 manufacturing_data = fred_macro['pmi']
                 if not manufacturing_data.empty:
@@ -837,17 +772,146 @@ def create_financial_indicators_charts():
                     )
                     st.plotly_chart(fig, use_container_width=True)
                     st.caption("💡 양수 = 제조업 성장, 음수 = 제조업 위축")
-            # 원유 가격 (FRED)
+        with fred_col3:
+            # M2 통화량
+            if fred_macro and 'm2' in fred_macro:
+                m2_data = fred_macro['m2']
+                if not m2_data.empty:
+                    current_m2 = m2_data.iloc[-1] / 1000  # 조 달러로 변환
+                    # YoY 증가율 계산
+                    m2_growth = m2_data.pct_change(periods=12) * 100
+                    current_m2_growth = m2_growth.iloc[-1] if not m2_growth.empty else 0
+                    
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(90deg, #7c3aed, #a855f7); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                        <span style="color: white; font-weight: bold; font-size: 14px;">💰 M2 통화량</span>
+                        <span style="color: white; font-size: 12px; margin-left: 10px;">${current_m2:.1f}조 | YoY {current_m2_growth:+.1f}%</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # M2 성장률 차트
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=m2_growth.index,
+                        y=m2_growth.values,
+                        mode='lines',
+                        name='M2 Growth Rate',
+                        line=dict(color='#7c3aed', width=2)
+                    ))
+                    fig.add_hline(y=0, line_dash="dash", line_color="gray")
+                    fig.update_layout(
+                        title='M2 통화량 증가율 (YoY)',
+                        height=200,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        yaxis_title='%'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.caption("💡 통화량 증가 = 유동성 공급, 감소 = 긴축")
+            
+            # 풋콜레이쇼 이동
+            current_pc = pc_data['Put_Call_Ratio'].iloc[-1] if pc_data is not None and len(pc_data) > 0 else 0
+            if current_pc > 1.2:
+                sentiment = "😨 극도공포"
+                badge_color = "#FF4757"
+            elif current_pc > 1.0:
+                sentiment = "😰 공포"
+                badge_color = "#FF6B35"
+            elif current_pc > 0.8:
+                sentiment = "😐 중립"
+                badge_color = "#FFA502"
+            else:
+                sentiment = "😎 탐욕"
+                badge_color = "#26C6DA"
+                
+            st.markdown(f"""
+            <div style="background: linear-gradient(90deg, #9B59B6, {badge_color}); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                <span style="color: white; font-weight: bold; font-size: 14px;">⚖️ 풋콜레이쇼</span>
+                <span style="color: white; font-size: 12px; margin-left: 10px;">{current_pc:.3f} ({sentiment})</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if pc_data is not None and len(pc_data) > 0:
+                ratio_chart = pc_data.set_index('Date')[['Put_Call_Ratio']]
+                st.line_chart(ratio_chart, color="#9B59B6", height=200)
+                st.caption("💡 1.0 이상 = 풋옵션 우세(공포), 1.0 미만 = 콜옵션 우세(탐욕)")
+            
+            # VIX/공포탐욕지수 이동
+            if fg_data is not None and len(fg_data) > 0:
+                current_vix = fg_data['VIX'].iloc[-1]
+                current_fg = fg_data['Fear_Greed'].iloc[-1]
+                
+                if current_fg >= 75:
+                    fg_sentiment = "🤑 탐욕"
+                    fg_color = "#26C6DA"
+                elif current_fg >= 50:
+                    fg_sentiment = "😎 중립+"
+                    fg_color = "#3498DB"
+                elif current_fg >= 25:
+                    fg_sentiment = "😐 중립"
+                    fg_color = "#FFA502"
+                else:
+                    fg_sentiment = "😨 공포"
+                    fg_color = "#FF6B35"
+                
+                st.markdown(f"""
+                <div style="background: linear-gradient(90deg, #E74C3C, {fg_color}); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                    <span style="color: white; font-weight: bold; font-size: 14px;">😱 공포탐욕지수</span>
+                    <span style="color: white; font-size: 12px; margin-left: 10px;">VIX {current_vix:.2f} | 지수 {current_fg:.1f} ({fg_sentiment})</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # 공포탐욕지수 차트
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=fg_data['Date'],
+                    y=fg_data['Fear_Greed'],
+                    mode='lines',
+                    name='Fear Greed Index',
+                    line=dict(color=fg_color, width=2)
+                ))
+                fig.update_layout(
+                    title='공포탐욕지수 (VIX 기반)',
+                    height=200,
+                    showlegend=False,
+                    margin=dict(l=20, r=20, t=40, b=20),
+                    yaxis_title='Index (0-100)'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                st.caption("💡 VIX는 변동성 지수, 높을수록 시장 불안정. 지수는 VIX 역산 (0=극도공포, 100=극도탐욕)")
+            
+            
+            # 금 가격 이동
+            if additional_data.get('gold') is not None and len(additional_data['gold']) > 0:
+                gold_data = additional_data['gold']
+                current_gold = gold_data['Gold'].iloc[-1]
+                # 30일 변화율 계산
+                prev_gold = gold_data['Gold'].iloc[-30] if len(gold_data) > 30 else gold_data['Gold'].iloc[0]
+                gold_change = ((current_gold - prev_gold) / prev_gold) * 100
+                
+                st.markdown(f"""
+                <div style="background: linear-gradient(90deg, #FFD700, #FFA000); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                    <span style="color: white; font-weight: bold; font-size: 14px;">🥇 금 가격</span>
+                    <span style="color: white; font-size: 12px; margin-left: 10px;">${current_gold:.2f} | 30일 {gold_change:+.2f}%</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # 금 가격 차트
+                gold_chart = gold_data.set_index('Date')[['Gold']]
+                st.line_chart(gold_chart, color="#FFD700", height=200)
+                st.caption("💡 인플레이션 헤지 자산, 달러 약세/지정학적 리스크 시 상승")
+            
+            # 원유가격 이동 (FRED 데이터 사용)
             if fred_additional and 'oil_price' in fred_additional:
                 oil_data = fred_additional['oil_price']
                 if not oil_data.empty:
                     current_oil = oil_data.iloc[-1]
                     # 30일 변화율 계산
-                    prev_oil = oil_data.iloc[-22] if len(oil_data) > 22 else oil_data.iloc[0]
+                    prev_oil = oil_data.iloc[-30] if len(oil_data) > 30 else oil_data.iloc[0]
                     oil_change = ((current_oil - prev_oil) / prev_oil) * 100
                     
                     st.markdown(f"""
-                    <div style="background: linear-gradient(90deg, #CD5C5C, #FF6B6B); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
+                    <div style="background: linear-gradient(90deg, #2C3E50, #34495E); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
                         <span style="color: white; font-weight: bold; font-size: 14px;">🛢️ 원유가격</span>
                         <span style="color: white; font-size: 12px; margin-left: 10px;">${current_oil:.2f} | 30일 {oil_change:+.2f}%</span>
                     </div>
@@ -860,16 +924,16 @@ def create_financial_indicators_charts():
                         y=oil_data.values,
                         mode='lines',
                         name='Oil Price',
-                        line=dict(color='#CD5C5C', width=2),
+                        line=dict(color='#2C3E50', width=2),
                         fill='tozeroy',
-                        fillcolor='rgba(205, 92, 92, 0.1)'
+                        fillcolor='rgba(44, 62, 80, 0.1)'
                     ))
                     fig.update_layout(
-                        title='원유 가격 (WTI, FRED)',
-                        height=180,
+                        title='원유가격 (WTI)',
+                        height=200,
                         showlegend=False,
                         margin=dict(l=20, r=20, t=40, b=20),
-                        yaxis_title='USD/Barrel'
+                        yaxis_title='USD'
                     )
                     st.plotly_chart(fig, use_container_width=True)
                     st.caption("💡 인플레이션 선행지표, 상승 시 에너지/운송비용 증가로 물가 압력")
@@ -1070,231 +1134,272 @@ def create_financial_indicators_charts():
                 st.plotly_chart(fig2, use_container_width=True)
                 st.caption("💡 2000년부터 장기 데이터. 15% 초과 시 과열, -10% 미만 시 급락 위험")
         
-        
-   
-    # 기존 지표들을 위한 2열 레이아웃
-    st.markdown("---")
-    st.subheader("📈 기존 시장 지표")
-    col1, col2 = st.columns(2)
     
-    with col1:
-        # 하이일드 스프레드
-        current_hyg = spread_data['HYG_Price'].iloc[-1] if spread_data is not None and len(spread_data) > 0 else 0
-        current_treasury = spread_data['Treasury_10Y'].iloc[-1] if spread_data is not None and len(spread_data) > 0 else 0
-        current_spread = current_hyg / current_treasury if current_treasury != 0 else 0
-        
-        st.markdown(f"""
-        <div style="background: linear-gradient(90deg, #FF6B6B, #4ECDC4); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-            <span style="color: white; font-weight: bold; font-size: 14px;">🏢 하이일드 스프레드</span>
-            <span style="color: white; font-size: 12px; margin-left: 10px;">HYG ${current_hyg:.2f} | 10Y {current_treasury:.2f}% | 비율 {current_spread:.2f}</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if spread_data is not None and len(spread_data) > 0:
-            spread_normalized = spread_data.copy()
-            spread_normalized.set_index('Date', inplace=True)
-            
-            hyg_min, hyg_max = spread_normalized['HYG_Price'].min(), spread_normalized['HYG_Price'].max()
-            treasury_min, treasury_max = spread_normalized['Treasury_10Y'].min(), spread_normalized['Treasury_10Y'].max()
-            
-            spread_normalized['HYG_Normalized'] = ((spread_normalized['HYG_Price'] - hyg_min) / (hyg_max - hyg_min)) * 100
-            spread_normalized['Treasury_Normalized'] = ((spread_normalized['Treasury_10Y'] - treasury_min) / (treasury_max - treasury_min)) * 100
-            
-            comparison_chart = spread_normalized[['HYG_Normalized', 'Treasury_Normalized']]
-            comparison_chart.columns = ['HYG ETF', '10Y Treasury']
-            st.line_chart(comparison_chart, height=200)
-            
-            spread_normalized['Spread'] = spread_normalized['HYG_Price'] / spread_normalized['Treasury_10Y']
-            spread_chart = spread_normalized[['Spread']]
-            st.line_chart(spread_chart, color="#9B59B6", height=150)
-                
-            st.caption("💡 스프레드 상승 = 리스크 오프 신호, 하이일드 채권 vs 국채 상대 매력도")
-        else:
-            st.warning("하이일드 스프레드 데이터 없음")
-        
-        # 풋콜레이쇼
-        current_pc = pc_data['Put_Call_Ratio'].iloc[-1] if pc_data is not None and len(pc_data) > 0 else 0
-        if current_pc > 1.2:
-            sentiment = "😨 극도공포"
-            badge_color = "#FF4757"
-        elif current_pc > 1.0:
-            sentiment = "😰 공포"
-            badge_color = "#FF6B35"
-        elif current_pc > 0.8:
-            sentiment = "😐 중립"
-            badge_color = "#FFA502"
-        else:
-            sentiment = "😎 탐욕"
-            badge_color = "#26C6DA"
-            
-        st.markdown(f"""
-        <div style="background: linear-gradient(90deg, #9B59B6, {badge_color}); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-            <span style="color: white; font-weight: bold; font-size: 14px;">⚖️ 풋콜레이쇼</span>
-            <span style="color: white; font-size: 12px; margin-left: 10px;">{current_pc:.3f} ({sentiment})</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if pc_data is not None and len(pc_data) > 0:
-            ratio_chart = pc_data.set_index('Date')[['Put_Call_Ratio']]
-            st.line_chart(ratio_chart, color="#9B59B6", height=200)
-            st.caption("💡 1.0 이상 = 풋옵션 우세(공포), 1.0 미만 = 콜옵션 우세(탐욕)")
-        else:
-            st.warning("풋콜레이쇼 데이터 없음")
-    
-    with col2:
-        # 공포탐욕지수 (VIX 기반)
-        current_vix = fg_data['VIX'].iloc[-1] if fg_data is not None and len(fg_data) > 0 else 0
-        current_fg = fg_data['Fear_Greed'].iloc[-1] if fg_data is not None and len(fg_data) > 0 else 0
-        
-        if current_fg < 25:
-            mood = "😱 극도공포"
-            mood_color = "#FF4757"
-        elif current_fg < 50:
-            mood = "😰 공포"
-            mood_color = "#FF6B35"
-        elif current_fg < 75:
-            mood = "😐 중립"
-            mood_color = "#FFA502"
-        else:
-            mood = "🤑 탐욕"
-            mood_color = "#26C6DA"
-            
-        st.markdown(f"""
-        <div style="background: linear-gradient(90deg, #E74C3C, {mood_color}); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-            <span style="color: white; font-weight: bold; font-size: 14px;">😱 공포탐욕지수</span>
-            <span style="color: white; font-size: 12px; margin-left: 10px;">VIX {current_vix:.2f} | 지수 {current_fg:.1f} ({mood})</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if fg_data is not None and len(fg_data) > 0:
-            vix_chart = fg_data.set_index('Date')[['VIX']]
-            st.line_chart(vix_chart, color="#E74C3C", height=200)
-            
-            fg_chart = fg_data.set_index('Date')[['Fear_Greed']]
-            st.area_chart(fg_chart, color="#FF9F43", height=150)
-            
-            st.caption("💡 VIX는 변동성 지수, 높을수록 시장 불안정. 지수는 VIX 역산 (0=극도공포, 100=극도탐욕)")
-        else:
-            st.warning("공포탐욕지수 데이터 없음")
-        
-    
-        
-        # 금 가격
-        gold_data = additional_data.get('gold')
-        if gold_data is not None and len(gold_data) > 0:
-            current_gold = gold_data['Gold'].iloc[-1]
-            prev_gold = gold_data['Gold'].iloc[-30] if len(gold_data) > 30 else gold_data['Gold'].iloc[0]
-            gold_change = ((current_gold - prev_gold) / prev_gold) * 100
-            
-            st.markdown(f"""
-            <div style="background: linear-gradient(90deg, #FFD700, #FF6B35); padding: 8px 12px; border-radius: 20px; margin: 8px 0;">
-                <span style="color: white; font-weight: bold; font-size: 14px;">🥇 금 가격</span>
-                <span style="color: white; font-size: 12px; margin-left: 10px;">${current_gold:.2f} | 30일 {gold_change:+.2f}%</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            gold_chart = gold_data.set_index('Date')[['Gold']]
-            st.area_chart(gold_chart, color="#FFD700", height=200)
-            st.caption("💡 인플레이션 헤지 자산, 달러 약세/지정학적 리스크 시 상승")
-        else:
-            st.warning("금 가격 데이터 없음")
 
-    # 통합 상관관계 분석 섹션
+    # 개선된 통합 상관관계 분석 섹션
     st.markdown("---")
     st.markdown("""
-    <div style="background: linear-gradient(90deg, #667eea, #764ba2); padding: 12px 16px; border-radius: 15px; margin: 16px 0;">
-        <span style="color: white; font-weight: bold; font-size: 16px;">📈 전체 지표 상관관계 분석</span>
+    <div style="background: linear-gradient(135deg, var(--primary-600), var(--primary-700)); padding: 20px 24px; border-radius: 20px; margin: 24px 0; box-shadow: 0 8px 32px rgba(14, 165, 233, 0.15);">
+        <span style="color: white; font-weight: bold; font-size: 18px;">🔗 지표간 상관관계 분석</span>
+        <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;">다양한 경제지표들의 상호관계를 분석하여 시장 동향을 파악합니다</p>
     </div>
     """, unsafe_allow_html=True)
     
     try:
-        # 모든 지표 데이터 수집
+        # 개선된 지표 데이터 수집 - FRED 데이터 우선 활용
         correlation_data_dict = {}
+        data_sources = {}  # 데이터 출처 추적
         
-        if spread_data is not None and len(spread_data) > 0:
-            correlation_data_dict['HYG가격'] = spread_data['HYG_Price']
-            correlation_data_dict['국채10Y'] = spread_data['Treasury_10Y']
+        # FRED 매크로 데이터 (최우선)
+        if fred_macro:
+            for key, data in fred_macro.items():
+                if data is not None and len(data) > 10:  # 최소 10개 데이터 포인트
+                    korean_names = {
+                        'federal_rate': '연방기준금리',
+                        'gdp': 'GDP', 
+                        'pmi': '제조업지수',
+                        'm2': 'M2통화량',
+                        'high_yield_spread': '하이일드스프레드',
+                        'retail_sales': '소매판매',
+                        'housing_market': '주택시장지수',
+                        'unemployment': '실업률',
+                        'cpi': '소비자물가지수'
+                    }
+                    name = korean_names.get(key, key)
+                    correlation_data_dict[name] = data
+                    data_sources[name] = 'FRED'
         
-        if fg_data is not None and len(fg_data) > 0:
-            correlation_data_dict['VIX'] = fg_data['VIX']
-            correlation_data_dict['공포탐욕지수'] = fg_data['Fear_Greed']
-        
-        if pc_data is not None and len(pc_data) > 0:
-            correlation_data_dict['풋콜레이쇼'] = pc_data['Put_Call_Ratio']
-            correlation_data_dict['SPX'] = pc_data['SPX']
-        
-        if fred_data is not None and len(fred_data) > 0:
-            correlation_data_dict['부동산지수'] = fred_data['Real_Estate_Index']
-        
-        # 추가 지표들
-        if additional_data.get('dxy') is not None:
-            correlation_data_dict['달러인덱스'] = additional_data['dxy']['DXY']
-        
-        if additional_data.get('yield_curve') is not None:
-            correlation_data_dict['수익률곡선'] = additional_data['yield_curve']['Yield_Spread']
-        
-        if additional_data.get('gold') is not None:
-            correlation_data_dict['금가격'] = additional_data['gold']['Gold']
-        
-        if additional_data.get('oil') is not None:
-            correlation_data_dict['원유가격'] = additional_data['oil']['Oil']
-        
-        # FRED 추가 지표들
+        # FRED 추가 지표
         if fred_additional:
-            if fred_additional.get('gold_price') is not None:
-                correlation_data_dict['금가격(FRED)'] = fred_additional['gold_price']
-            
-            if fred_additional.get('oil_price') is not None:
-                correlation_data_dict['원유가격(FRED)'] = fred_additional['oil_price']
+            additional_names = {
+                'vix': 'VIX지수',
+                'dollar_index': '달러인덱스', 
+                'yield_spread': '수익률곡선',
+                'oil_price': '원유가격'
+            }
+            for key, data in fred_additional.items():
+                if data is not None and len(data) > 10:
+                    name = additional_names.get(key, key)
+                    correlation_data_dict[name] = data
+                    data_sources[name] = 'FRED'
         
-        if len(correlation_data_dict) >= 3:
-            # 최소 길이로 데이터 맞추기
-            min_len = min([len(v) for v in correlation_data_dict.values()])
+        # 기존 야후파이낸스 데이터 (보조)
+        if fg_data is not None and len(fg_data) > 10:
+            correlation_data_dict['공포탐욕지수'] = fg_data['Fear_Greed']
+            data_sources['공포탐욕지수'] = 'Yahoo Finance'
+        
+        if pc_data is not None and len(pc_data) > 10:
+            correlation_data_dict['풋콜레이쇼'] = pc_data['Put_Call_Ratio']
+            data_sources['풋콜레이쇼'] = 'Yahoo Finance'
+        
+        # 기존 Yahoo Finance 하이일드 스프레드는 제거 - FRED 버전 사용
+        
+        
+        if additional_data.get('gold') is not None and len(additional_data['gold']) > 10:
+            correlation_data_dict['금가격'] = additional_data['gold']['Gold']
+            data_sources['금가격'] = 'Yahoo Finance'
+        
+        # 데이터 검증 및 정제
+        valid_data = {}
+        for name, data in correlation_data_dict.items():
+            try:
+                # 숫자형 데이터로 변환 시도
+                numeric_data = pd.to_numeric(data, errors='coerce').dropna()
+                if len(numeric_data) >= 10:  # 최소 데이터 포인트 확인
+                    valid_data[name] = numeric_data
+                    
+            except Exception as e:
+                st.warning(f"⚠️ {name} 데이터 처리 중 오류: {str(e)[:50]}...")
+                continue
+        
+        if len(valid_data) >= 3:
+            # 모든 데이터를 같은 길이로 맞추기
+            min_len = min([len(v) for v in valid_data.values()])
+            max_len = max([len(v) for v in valid_data.values()])
             
+            # 데이터 길이 정보 표시
+            st.markdown(f"""
+            <div style="background: var(--gray-50); padding: 16px; border-radius: 12px; margin: 16px 0; border-left: 4px solid var(--primary-500);">
+                <h4 style="margin: 0 0 8px 0; color: var(--gray-700);">📊 분석 데이터 현황</h4>
+                <p style="margin: 0; color: var(--gray-600);">
+                    <strong>{len(valid_data)}개 지표</strong> | 
+                    <strong>{min_len}~{max_len} 데이터 포인트</strong> | 
+                    <strong>{min_len} 포인트</strong>로 정규화하여 분석
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # DataFrame 생성 (최신 데이터 기준으로)
             correlation_df = pd.DataFrame({
-                k: v[:min_len] for k, v in correlation_data_dict.items()
+                k: v.tail(min_len).values for k, v in valid_data.items()
             })
             
             # 상관관계 매트릭스 계산
             corr_matrix = correlation_df.corr()
             
-            # 상관관계 매트릭스를 DataFrame으로 표시
-            st.write("**🔥 모든 지표간 상관관계 매트릭스:**")
-            styled_corr = corr_matrix.style.background_gradient(cmap='RdBu_r', vmin=-1, vmax=1).format("{:.3f}")
-            st.dataframe(styled_corr, use_container_width=True)
+            # 두 열로 나누어 표시
+            corr_col1, corr_col2 = st.columns([1.2, 0.8])
             
-            # 주요 상관관계 하이라이트
-            st.markdown("**🔍 강한 상관관계 TOP 5:**")
-            
-            # 대각선 제외하고 상관관계 추출
-            mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
-            corr_pairs = corr_matrix.mask(mask).stack().abs().sort_values(ascending=False)
-            
-            correlation_insights = []
-            for i, (pair, abs_corr_val) in enumerate(corr_pairs.head(5).items()):
-                original_corr = corr_matrix.loc[pair[0], pair[1]]
-                direction = "양의 상관" if original_corr > 0 else "음의 상관"
-                strength = "매우 강한" if abs_corr_val > 0.7 else "강한" if abs_corr_val > 0.5 else "보통"
+            with corr_col1:
+                st.markdown("### 📈 상관관계 히트맵")
                 
-                correlation_insights.append(f"**{i+1}.** {pair[0]} ↔ {pair[1]}: **{original_corr:.3f}** ({strength} {direction})")
+                # Plotly를 사용한 인터랙티브 히트맵
+                fig = px.imshow(
+                    corr_matrix.values,
+                    labels=dict(x="지표", y="지표", color="상관계수"),
+                    x=corr_matrix.columns,
+                    y=corr_matrix.index,
+                    color_continuous_scale='RdBu_r',
+                    range_color=[-1, 1],
+                    title="지표간 상관관계 히트맵"
+                )
+                
+                # 히트맵 스타일링
+                fig.update_layout(
+                    height=600,
+                    font=dict(size=10),
+                    title_font_size=16,
+                    coloraxis_colorbar=dict(
+                        title="상관계수",
+                        tickmode="linear",
+                        tick0=-1,
+                        dtick=0.2,
+                        len=0.8,
+                        thickness=15
+                    )
+                )
+                
+                # 각 셀에 상관계수 값 표시
+                for i in range(len(corr_matrix.index)):
+                    for j in range(len(corr_matrix.columns)):
+                        fig.add_annotation(
+                            x=j, y=i,
+                            text=f"{corr_matrix.iloc[i, j]:.2f}",
+                            showarrow=False,
+                            font=dict(color="black" if abs(corr_matrix.iloc[i, j]) < 0.5 else "white", size=9)
+                        )
+                
+                st.plotly_chart(fig, use_container_width=True)
             
-            for insight in correlation_insights:
-                st.markdown(insight)
-            
-            # 시장 인사이트
-            st.markdown("**💡 주요 시장 인사이트:**")
-            insight_text = "• **리스크 온/오프**: VIX와 다른 지표들의 역상관 관계 확인\n"
-            insight_text += "• **달러 강세 영향**: 달러인덱스와 금/원자재의 역상관 관계\n"
-            insight_text += "• **금리 환경**: 수익률곡선과 부동산/주식시장의 관계\n"
-            insight_text += "• **인플레이션 압력**: 원유가격과 다른 자산군의 상관관계"
-            
-            st.markdown(insight_text)
+            with corr_col2:
+                st.markdown("### 🔍 주요 분석 결과")
+                
+                # 강한 상관관계 TOP 5
+                mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+                corr_pairs = corr_matrix.mask(mask).stack().abs().sort_values(ascending=False)
+                
+                st.markdown("**🔥 강한 상관관계 TOP 5:**")
+                
+                for i, (pair, abs_corr_val) in enumerate(corr_pairs.head(5).items()):
+                    if abs_corr_val > 0.1:  # 의미있는 상관관계만 표시
+                        original_corr = corr_matrix.loc[pair[0], pair[1]]
+                        
+                        # 상관관계 강도와 방향
+                        if abs_corr_val > 0.8:
+                            strength = "매우 강한"
+                            strength_color = "#ef4444"
+                        elif abs_corr_val > 0.6:
+                            strength = "강한"
+                            strength_color = "#f97316"
+                        elif abs_corr_val > 0.4:
+                            strength = "중간"
+                            strength_color = "#eab308"
+                        else:
+                            strength = "약한"
+                            strength_color = "#22c55e"
+                        
+                        direction = "📈 양의 상관" if original_corr > 0 else "📉 음의 상관"
+                        direction_color = "#10b981" if original_corr > 0 else "#ef4444"
+                        
+                        st.markdown(f"""
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin: 8px 0;">
+                            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 4px;">
+                                {i+1}. {pair[0][:15]}{'...' if len(pair[0]) > 15 else ''} ↔ {pair[1][:15]}{'...' if len(pair[1]) > 15 else ''}
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: {strength_color}; font-weight: 600; font-size: 0.85rem;">
+                                    {strength} ({original_corr:.3f})
+                                </span>
+                                <span style="color: {direction_color}; font-size: 0.8rem;">
+                                    {direction}
+                                </span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                
+                # 데이터 출처 정보
+                st.markdown("### 📋 데이터 출처")
+                source_info = {}
+                for name, source in data_sources.items():
+                    if name in valid_data:
+                        if source not in source_info:
+                            source_info[source] = []
+                        source_info[source].append(name)
+                
+                for source, indicators in source_info.items():
+                    st.markdown(f"**{source}:** {len(indicators)}개 지표")
+                    with st.expander(f"{source} 상세", expanded=False):
+                        for indicator in indicators:
+                            st.write(f"• {indicator}")
+                
+                # 시장 인사이트 개선
+                st.markdown("### 💡 시장 인사이트")
+                
+                insights = []
+                
+                # VIX 관련 분석
+                vix_cols = [col for col in corr_matrix.columns if 'VIX' in col or 'vix' in col.lower()]
+                if vix_cols:
+                    vix_col = vix_cols[0]
+                    negative_corr = corr_matrix[vix_col][corr_matrix[vix_col] < -0.3].sort_values()
+                    if not negative_corr.empty:
+                        insights.append(f"🔴 **위험회피 신호**: {vix_col}가 {negative_corr.index[0]}와 강한 역상관(-{abs(negative_corr.iloc[0]):.2f})")
+                
+                # 금리 관련 분석
+                rate_cols = [col for col in corr_matrix.columns if '금리' in col or '수익률' in col]
+                if rate_cols:
+                    rate_col = rate_cols[0]
+                    negative_corr = corr_matrix[rate_col][corr_matrix[rate_col] < -0.2].sort_values()
+                    if not negative_corr.empty:
+                        insights.append(f"📊 **금리 영향**: {rate_col} 상승 시 {negative_corr.index[0]} 하락 경향")
+                
+                # 달러 관련 분석  
+                dollar_cols = [col for col in corr_matrix.columns if '달러' in col]
+                if dollar_cols:
+                    dollar_col = dollar_cols[0]
+                    negative_corr = corr_matrix[dollar_col][corr_matrix[dollar_col] < -0.2].sort_values()
+                    if not negative_corr.empty:
+                        insights.append(f"💵 **달러 강세**: {dollar_col} 상승 시 {negative_corr.index[0]} 하락")
+                
+                # 인사이트 표시
+                if insights:
+                    for insight in insights:
+                        st.markdown(f"• {insight}")
+                else:
+                    st.markdown("• 📈 현재 데이터로는 명확한 패턴 식별 어려움")
+                    st.markdown("• 🔄 더 많은 데이터 수집 후 재분석 권장")
         
         else:
-            st.info("충분한 데이터가 로드되면 상관관계 분석이 표시됩니다.")
+            st.markdown("""
+            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px; padding: 20px; text-align: center;">
+                <h3 style="color: #92400e; margin: 0 0 12px 0;">📊 상관관계 분석 준비 중</h3>
+                <p style="color: #92400e; margin: 0;">
+                    현재 <strong>{len(valid_data)}개</strong> 지표만 사용 가능합니다.<br>
+                    최소 3개 이상의 지표가 필요하며, FRED API 설정을 확인해보세요.
+                </p>
+            </div>
+            """.format(len(valid_data)), unsafe_allow_html=True)
             
     except Exception as e:
-        st.error(f"상관관계 분석 중 오류 발생: {e}")
+        error_msg = sanitize_log_message(str(e))
+        st.markdown(f"""
+        <div style="background: #fee2e2; border: 1px solid #ef4444; border-radius: 12px; padding: 20px;">
+            <h4 style="color: #b91c1c; margin: 0 0 8px 0;">⚠️ 상관관계 분석 오류</h4>
+            <p style="color: #b91c1c; margin: 0; font-family: monospace; font-size: 0.9rem;">
+                {error_msg}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # 업데이트 시간 표시
     st.markdown("---")
@@ -2029,21 +2134,7 @@ def create_market_agent_dashboard():
         high_52w = stock_data['High'].tail(252).max()  # 약 1년
         low_52w = stock_data['Low'].tail(252).min()
     
-        # RSI 계산 (removed unused rsi_badge variable)
-        rsi_info = ""
-        if technical_data is not None and 'rsi' in technical_data.columns:
-            current_rsi = technical_data['rsi'].iloc[-1]
-            if not pd.isna(current_rsi):
-                if current_rsi > 70:
-                    rsi_status = "과매수"
-                    rsi_color = "#ff4444"
-                elif current_rsi < 30:
-                    rsi_status = "과매도"
-                    rsi_color = "#44ff44"
-                else:
-                    rsi_status = "중립"
-                    rsi_color = "#4488ff"
-                rsi_info = f'<span style="background-color: {rsi_color}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; font-weight: bold;">{rsi_status}</span>'
+        # RSI 정보는 기술적 지표 요약에서 표시됨
     
         # 가격 변화 색상
         price_color = "#44ff44" if price_change >= 0 else "#ff4444"
