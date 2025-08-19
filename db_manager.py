@@ -648,6 +648,44 @@ class DatabaseManager:
         report_data = self.get_session_report(session_id)
         return json.dumps(report_data, default=str, indent=2, ensure_ascii=False)
     
+    def delete_analysis_session(self, session_id: str, username: str = None) -> bool:
+        """분석 세션 삭제 (사용자 확인 포함)"""
+        print(f"[DB] Deleting analysis session - Session: {session_id[:8]}, User: {username}")
+        
+        with sqlite3.connect(self.db_path) as conn:
+            # 세션 존재 및 권한 확인
+            if username:
+                cursor = conn.execute('''
+                    SELECT username FROM analysis_sessions 
+                    WHERE session_id = ?
+                ''', (session_id,))
+                result = cursor.fetchone()
+                
+                if not result:
+                    print(f"[DB] ❌ Session not found: {session_id[:8]}")
+                    return False
+                
+                if result[0] != username:
+                    print(f"[DB] ❌ Permission denied: {username} cannot delete session owned by {result[0]}")
+                    return False
+            
+            # 연관된 데이터 모두 삭제 (순서 중요: 외래 키 제약 때문에)
+            # 1. 에이전트 실행 로그 삭제
+            conn.execute('DELETE FROM agent_executions WHERE session_id = ?', (session_id,))
+            
+            # 2. 리포트 섹션 삭제
+            conn.execute('DELETE FROM report_sections WHERE session_id = ?', (session_id,))
+            
+            # 3. 분석 세션 삭제
+            result = conn.execute('DELETE FROM analysis_sessions WHERE session_id = ?', (session_id,))
+            
+            if result.rowcount > 0:
+                print(f"[DB] ✅ Analysis session deleted successfully: {session_id[:8]}")
+                return True
+            else:
+                print(f"[DB] ❌ Failed to delete session: {session_id[:8]}")
+                return False
+    
     def cleanup_old_sessions(self, days_to_keep: int = 90):
         """오래된 세션 정리"""
         cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days_to_keep)

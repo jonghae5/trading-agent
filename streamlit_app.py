@@ -950,7 +950,6 @@ def create_financial_indicators_charts():
                 """, unsafe_allow_html=True)
                 
                 # 주택시장 지수 차트 (장기 트렌드)
-                print(housing_data.index)
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
                     x=housing_data.index,
@@ -3531,8 +3530,70 @@ def render_report_history():
             
             selected_session_id = session_options[selected_display]
             
+            # 버튼들을 나란히 배치
+            action_col1, action_col2 = st.columns([1, 1])
+            
+            with action_col1:
+                load_report = st.button("📖 Load Report", type="primary")
+            
+            with action_col2:
+                delete_report = st.button("🗑️ Delete Report", type="secondary", 
+                                        help="⚠️ 이 작업은 되돌릴 수 없습니다!")
+            
+            # 삭제 상태 관리를 위한 session state 초기화
+            if 'show_delete_confirm' not in st.session_state:
+                st.session_state.show_delete_confirm = False
+            if 'delete_target_session' not in st.session_state:
+                st.session_state.delete_target_session = None
+            
+            # 삭제 확인 및 처리
+            if delete_report:
+                st.session_state.show_delete_confirm = True
+                st.session_state.delete_target_session = selected_session_id
+                st.session_state.delete_target_display = selected_display
+                st.rerun()
+            
+            # 삭제 확인 창 표시
+            if st.session_state.show_delete_confirm:
+                st.warning("⚠️ **정말 이 리포트를 삭제하시겠습니까?**")
+                st.write(f"**삭제 대상:** {st.session_state.delete_target_display}")
+                
+                confirm_col1, confirm_col2 = st.columns([1, 1])
+                
+                with confirm_col1:
+                    if st.button("✅ 네, 삭제합니다", key="confirm_delete_final"):
+                        try:
+                            success = db_manager.delete_analysis_session(
+                                st.session_state.delete_target_session, 
+                                current_username
+                            )
+                            
+                            if success:
+                                st.success("✅ 리포트가 성공적으로 삭제되었습니다!")
+                                st.balloons()
+                                
+                                # 상태 초기화
+                                st.session_state.show_delete_confirm = False
+                                st.session_state.delete_target_session = None
+                                
+                                # 바로 새로고침
+                                st.rerun()
+                            else:
+                                st.error("❌ 리포트 삭제에 실패했습니다.")
+                                st.session_state.show_delete_confirm = False
+                        except Exception as e:
+                            st.error(f"❌ 삭제 중 오류가 발생했습니다: {str(e)}")
+                            st.session_state.show_delete_confirm = False
+                
+                with confirm_col2:
+                    if st.button("❌ 취소", key="cancel_delete_final"):
+                        st.session_state.show_delete_confirm = False
+                        st.session_state.delete_target_session = None
+                        st.info("🔄 삭제가 취소되었습니다.")
+                        st.rerun()
+            
             # 선택된 리포트 표시
-            if st.button("📖 Load Report", type="primary"):
+            elif load_report:
                 with st.spinner("Loading report..."):
                     report_data = db_manager.get_session_report(selected_session_id)
                     
