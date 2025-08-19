@@ -2217,36 +2217,80 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for clean sky-blue and white design
+# Enhanced Custom CSS for modern, professional trading dashboard design
 st.markdown("""
 <style>
-    /* Global app styling - Clean sky background */
+    /* CSS Variables for consistent theming */
+    :root {
+        /* Enhanced color palette */
+        --primary-50: #f0f7ff;
+        --primary-100: #e0efff;
+        --primary-500: #0ea5e9;
+        --primary-600: #0284c7;
+        --primary-700: #0369a1;
+        
+        /* Semantic trading colors */
+        --success-50: #ecfdf5;
+        --success-500: #10b981;
+        --success-600: #059669;
+        
+        --danger-50: #fef2f2;
+        --danger-500: #ef4444;
+        --danger-600: #dc2626;
+        
+        /* Enhanced neutral grays */
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-600: #475569;
+        --gray-900: #0f172a;
+    }
+
+    /* Global app styling - Enhanced gradient background */
     .stApp {
-        background: linear-gradient(135deg, #e0f2fe 0%, #f8fdff 50%, #ffffff 100%);
+        background: linear-gradient(135deg, #f0f7ff 0%, #f8fdff 30%, #ffffff 70%, #f8fafc 100%);
         min-height: 100vh;
     }
     
-    /* Main content wrapper - Pure white */
+    /* Main content wrapper - Enhanced white container */
     .main .block-container {
         background: #ffffff;
-        border-radius: 16px;
-        padding: 2rem;
+        border-radius: 20px;
+        padding: 2.5rem;
         margin: 1rem;
-        box-shadow: 0 4px 20px rgba(0, 122, 255, 0.08);
-        border: 1px solid rgba(135, 206, 250, 0.15);
+        box-shadow: 
+            0 8px 32px rgba(14, 165, 233, 0.08),
+            0 4px 16px rgba(14, 165, 233, 0.04);
+        border: 1px solid rgba(14, 165, 233, 0.1);
+        backdrop-filter: blur(8px);
     }
     
-    /* All text elements - clean typography */
+    /* Enhanced typography hierarchy */
     body, .stApp, .main, .stSidebar,
     h1, h2, h3, h4, h5, h6, p, span, div, label, 
     .stMarkdown, .stText, .streamlit-container {
-        color: #2c3e50 !important;
+        color: var(--gray-900) !important;
     }
     
-    /* Headings with soft blue accent */
-    h1, h2, h3 {
-        color: #1976d2 !important;
+    /* Modern heading styles with improved hierarchy */
+    h1 {
+        color: var(--primary-700) !important;
+        font-size: clamp(1.875rem, 4vw, 2.5rem) !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.025em !important;
+        line-height: 1.2 !important;
+    }
+    
+    h2 {
+        color: var(--primary-600) !important;
+        font-size: clamp(1.5rem, 3vw, 1.875rem) !important;
         font-weight: 700 !important;
+        letter-spacing: -0.015em !important;
+    }
+    
+    h3 {
+        color: var(--primary-600) !important;
+        font-size: clamp(1.25rem, 2.5vw, 1.5rem) !important;
+        font-weight: 600 !important;
     }
     
     /* Sidebar - Light blue accent */
@@ -2283,17 +2327,19 @@ st.markdown("""
         font-weight: 500 !important;
     }
     
-    /* Modern compact metrics cards */
+    /* Enhanced modern metrics cards */
     .stMetric {
-        background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
-        border: 1px solid rgba(66, 165, 245, 0.12);
-        padding: 0.3rem 0.4rem;
-        border-radius: 10px;
-        box-shadow: 0 1px 3px rgba(66, 165, 245, 0.05);
-        transition: all 0.25s ease;
-        min-height: 35px;
+        background: linear-gradient(145deg, #ffffff 0%, var(--gray-50) 100%);
+        border: 1px solid rgba(15, 23, 42, 0.05);
+        padding: 1.5rem;
+        border-radius: 16px;
+        box-shadow: 
+            0 1px 3px rgba(15, 23, 42, 0.04),
+            0 1px 2px rgba(15, 23, 42, 0.06);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
+        min-height: 100px;
     }
     
     .stMetric::before {
@@ -2302,98 +2348,142 @@ st.markdown("""
         top: 0;
         left: 0;
         right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, #42a5f5, #64b5f6, #90caf9);
-        opacity: 0;
-        transition: opacity 0.3s ease;
+        height: 3px;
+        background: var(--primary-500);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
     }
     
     .stMetric:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 16px rgba(66, 165, 245, 0.12);
-        border-color: rgba(66, 165, 245, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 
+            0 8px 25px rgba(15, 23, 42, 0.08),
+            0 3px 10px rgba(15, 23, 42, 0.05);
     }
     
     .stMetric:hover::before {
-        opacity: 1;
+        transform: scaleX(1);
     }
     
     .stMetric label {
-        color: #5f6368 !important;
+        color: var(--gray-600) !important;
         font-weight: 500 !important;
-        font-size: 0.5rem !important;
-        text-transform: none;
-        letter-spacing: 0.02em;
-        margin-bottom: 0.05rem !important;
+        font-size: 0.875rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        margin-bottom: 0.5rem !important;
     }
     
     .stMetric > div > div[data-testid="metric-value"] {
-        color: #1a73e8 !important;
-        font-weight: 600 !important;
-        font-size: 0.65rem !important;
+        color: var(--gray-900) !important;
+        font-weight: 700 !important;
+        font-size: 2rem !important;
         line-height: 1 !important;
+        margin-bottom: 0.25rem !important;
     }
     
     .stMetric > div > div[data-testid="metric-delta"] {
-        color: #34a853 !important;
+        color: var(--success-600) !important;
         font-weight: 500 !important;
-        font-size: 0.6rem !important;
+        font-size: 0.875rem !important;
+        display: flex !important;
+        align-items: center !important;
     }
     
-    /* Clean agent status cards - mini flow version */
+    /* Enhanced agent status cards with modern flow design */
     .agent-status {
-        display: inline-block;
-        padding: 0.2rem 0.5rem;
-        border-radius: 20px;
-        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.875rem;
         text-align: center;
-        margin: 0.2rem 0.3rem 0.2rem 0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        transition: all 0.2s ease;
+        margin: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         border: 1px solid transparent;
-        font-size: 0.7rem;
-        min-width: 60px;
+        min-width: 120px;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .agent-status::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s ease;
     }
     
     .agent-status:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+    
+    .agent-status:hover::before {
+        left: 100%;
     }
     
     .status-pending {
-        background: #fff8e1;
-        color: #e65100;
-        border-color: #ffcc02;
+        background: linear-gradient(135deg, #fef3c7, #fbbf24);
+        color: #92400e;
+        border-color: #f59e0b;
     }
     
     .status-in-progress {
-        background: #e3f2fd;
-        color: #1565c0;
-        border-color: #42a5f5;
-        animation: softPulse 2s ease-in-out infinite;
+        background: linear-gradient(135deg, #dbeafe, #60a5fa);
+        color: #1e40af;
+        border-color: #3b82f6;
+        animation: pulse-glow 2s infinite;
     }
     
-    @keyframes softPulse {
+    @keyframes pulse-glow {
         0%, 100% { 
-            background: #e3f2fd;
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
             transform: scale(1);
         }
         50% { 
-            background: #bbdefb;
+            box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
             transform: scale(1.02);
         }
     }
     
     .status-completed {
-        background: #e8f5e8;
-        color: #2e7d32;
-        border-color: #66bb6a;
+        background: linear-gradient(135deg, #d1fae5, #34d399);
+        color: #047857;
+        border-color: #10b981;
     }
     
     .status-error {
-        background: #ffebee;
-        color: #c62828;
-        border-color: #ef5350;
+        background: linear-gradient(135deg, #fee2e2, #f87171);
+        color: #b91c1c;
+        border-color: #ef4444;
+    }
+    
+    /* Agent flow connector */
+    .agent-connector {
+        display: inline-block;
+        width: 20px;
+        height: 2px;
+        background: linear-gradient(90deg, #e2e8f0, #cbd5e1);
+        margin: 0 0.5rem;
+        position: relative;
+    }
+    
+    .agent-connector::after {
+        content: '→';
+        position: absolute;
+        right: -8px;
+        top: -8px;
+        color: #64748b;
+        font-size: 0.75rem;
     }
     
     /* Log container */
@@ -2409,51 +2499,78 @@ st.markdown("""
         color: #374151;
     }
     
-    /* Clean welcome header */
+    /* Enhanced welcome header with modern design */
     .welcome-header {
         text-align: center;
-        padding: 3rem;
-        background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 50%, #f5f9ff 100%);
-        color: #1976d2;
-        border-radius: 16px;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 20px rgba(66, 165, 245, 0.12);
-        border: 2px solid rgba(135, 206, 250, 0.2);
+        padding: 4rem 3rem;
+        background: linear-gradient(135deg, var(--primary-50) 0%, #ffffff 40%, var(--gray-50) 70%, #ffffff 100%);
+        color: var(--primary-700);
+        border-radius: 24px;
+        margin-bottom: 3rem;
+        box-shadow: 
+            0 8px 32px rgba(14, 165, 233, 0.08),
+            0 4px 16px rgba(14, 165, 233, 0.04);
+        border: 2px solid rgba(14, 165, 233, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .welcome-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-500), var(--primary-600), var(--primary-500));
     }
     
     .welcome-header h1 {
-        margin-bottom: 0.5rem;
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #1976d2 !important;
+        margin-bottom: 1rem;
+        font-size: clamp(2rem, 5vw, 3rem) !important;
+        font-weight: 800 !important;
+        color: var(--primary-700) !important;
+        letter-spacing: -0.02em !important;
+        background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
     
     .welcome-header h3 {
-        margin-bottom: 1rem;
-        font-weight: 500;
-        color: #546e7a !important;
-        font-size: 1.2rem;
+        margin-bottom: 1.5rem;
+        font-weight: 500 !important;
+        color: var(--gray-600) !important;
+        font-size: clamp(1.125rem, 2.5vw, 1.375rem) !important;
+        line-height: 1.4 !important;
     }
     
     .welcome-header p {
-        color: #37474f !important;
-        font-size: 1rem;
-        font-weight: 500;
+        color: var(--gray-600) !important;
+        font-size: clamp(0.875rem, 1.5vw, 1rem) !important;
+        font-weight: 500 !important;
+        line-height: 1.6 !important;
+        max-width: 800px;
+        margin: 0 auto;
     }
     
-    /* Modern primary buttons */
+    /* Enhanced primary buttons with modern design */
     .stButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
         color: white;
         border: none;
         border-radius: 12px;
-        padding: 0.8rem 2rem;
+        padding: 0.875rem 2rem;
         font-weight: 600;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.25);
+        font-size: 0.875rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 
+            0 1px 3px rgba(0, 0, 0, 0.1),
+            0 1px 2px rgba(0, 0, 0, 0.06);
         position: relative;
         overflow: hidden;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
     
     .stButton > button::before {
@@ -2464,13 +2581,15 @@ st.markdown("""
         width: 100%;
         height: 100%;
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.5s ease;
+        transition: left 0.6s ease;
     }
     
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
-        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        transform: translateY(-1px);
+        box-shadow: 
+            0 4px 15px rgba(3, 105, 161, 0.3),
+            0 2px 4px rgba(0, 0, 0, 0.06);
+        background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-600) 100%);
     }
     
     .stButton > button:hover::before {
@@ -2479,7 +2598,7 @@ st.markdown("""
     
     .stButton > button:active {
         transform: translateY(0px);
-        box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 2px 8px rgba(3, 105, 161, 0.2);
     }
     
     /* Secondary buttons (Stop button) */
@@ -2638,25 +2757,37 @@ st.markdown("""
         color: #111827 !important;
     }
     
-    /* Clean tabs */
+    /* Enhanced modern tab system */
+    .stTabs [data-baseweb="tab-list"] {
+        background: var(--gray-50);
+        border-radius: 12px;
+        padding: 0.25rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+    
     .stTabs [data-baseweb="tab"] {
-        background: #f5f9ff;
-        color: #546e7a !important;
-        border-radius: 8px 8px 0 0;
-        border: 1px solid #e3f2fd;
+        background: transparent;
+        color: #64748b !important;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
         font-weight: 600;
         transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
     
     .stTabs [data-baseweb="tab"]:hover {
-        background: #e3f2fd;
-        color: #1976d2 !important;
+        background: rgba(14, 165, 233, 0.05);
+        color: var(--primary-600) !important;
+        transform: translateY(-1px);
     }
     
     .stTabs [aria-selected="true"] {
-        background: #42a5f5 !important;
+        background: linear-gradient(135deg, var(--primary-600), var(--primary-700)) !important;
         color: #ffffff !important;
-        box-shadow: 0 2px 8px rgba(66, 165, 245, 0.3);
+        box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
     }
     
     /* Clean DataFrames */
@@ -2687,99 +2818,196 @@ st.markdown("""
         background: #f5f9ff !important;
     }
     
-    /* 모바일 최적화 */
+    /* Enhanced mobile optimization */
     @media (max-width: 768px) {
-        /* 차트 컨테이너 모바일 최적화 */
+        /* Main container mobile optimization */
+        .main .block-container {
+            padding: 1.5rem;
+            margin: 0.5rem;
+            border-radius: 16px;
+        }
+        
+        /* Welcome header mobile */
+        .welcome-header {
+            padding: 2rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        /* Chart container mobile optimization */
         .stPlotlyChart {
             width: 100% !important;
             overflow-x: auto;
-            /* 페이지 스크롤 우선, 차트 상호작용 최소화 */
             touch-action: auto;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         
-        /* Plotly 차트에서 페이지 스크롤 허용 */
+        /* Enhanced mobile chart handling */
         .js-plotly-plot .plotly {
             touch-action: auto !important;
             user-select: none !important;
             -webkit-user-select: none !important;
             -moz-user-select: none !important;
             -ms-user-select: none !important;
-            /* 차트 상호작용보다 페이지 스크롤 우선 */
             pointer-events: none !important;
         }
         
-        /* 차트 오버레이 요소들도 터치 이벤트 통과 */
-        .js-plotly-plot .plotly .nsewdrag,
-        .js-plotly-plot .plotly .drag,
-        .js-plotly-plot .plotly .cursor-crosshair {
-            touch-action: auto !important;
-            pointer-events: none !important;
+        /* Improved mobile metrics */
+        .stMetric {
+            margin-bottom: 1rem !important;
+            padding: 1rem !important;
         }
         
-        /* 차트 배경도 터치 이벤트 통과 */
-        .js-plotly-plot .plotly .bg {
-            pointer-events: none !important;
-        }
-        
-        /* 모바일에서 차트 마진 조정 */
-        .js-plotly-plot .plotly .modebar {
-            left: 10px !important;
-            top: 10px !important;
-        }
-        
-        /* 탭 텍스트 모바일에서 줄바꿈 방지 */
+        /* Enhanced mobile tabs */
         .stTabs [data-baseweb="tab"] {
             min-width: auto !important;
-            font-size: 0.85rem !important;
-            padding: 0.5rem 0.75rem !important;
+            font-size: 0.875rem !important;
+            padding: 0.75rem 1rem !important;
         }
         
-        /* 메트릭 카드 모바일 최적화 */
-        .stMetric {
-            margin-bottom: 0.5rem !important;
+        /* Agent status mobile optimization */
+        .agent-status {
+            width: 100%;
+            margin: 0.75rem 0;
+            justify-content: space-between;
+            padding: 1rem;
+            font-size: 0.875rem;
         }
         
-        /* 모바일에서 컬럼 간격 줄이기 */
+        /* Enhanced mobile columns */
         .stColumns > div {
-            padding: 0 0.25rem !important;
+            padding: 0 0.5rem !important;
         }
         
-        /* 뱃지 스타일 모바일 최적화 */
+        /* Mobile buttons */
+        .stButton > button {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+        }
+        
+        /* Mobile badge styles */
         div[style*="display: flex; flex-wrap: wrap"] {
-            gap: 8px !important;
+            gap: 12px !important;
+            justify-content: center;
         }
         
         div[style*="min-width: 160px"] {
-            min-width: 140px !important;
+            min-width: 280px !important;
             font-size: 0.9rem !important;
+            text-align: center;
         }
     }
     
-    /* 아주 작은 화면 (스마트폰) */
+    /* Enhanced very small screen optimization */
     @media (max-width: 480px) {
+        /* Main container for very small screens */
+        .main .block-container {
+            padding: 1rem;
+            margin: 0.25rem;
+            border-radius: 12px;
+        }
+        
+        /* Welcome header very small screens */
+        .welcome-header {
+            padding: 1.5rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Enhanced tab design for small screens */
         .stTabs [data-baseweb="tab"] {
+            font-size: 0.8rem !important;
+            padding: 0.6rem 0.8rem !important;
+        }
+        
+        /* Metric cards for small screens */
+        .stMetric {
+            padding: 0.75rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+        
+        .stMetric > div > div[data-testid="metric-value"] {
+            font-size: 1.5rem !important;
+        }
+        
+        .stMetric label {
             font-size: 0.75rem !important;
-            padding: 0.4rem 0.5rem !important;
         }
         
-        /* 헤더 텍스트 크기 조정 */
-        .welcome-header h1 {
-            font-size: 1.8rem !important;
+        /* Agent status very small screens */
+        .agent-status {
+            font-size: 0.75rem;
+            padding: 0.75rem;
+            min-width: 100px;
+            margin: 0.5rem 0;
         }
         
-        .welcome-header h3 {
-            font-size: 1rem !important;
-        }
-        
-        /* 뱃지 더 작게 */
+        /* Enhanced badges for small screens */
         div[style*="min-width: 160px"] {
-            min-width: 120px !important;
-            padding: 8px 12px !important;
+            min-width: 250px !important;
+            padding: 12px 16px !important;
+            font-size: 0.85rem !important;
         }
         
         div[style*="font-size: 1.5em"] {
-            font-size: 1.2em !important;
+            font-size: 1.25em !important;
         }
+        
+        /* Improved buttons for small screens */
+        .stButton > button {
+            padding: 0.875rem 1.25rem;
+            font-size: 0.9rem;
+        }
+    }
+    
+    /* Loading states and animations */
+    .loading-skeleton {
+        background: linear-gradient(90deg, var(--gray-100) 25%, #e2e8f0 50%, var(--gray-100) 75%);
+        background-size: 200% 100%;
+        animation: loading-shimmer 2s infinite;
+        border-radius: 8px;
+    }
+    
+    @keyframes loading-shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+    
+    /* Smooth transitions for data updates */
+    .data-transition {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Enhanced accessibility */
+    *:focus {
+        outline: 2px solid var(--primary-500);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+    
+    /* Financial data color coding */
+    .positive-change {
+        color: var(--success-600);
+        background: var(--success-50);
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+    
+    .negative-change {
+        color: var(--danger-600);
+        background: var(--danger-50);
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+    
+    .neutral-change {
+        color: var(--gray-600);
+        background: var(--gray-100);
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        font-weight: 600;
     }
 </style>
 
@@ -3045,7 +3273,7 @@ def render_login_page():
     """Render the login page"""
     st.markdown("""
     <div class="welcome-header">
-        <h1>🔐 트레이딩 에이전트 대시보드</h1>
+        <h1>트레이딩 에이전트 대시보드</h1>
         <h3>보안 인증이 필요합니다</h3>
         <p>계속하려면 인증 키를 입력해주세요</p>
     </div>
@@ -3235,7 +3463,7 @@ def render_welcome_header():
     current_kst_time = to_kst_string(get_kst_now())
     st.markdown(f"""
     <div class="welcome-header">
-        <h1>💹 트레이딩 에이전트 대시보드</h1>
+        <h1>트레이딩 에이전트 대시보드</h1>
         <h3>다중 AI 에이전트 금융 거래 프레임워크</h3>
         <p><strong>작업 흐름:</strong> 🧑‍💼 분석팀 ➡️ 🧑‍🔬 리서치팀 ➡️ 💼 트레이더 ➡️ 🛡️ 리스크 관리 ➡️ 📊 포트폴리오 관리</p>
         <p style="font-size: 0.9em; opacity: 0.8;">🕒 현재 시간: {current_kst_time}</p>
