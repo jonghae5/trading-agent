@@ -299,7 +299,7 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         
         # 미국 기준금리 (Federal Funds Rate)
         try:
-            federal_rate = fred.get_series('FEDFUNDS', start='2015-01-01')
+            federal_rate = fred.get_series('FEDFUNDS', observation_start='1/1/1990')
             if federal_rate is not None and len(federal_rate) > 0:
                 indicators['federal_rate'] = federal_rate.dropna()
         except Exception as e:
@@ -308,7 +308,7 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         
         # 미국 GDP
         try:
-            gdp = fred.get_series('GDP', start='2015-01-01')
+            gdp = fred.get_series('GDP', observation_start='1/1/1990')
             if gdp is not None and len(gdp) > 0:
                 indicators['gdp'] = gdp.dropna()
         except Exception as e:
@@ -318,12 +318,12 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         # 구매관리자지수 (PMI) - ISM Manufacturing PMI 
         try:
             # ISM Manufacturing PMI의 정확한 시리즈 코드
-            pmi = fred.get_series('MANEMP', start='2015-01-01')  # Manufacturing Employment Index
+            pmi = fred.get_series('MANEMP', observation_start='1/1/1990')  # Manufacturing Employment Index
             if pmi is not None and len(pmi) > 0:
                 indicators['pmi'] = pmi.dropna()
             else:
                 # 대체 지표: Industrial Production Index
-                pmi = fred.get_series('INDPRO', start='2015-01-01')
+                pmi = fred.get_series('INDPRO', observation_start='1/1/1990')
                 if pmi is not None and len(pmi) > 0:
                     indicators['pmi'] = pmi.dropna()
         except Exception as e:
@@ -332,7 +332,7 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         
         # 통화량 (M2)
         try:
-            m2 = fred.get_series('M2SL', start='2015-01-01')
+            m2 = fred.get_series('M2SL', observation_start='1/1/1990')
             if m2 is not None and len(m2) > 0:
                 indicators['m2'] = m2.dropna()
         except Exception as e:
@@ -341,7 +341,7 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         
         # 소매판매 (Retail Sales) - 소비 동향을 나타내는 중요 지표
         try:
-            retail_sales = fred.get_series('RSAFS', start='2015-01-01')  # Advance Retail Sales: Retail Trade
+            retail_sales = fred.get_series('RSAFS', observation_start='1/1/1990')  # Advance Retail Sales: Retail Trade
             if retail_sales is not None and len(retail_sales) > 0:
                 indicators['retail_sales'] = retail_sales.dropna()
         except Exception as e:
@@ -350,7 +350,7 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         
         # 주택시장 추가 지표 (USAUCSFRCONDOSMSAMID)
         try:
-            housing_market = fred.get_series('USAUCSFRCONDOSMSAMID', start='2000-01-01')
+            housing_market = fred.get_series('USAUCSFRCONDOSMSAMID', observation_start='1/1/1990')
             if housing_market is not None and len(housing_market) > 0:
                 indicators['housing_market'] = housing_market.dropna()
         except Exception as e:
@@ -361,7 +361,7 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         
         # High Yield Spread - ICE BofA US High Yield Index Option-Adjusted Spread
         try:
-            high_yield_spread = fred.get_series('BAMLH0A0HYM2', start='2015-01-01')
+            high_yield_spread = fred.get_series('BAMLH0A0HYM2', observation_start='1/1/1990')
             if high_yield_spread is not None and len(high_yield_spread) > 0:
                 indicators['high_yield_spread'] = high_yield_spread.dropna()
         except Exception as e:
@@ -370,7 +370,7 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         
         # 실업률
         try:
-            unemployment = fred.get_series('UNRATE', start='2015-01-01')
+            unemployment = fred.get_series('UNRATE', observation_start='1/1/1990')
             if unemployment is not None and len(unemployment) > 0:
                 indicators['unemployment'] = unemployment.dropna()
         except Exception as e:
@@ -379,7 +379,7 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         
         # 소비자물가지수 (CPI)
         try:
-            cpi = fred.get_series('CPIAUCSL', start='2015-01-01')
+            cpi = fred.get_series('CPIAUCSL', observation_start='1/1/1990')
             if cpi is not None and len(cpi) > 0:
                 indicators['cpi'] = cpi.dropna()
         except Exception as e:
@@ -388,7 +388,7 @@ def get_fred_macro_indicators() -> Optional[Dict]:
         
         # 절대 부채 (Total Public Debt)
         try:
-            debt = fred.get_series('GFDEBTN', start='2000-01-01')  # 2000년부터 시작 (장기 트렌드 확인)
+            debt = fred.get_series('GFDEBTN', observation_start='1/1/1990')  # 2000년부터 시작 (장기 트렌드 확인)
             if debt is not None and len(debt) > 0:
                 indicators['total_debt'] = debt.dropna()
         except Exception as e:
@@ -424,7 +424,7 @@ def get_additional_fred_indicators() -> Optional[Dict]:
         
         # VIX Index (CBOE Volatility Index)
         try:
-            vix = fred.get_series('VIXCLS', start='2015-01-01')
+            vix = fred.get_series('VIXCLS', observation_start='1/1/1990')
             if vix is not None and len(vix) > 0:
                 indicators['vix'] = vix.dropna()
         except Exception as e:
@@ -433,7 +433,7 @@ def get_additional_fred_indicators() -> Optional[Dict]:
         
         # 달러 인덱스 (Trade Weighted U.S. Dollar Index)
         try:
-            dollar_index = fred.get_series('DTWEXBGS', start='2015-01-01')
+            dollar_index = fred.get_series('DTWEXBGS', observation_start='1/1/1990')
             if dollar_index is not None and len(dollar_index) > 0:
                 indicators['dollar_index'] = dollar_index.dropna()
         except Exception as e:
@@ -442,8 +442,8 @@ def get_additional_fred_indicators() -> Optional[Dict]:
         
         # 10년-2년 수익률 곡선
         try:
-            ten_year_yield = fred.get_series('DGS10', start='2015-01-01')
-            two_year_yield = fred.get_series('DGS2', start='2015-01-01')
+            ten_year_yield = fred.get_series('DGS10', observation_start='1/1/1990')
+            two_year_yield = fred.get_series('DGS2', observation_start='1/1/1990')
             if ten_year_yield is not None and two_year_yield is not None:
                 yield_spread = ten_year_yield - two_year_yield
                 indicators['yield_spread'] = yield_spread.dropna()
@@ -454,7 +454,7 @@ def get_additional_fred_indicators() -> Optional[Dict]:
         
         # 원유 가격 (WTI Oil Price)
         try:
-            oil_price = fred.get_series('DCOILWTICO', start='2015-01-01')
+            oil_price = fred.get_series('DCOILWTICO', observation_start='1/1/1990')
             if oil_price is not None and len(oil_price) > 0:
                 indicators['oil_price'] = oil_price.dropna()
         except Exception as e:
