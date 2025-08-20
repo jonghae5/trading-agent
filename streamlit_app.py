@@ -556,7 +556,6 @@ def create_financial_indicators_charts():
                     fig = add_crisis_markers_to_chart(fig, gdp_growth_rate)
                     
                     fig.update_layout(
-                        title='GDP 성장률 (%)',
                         height=200,
                         showlegend=True,
                         legend=dict(
@@ -727,7 +726,6 @@ def create_financial_indicators_charts():
                     
                     fig.add_hline(y=4, line_dash="dash", line_color="green", annotation_text="완전고용 기준")
                     fig.update_layout(
-                        title='실업률 추이',
                         height=200,
                         showlegend=True,
                         legend=dict(
@@ -834,7 +832,6 @@ def create_financial_indicators_charts():
                     fig = add_crisis_markers_to_chart(fig, fed_rate)
                     
                     fig.update_layout(
-                        title='연방기준금리 추이',
                         height=200,
                         showlegend=True,
                         legend=dict(
@@ -901,16 +898,9 @@ def create_financial_indicators_charts():
                         fillcolor=f'rgba({int(debt_color[1:3], 16)}, {int(debt_color[3:5], 16)}, {int(debt_color[5:7], 16)}, 0.1)'
                     ))
                     
-                    # 주요 경제 위기 시점 표시 (부채 데이터용 - 2008년 이후만)
-                    debt_crisis_dates = [
-                        ('2008-09-01', '리먼 브라더스'),  # 2008 금융위기
-                        ('2020-03-01', 'COVID-19'),       # 코로나19 팬데믹
-                        ('2022-03-01', 'Fed 긴축 시작')
-                    ]
-                    fig = add_crisis_markers_to_chart(fig, debt_in_trillions, crisis_dates=debt_crisis_dates)
+                    fig = add_crisis_markers_to_chart(fig, debt_in_trillions)
                     
                     fig.update_layout(
-                        title='미국 절대부채 (GFDEBTN) 시계열',
                         height=200,
                         showlegend=True,
                         legend=dict(
@@ -1135,7 +1125,6 @@ def create_financial_indicators_charts():
                     fig.add_hline(y=8, line_dash="dash", line_color="red", annotation_text="위험 구간 (800bp)")
                     
                     fig.update_layout(
-                        title='하이일드 스프레드 추이',
                         height=200,
                         showlegend=True,
                         legend=dict(
@@ -1220,7 +1209,6 @@ def create_financial_indicators_charts():
                 fig = add_crisis_markers_to_chart(fig, fg_data['Fear_Greed'], date_column=fg_data['Date'])
                 
                 fig.update_layout(
-                    title='공포탐욕지수 (VIX 기반)',
                     height=200,
                     showlegend=True,
                     legend=dict(
@@ -1289,7 +1277,6 @@ def create_financial_indicators_charts():
                     fig = add_crisis_markers_to_chart(fig, oil_data)
                     
                     fig.update_layout(
-                        title='원유가격 (WTI)',
                         height=200,
                         showlegend=True,
                         legend=dict(
@@ -1336,7 +1323,6 @@ def create_financial_indicators_charts():
                     fig = add_crisis_markers_to_chart(fig, dollar_data)
                     
                     fig.update_layout(
-                        title='달러 인덱스',
                         height=200,
                         showlegend=True,
                         legend=dict(
@@ -1453,7 +1439,6 @@ def create_financial_indicators_charts():
                 # 주요 경제 위기 시점 표시 (2000년부터 데이터이므로)
                 fig = add_crisis_markers_to_chart(fig, housing_data)
                 fig.update_layout(
-                    title='주택시장 지수 장기 추이 (2000~)',
                     height=250,
                     showlegend=True,
                     legend=dict(
