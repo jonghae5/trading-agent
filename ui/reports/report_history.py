@@ -193,8 +193,15 @@ class ReportHistory:
             if session_info['final_decision']:
                 st.metric("Decision", session_info['final_decision'])
         with info_col4:
-            if session_info['confidence_score']:
-                st.metric("Confidence", f"{session_info['confidence_score']:.1%}")
+            # Defensive formatting for confidence_score
+            confidence_score = session_info.get('confidence_score')
+            if confidence_score is not None and confidence_score != '':
+                try:
+                    # Try to convert to float if not already
+                    score_float = float(confidence_score)
+                    st.metric("Confidence", f"{score_float:.1%}")
+                except (ValueError, TypeError):
+                    st.metric("Confidence", str(confidence_score))
     
     def render_agent_executions(self, agent_executions: list) -> None:
         """에이전트 실행 상태 렌더링"""
@@ -206,7 +213,10 @@ class ReportHistory:
         for agent in agent_executions:
             duration = ""
             if agent['execution_time_seconds']:
-                duration = f"{agent['execution_time_seconds']:.1f}s"
+                try:
+                    duration = f"{float(agent['execution_time_seconds']):.1f}s"
+                except (ValueError, TypeError):
+                    duration = str(agent['execution_time_seconds'])
             
             agent_df_data.append({
                 "Agent": agent['agent_name'],
