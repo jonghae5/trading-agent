@@ -74,7 +74,7 @@ setup_frontend() {
 setup_backend() {
     print_status "Setting up backend..."
     
-    cd be
+    cd back
     
     # Copy environment file if it doesn't exist
     if [ ! -f .env ]; then
@@ -130,7 +130,7 @@ serve_frontend() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_status "Starting frontend development server..."
-        cd fe
+        cd front
         npm run serve &
         FRONTEND_PID=$!
         print_status "Frontend server started on port 4173 (PID: $FRONTEND_PID)"
