@@ -18,7 +18,6 @@ parsel
 requests
 tqdm
 pytz
-redis
 chainlit
 rich
 questionary
