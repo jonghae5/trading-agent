@@ -40,7 +40,6 @@ dependencies = [
     "setuptools>=80.9.0",
     "sqlalchemy[asyncio]>=2.0.0",
     "stockstats>=0.6.5",
-    "streamlit>=1.48.1",
     "tqdm>=4.67.1",
     "tushare>=1.4.21",
     "typer>=0.16.0",
