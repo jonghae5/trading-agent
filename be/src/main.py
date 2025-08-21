@@ -226,39 +226,35 @@ if settings.RATE_LIMIT_ENABLED:
 # Include API routes
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
-print("settings.is_production", settings.is_production)
-# --- Serve frontend static files in production ---
+
 if settings.is_production:
-    # Assume frontend build files are in ../front/dist or ./front/dist
     frontend_build_path = os.path.join(project_root, "front", "dist")
-    if not os.path.exists(frontend_build_path):
-        # Try relative to current file
-        frontend_build_path = os.path.join(os.path.dirname(__file__), "..", "front", "dist")
     frontend_build_path = os.path.abspath(frontend_build_path)
+
     if os.path.exists(frontend_build_path):
-        # Mount at root, so /, /index.html, /static/*, etc. are served
-        app.mount("/", StaticFiles(directory=frontend_build_path, html=True), name="frontend")
-        logger.info(f"✅ Serving frontend static files from: {frontend_build_path}")
-    else:
-        logger.warning(f"⚠️ Frontend build directory not found: {frontend_build_path}. Frontend will not be served.")
+        # 1️⃣ Static 파일 서빙 (Vite는 assets 디렉토리 사용)
+        app.mount("/assets", StaticFiles(directory=os.path.join(frontend_build_path, "assets")), name="assets")
 
-    # SPA fallback: 모든 비-API 경로는 index.html로 리다이렉트 (React Router 지원)
-    from fastapi.responses import FileResponse, JSONResponse
-    from starlette.requests import Request
+        # 2️⃣ SPA fallback
+        from fastapi.responses import FileResponse, JSONResponse
+        from starlette.requests import Request
 
-    @app.route("/{full_path:path}", methods=["GET"])
-    async def serve_spa(request: Request, full_path: str):
-        # API 경로는 404 처리
-        if full_path.startswith("api/v1") or full_path.startswith("api"):
-            return JSONResponse({"detail": "Not Found"}, status_code=404)
-        # React Router SPA fallback: 항상 index.html 반환
-        index_path = os.path.join(frontend_build_path, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
-        else:
+        @app.get("/{full_path:path}")
+        async def serve_spa(request: Request, full_path: str):
+            # API 경로 제외
+            if full_path.startswith("api/v1") or full_path.startswith("api"):
+                return JSONResponse({"detail": "Not Found"}, status_code=404)
+            
+            # Vite index.html 경로
+            index_path = os.path.join(frontend_build_path, "index.html")
+            if os.path.exists(index_path):
+                return FileResponse(index_path)
             return JSONResponse({"detail": "Frontend index.html not found"}, status_code=404)
 
-
+        logger.info(f"✅ Serving Vite SPA from: {frontend_build_path}")
+    else:
+        logger.warning(f"⚠️ Frontend build directory not found: {frontend_build_path}")
+        
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
