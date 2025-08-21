@@ -34,6 +34,7 @@ class StockSearchService:
     def __init__(self):
         self.cache = {}
         self.cache_duration = 86400  # 24 hours for stock search cache
+        self.all_stocks = mock_data_service.get_all_stocks()
     
     def _get_cache_key(self, query: str) -> str:
         """Generate cache key for search query."""
