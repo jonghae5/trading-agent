@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Brain, Play, Pause, Clock, Square } from 'lucide-react'
+import { Brain, Play, Clock } from 'lucide-react'
 import {
   AreaChart,
   Area,
@@ -40,7 +40,7 @@ import {
 import { economicApi, EconomicEvent } from '../api/economic'
 
 // Helper function to get Fear & Greed color
-function getFearGreedColor(value: number): string {
+const getFearGreedColor = (value: number): string => {
   if (value <= 25) return '#dc2626' // red-600 - Extreme Fear
   if (value <= 45) return '#ea580c' // orange-600 - Fear
   if (value <= 55) return '#65a30d' // lime-600 - Neutral
@@ -95,6 +95,20 @@ export const Analysis: React.FC = () => {
   // Economic events state
   const [economicEvents, setEconomicEvents] = useState<EconomicEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
+
+  // Memoized values for performance
+  const analystOptions = useMemo(() => Object.values(AnalystType), [])
+
+  const handleAnalystToggle = useCallback((analyst: AnalystType) => {
+    setSelectedAnalysts((prev) => {
+      const isSelected = prev.includes(analyst)
+      if (isSelected) {
+        return prev.filter((a) => a !== analyst)
+      } else {
+        return [...prev, analyst]
+      }
+    })
+  }, [])
 
   // Load economic events
   const loadEconomicEvents = async () => {
@@ -298,7 +312,7 @@ export const Analysis: React.FC = () => {
                   분석가 선택
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {Object.values(AnalystType).map((analyst) => {
+                  {analystOptions.map((analyst) => {
                     const isSelected = selectedAnalysts.includes(analyst)
                     return (
                       <div
@@ -308,15 +322,7 @@ export const Analysis: React.FC = () => {
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
-                        onClick={() => {
-                          if (isSelected) {
-                            setSelectedAnalysts((prev) =>
-                              prev.filter((a) => a !== analyst)
-                            )
-                          } else {
-                            setSelectedAnalysts((prev) => [...prev, analyst])
-                          }
-                        }}
+                        onClick={() => handleAnalystToggle(analyst)}
                       >
                         <div className="flex items-center gap-2">
                           <input

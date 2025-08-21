@@ -2,7 +2,6 @@
 
 import logging
 import asyncio
-import threading
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session, selectinload
@@ -279,7 +278,7 @@ async def delete_analysis_session(
             )
         if analysis_session.is_running:
             # Note: This should be made sync or handled differently
-            pass  # Skip async stop for now
+            logger.warning(f"Deleting running analysis session {session_id[:8]}")
         db.delete(analysis_session)
         db.commit()
         logger.info(f"Deleted analysis session {session_id[:8]} for user {current_user.username}")
@@ -712,7 +711,6 @@ async def get_live_session_data(
         completed_agents = analysis_session.agents_completed or 0
 
         progress_percentage = round((len(agents_status) / total_agents) * 100)
-        current_agent =  None
         # Get recent messages if requested
         messages = []
         if include_messages:

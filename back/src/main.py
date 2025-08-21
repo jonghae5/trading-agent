@@ -174,11 +174,6 @@ app = FastAPI(
 )
 
 # Security middleware
-# if settings.is_production:
-#     app.add_middleware(
-#         TrustedHostMiddleware,
-#         allowed_hosts=["localhost", "127.0.0.1", "*.yourdomain.com"]
-#     )
 
 # CORS middleware - Secure configuration
 allowed_origins = [

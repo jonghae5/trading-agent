@@ -178,7 +178,7 @@ main() {
     print_status "API documentation available at: http://localhost:8000/docs"
     
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        print_status "Frontend development server: http://localhost:4173"
+        print_status "Frontend development server: http://localhost:5173"
     fi
     
     print_status "To view FastAPI logs: tail -f be/fastapi.log"

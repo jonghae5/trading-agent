@@ -30,7 +30,6 @@ class Settings(BaseSettings):
         default_factory=lambda: secrets.token_urlsafe(32),
         description="Secret key for JWT tokens"
     )
-    JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
@@ -182,7 +181,7 @@ class Settings(BaseSettings):
     def jwt_config(self) -> Dict[str, Any]:
         """Get JWT configuration."""
         return {
-            "secret_key": self.SECRET_KEY,
+            "secret_key": self.JWT_SECRET_KEY,
             "algorithm": self.JWT_ALGORITHM,
             "access_token_expire_minutes": self.ACCESS_TOKEN_EXPIRE_MINUTES,
             "refresh_token_expire_days": self.REFRESH_TOKEN_EXPIRE_DAYS,

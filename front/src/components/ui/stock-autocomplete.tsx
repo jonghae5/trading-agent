@@ -46,7 +46,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   const [loading, setLoading] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [popularStocks, setPopularStocks] = useState<StockSearchResult[]>([])
-  
+
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -101,49 +101,45 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   }, [value, isOpen, debouncedSearch])
 
   // Handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     onChange(newValue)
     setSelectedIndex(-1)
-    
+
     if (!isOpen && newValue.trim()) {
       setIsOpen(true)
     }
-  }
+  }, [onChange, isOpen])
 
   // Handle input focus
-  const handleInputFocus = () => {
+  const handleInputFocus = useCallback(() => {
     setIsOpen(true)
     if (!value.trim() && showPopularStocks && popularStocks.length > 0) {
       setResults(popularStocks.slice(0, 8))
     }
-  }
+  }, [value, showPopularStocks, popularStocks])
 
   // Handle stock selection
-  const handleStockSelect = (stock: StockSearchResult) => {
+  const handleStockSelect = useCallback((stock: StockSearchResult) => {
     onChange(stock.symbol)
     setIsOpen(false)
     setSelectedIndex(-1)
     onSelect?.(stock)
     inputRef.current?.blur()
-  }
+  }, [onChange, onSelect])
 
   // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!isOpen || results.length === 0) return
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setSelectedIndex(prev => 
-          prev < results.length - 1 ? prev + 1 : 0
-        )
+        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0))
         break
       case 'ArrowUp':
         e.preventDefault()
-        setSelectedIndex(prev => 
-          prev > 0 ? prev - 1 : results.length - 1
-        )
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1))
         break
       case 'Enter':
         e.preventDefault()
@@ -157,7 +153,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
         inputRef.current?.blur()
         break
     }
-  }
+  }, [isOpen, results.length, selectedIndex, handleStockSelect])
 
   // Handle click outside
   useEffect(() => {
@@ -180,7 +176,9 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   // Scroll selected item into view
   useEffect(() => {
     if (selectedIndex >= 0 && resultsRef.current) {
-      const selectedElement = resultsRef.current.children[selectedIndex] as HTMLElement
+      const selectedElement = resultsRef.current.children[
+        selectedIndex
+      ] as HTMLElement
       if (selectedElement) {
         selectedElement.scrollIntoView({
           behavior: 'smooth',
@@ -193,7 +191,8 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   // Get icon for stock type
   const getStockIcon = (type: string, sector?: string) => {
     if (type === 'etf') return <Zap className="size-4 text-purple-500" />
-    if (sector === 'Technology') return <TrendingUp className="size-4 text-blue-500" />
+    if (sector === 'Technology')
+      return <TrendingUp className="size-4 text-blue-500" />
     return <Building2 className="size-4 text-gray-500" />
   }
 
@@ -220,7 +219,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className="size-4 text-gray-400" />
         </div>
-        
+
         <input
           ref={inputRef}
           type="text"
@@ -235,18 +234,16 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
           className={`
             w-full pl-10 pr-10 py-2 border rounded-md text-sm
             focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-            ${error 
-              ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-              : 'border-gray-300'
+            ${
+              error
+                ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                : 'border-gray-300'
             }
-            ${disabled 
-              ? 'bg-gray-100 cursor-not-allowed' 
-              : 'bg-white'
-            }
+            ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}
             transition-colors duration-200
           `}
         />
-        
+
         {/* Clear Button */}
         {value && !disabled && (
           <button
@@ -283,7 +280,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
                     Popular Stocks
                   </div>
                 )}
-                
+
                 {/* Results List */}
                 <div ref={resultsRef} className="max-h-72 overflow-y-auto">
                   {results.map((stock, index) => (
@@ -295,9 +292,10 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
                       className={`
                         px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0
                         transition-colors duration-150
-                        ${selectedIndex === index 
-                          ? 'bg-blue-50 border-blue-200' 
-                          : 'hover:bg-gray-50'
+                        ${
+                          selectedIndex === index
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'hover:bg-gray-50'
                         }
                       `}
                       onClick={() => handleStockSelect(stock)}
@@ -305,7 +303,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3 flex-1 min-w-0">
                           {getStockIcon(stock.type, stock.sector)}
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
                               <span className="font-semibold text-gray-900 text-sm">
@@ -320,11 +318,11 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
                                 </span>
                               )}
                             </div>
-                            
+
                             <p className="text-sm text-gray-600 truncate">
                               {stock.name}
                             </p>
-                            
+
                             {stock.sector && (
                               <p className="text-xs text-gray-500">
                                 {stock.sector}
@@ -332,7 +330,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
                             )}
                           </div>
                         </div>
-                        
+
                         {/* Market Cap */}
                         {stock.market_cap && (
                           <div className="text-xs text-gray-500 ml-2">

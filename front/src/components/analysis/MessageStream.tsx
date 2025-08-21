@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  MessageSquare, 
-  Brain, 
-  Zap, 
-  AlertCircle, 
-  TrendingUp, 
+import {
+  MessageSquare,
+  Brain,
+  Zap,
+  AlertCircle,
+  TrendingUp,
   Info,
   User,
   Bot,
@@ -38,10 +38,10 @@ interface TypewriterTextProps {
 }
 
 // Typewriter effect component
-const TypewriterText: React.FC<TypewriterTextProps> = ({ 
-  text, 
-  speed = 30, 
-  className = '' 
+const TypewriterText: React.FC<TypewriterTextProps> = ({
+  text,
+  speed = 30,
+  className = ''
 }) => {
   const [displayText, setDisplayText] = useState('')
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -49,8 +49,8 @@ const TypewriterText: React.FC<TypewriterTextProps> = ({
   useEffect(() => {
     if (currentIndex < text.length) {
       const timeout = setTimeout(() => {
-        setDisplayText(prev => prev + text[currentIndex])
-        setCurrentIndex(prev => prev + 1)
+        setDisplayText((prev) => prev + text[currentIndex])
+        setCurrentIndex((prev) => prev + 1)
       }, speed)
 
       return () => clearTimeout(timeout)
@@ -91,7 +91,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (autoScroll && !isUserScrolling) {
-      messagesEndRef.current?.scrollIntoView({ 
+      messagesEndRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'end'
       })
@@ -106,7 +106,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container
       const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10
-      
+
       if (isAtBottom) {
         setAutoScroll(true)
         setIsUserScrolling(false)
@@ -122,12 +122,18 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
 
   const getMessageIcon = (type: string) => {
     switch (type) {
-      case 'system': return Info
-      case 'reasoning': return Brain
-      case 'tool': return Zap
-      case 'error': return AlertCircle
-      case 'analysis': return TrendingUp
-      default: return MessageSquare
+      case 'system':
+        return Info
+      case 'reasoning':
+        return Brain
+      case 'tool':
+        return Zap
+      case 'error':
+        return AlertCircle
+      case 'analysis':
+        return TrendingUp
+      default:
+        return MessageSquare
     }
   }
 
@@ -205,7 +211,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
             <MessageSquare className="h-5 w-5" />
             <span>Live Analysis Stream</span>
           </CardTitle>
-          
+
           <div className="flex items-center space-x-3 text-sm">
             {/* Status indicator */}
             {isRunning && (
@@ -227,7 +233,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
                 )}
               </div>
             )}
-            
+
             {/* Message count */}
             <div className="flex items-center space-x-1 text-gray-600">
               <Activity className="h-4 w-4" />
@@ -239,7 +245,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
 
       <CardContent className="flex-1 overflow-hidden p-0">
         {/* Messages container */}
-        <div 
+        <div
           ref={containerRef}
           className="h-full overflow-y-auto px-6 pb-6 space-y-3"
         >
@@ -248,7 +254,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
               const IconComponent = getMessageIcon(message.type)
               const colors = getMessageColors(message.type)
               const isLatest = message.id === latestMessage?.id
-              
+
               return (
                 <motion.div
                   key={message.id}
@@ -256,7 +262,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ 
+                  transition={{
                     duration: 0.3,
                     layout: { duration: 0.2 }
                   }}
@@ -268,13 +274,15 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
                 >
                   <div className="flex items-start space-x-3">
                     {/* Icon */}
-                    <div className={`
+                    <div
+                      className={`
                       flex-shrink-0 w-8 h-8 rounded-full ${colors.bg} 
                       flex items-center justify-center border ${colors.border}
-                    `}>
+                    `}
+                    >
                       <IconComponent className={`h-4 w-4 ${colors.icon}`} />
                     </div>
-                    
+
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       {/* Header */}
@@ -283,27 +291,33 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
                           {message.agent ? (
                             <div className="flex items-center space-x-1">
                               <Bot className={`h-3 w-3 ${colors.icon}`} />
-                              <span className={`text-sm font-medium ${colors.text}`}>
+                              <span
+                                className={`text-sm font-medium ${colors.text}`}
+                              >
                                 {message.agent}
                               </span>
                             </div>
                           ) : (
                             <div className="flex items-center space-x-1">
                               <User className={`h-3 w-3 ${colors.icon}`} />
-                              <span className={`text-sm font-medium ${colors.text}`}>
+                              <span
+                                className={`text-sm font-medium ${colors.text}`}
+                              >
                                 System
                               </span>
                             </div>
                           )}
-                          
-                          <span className={`
+
+                          <span
+                            className={`
                             text-xs px-2 py-0.5 rounded-full font-medium
                             ${colors.bg} ${colors.text}
-                          `}>
+                          `}
+                          >
                             {message.type}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center space-x-1">
                           <Clock className={`h-3 w-3 ${colors.timestamp}`} />
                           <span className={`text-xs ${colors.timestamp}`}>
@@ -311,14 +325,18 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
                           </span>
                         </div>
                       </div>
-                      
+
                       {/* Message content */}
                       <div className={`text-sm leading-relaxed ${colors.text}`}>
                         {isLatest && isRunning && !isPaused ? (
                           <TypewriterText text={message.content} speed={20} />
-                        ) : message.type === 'analysis' || message.type === 'reasoning' ? (
+                        ) : message.type === 'analysis' ||
+                          message.type === 'reasoning' ? (
                           <div className="prose prose-sm max-w-none">
-                            <MarkdownRenderer content={message.content} variant="default" />
+                            <MarkdownRenderer
+                              content={message.content}
+                              variant="default"
+                            />
                           </div>
                         ) : (
                           message.content
@@ -330,7 +348,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
               )
             })}
           </AnimatePresence>
-          
+
           {/* Typing indicator */}
           {isRunning && !isPaused && currentAgent && (
             <motion.div
@@ -342,7 +360,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                 <Bot className="h-4 w-4 text-blue-600" />
               </div>
-              
+
               <div className="flex-1">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-medium text-blue-800">
@@ -350,14 +368,14 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
                   </span>
                   <span className="text-xs text-blue-600">is thinking...</span>
                 </div>
-                
+
                 {/* Animated dots */}
                 <div className="flex items-center space-x-1 mt-1">
                   {[0, 1, 2].map((i) => (
                     <motion.div
                       key={i}
                       className="w-1.5 h-1.5 bg-blue-400 rounded-full"
-                      animate={{ 
+                      animate={{
                         scale: [1, 1.2, 1],
                         opacity: [0.5, 1, 0.5]
                       }}
@@ -372,7 +390,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
               </div>
             </motion.div>
           )}
-          
+
           {/* Empty state */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -383,11 +401,11 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
               </p>
             </div>
           )}
-          
+
           {/* Scroll anchor */}
           <div ref={messagesEndRef} />
         </div>
-        
+
         {/* Scroll to bottom button */}
         {!autoScroll && (
           <motion.button

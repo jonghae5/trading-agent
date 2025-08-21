@@ -14,6 +14,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.core.config import get_settings
+from src.services.mock_data_service import mock_data_service
 from src.schemas.market import (
     StockQuoteResponse,
     MarketIndicesResponse,
@@ -395,41 +396,8 @@ class MarketDataService:
         try:
             query = query.upper().strip()
             
-            # Always provide real stock database, not mock data
-            # if settings.MOCK_EXTERNAL_APIS:
-                # Enhanced search results with realistic data
-            stock_database = [
-                    {"ticker": "AAPL", "name": "Apple Inc.", "exchange": "NASDAQ", "type": "equity", "sector": "Technology", "market_cap": "3T"},
-                    {"ticker": "GOOGL", "name": "Alphabet Inc. Class A", "exchange": "NASDAQ", "type": "equity", "sector": "Technology", "market_cap": "2T"},
-                    {"ticker": "MSFT", "name": "Microsoft Corporation", "exchange": "NASDAQ", "type": "equity", "sector": "Technology", "market_cap": "3T"},
-                    {"ticker": "TSLA", "name": "Tesla Inc.", "exchange": "NASDAQ", "type": "equity", "sector": "Auto", "market_cap": "800B"},
-                    {"ticker": "NVDA", "name": "NVIDIA Corporation", "exchange": "NASDAQ", "type": "equity", "sector": "Technology", "market_cap": "2T"},
-                    {"ticker": "AMZN", "name": "Amazon.com Inc.", "exchange": "NASDAQ", "type": "equity", "sector": "Consumer", "market_cap": "1.5T"},
-                    {"ticker": "META", "name": "Meta Platforms Inc.", "exchange": "NASDAQ", "type": "equity", "sector": "Technology", "market_cap": "1.3T"},
-                    {"ticker": "NFLX", "name": "Netflix Inc.", "exchange": "NASDAQ", "type": "equity", "sector": "Media", "market_cap": "200B"},
-                    {"ticker": "SPY", "name": "SPDR S&P 500 ETF Trust", "exchange": "ARCA", "type": "etf", "sector": "Diversified", "market_cap": "500B"},
-                    {"ticker": "QQQ", "name": "Invesco QQQ Trust", "exchange": "NASDAQ", "type": "etf", "sector": "Technology", "market_cap": "200B"},
-                    {"ticker": "IWM", "name": "iShares Russell 2000 ETF", "exchange": "ARCA", "type": "etf", "sector": "Small Cap", "market_cap": "60B"},
-                    {"ticker": "VTI", "name": "Vanguard Total Stock Market ETF", "exchange": "ARCA", "type": "etf", "sector": "Diversified", "market_cap": "300B"},
-                    {"ticker": "JPM", "name": "JPMorgan Chase & Co.", "exchange": "NYSE", "type": "equity", "sector": "Financial", "market_cap": "600B"},
-                    {"ticker": "JNJ", "name": "Johnson & Johnson", "exchange": "NYSE", "type": "equity", "sector": "Healthcare", "market_cap": "400B"},
-                    {"ticker": "V", "name": "Visa Inc.", "exchange": "NYSE", "type": "equity", "sector": "Financial", "market_cap": "500B"},
-                    {"ticker": "WMT", "name": "Walmart Inc.", "exchange": "NYSE", "type": "equity", "sector": "Retail", "market_cap": "600B"},
-                    {"ticker": "PG", "name": "Procter & Gamble Co.", "exchange": "NYSE", "type": "equity", "sector": "Consumer", "market_cap": "400B"},
-                    {"ticker": "UNH", "name": "UnitedHealth Group Inc.", "exchange": "NYSE", "type": "equity", "sector": "Healthcare", "market_cap": "500B"},
-                    {"ticker": "HD", "name": "Home Depot Inc.", "exchange": "NYSE", "type": "equity", "sector": "Retail", "market_cap": "400B"},
-                    {"ticker": "MA", "name": "Mastercard Inc.", "exchange": "NYSE", "type": "equity", "sector": "Financial", "market_cap": "400B"}
-                ]
-                
-                # Filter results based on query
-            results = []
-            for stock in stock_database:
-                if (query in stock["ticker"] or 
-                    query in stock["name"].upper() or 
-                    stock["ticker"].startswith(query)):
-                    results.append(stock)
-                    if len(results) >= limit:
-                        break
+            # Use centralized mock data service
+            results = mock_data_service.search_stocks(query, limit)
             
             # If no exact matches, return most popular stocks
             if not results and len(query) <= 2:

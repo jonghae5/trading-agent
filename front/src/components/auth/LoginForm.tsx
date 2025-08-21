@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -40,24 +40,32 @@ export const LoginForm: React.FC = () => {
     resolver: zodResolver(loginSchema)
   })
 
-  const onSubmit = async (data: LoginFormData) => {
-    setError(null)
+  const togglePasswordVisibility = useCallback(() => {
+    setShowPassword(prev => !prev)
+  }, [])
 
-    try {
-      const success = await login(data.username, data.password)
+  const onSubmit = useCallback(
+    async (data: LoginFormData) => {
+      setError(null)
 
-      if (success) {
-        reset()
-        // 로그인 성공 후 원래 경로로 돌아가기 (없으면 기본 경로로)
-        const from = (location.state as { from?: string })?.from || '/analysis'
-        navigate(from, { replace: true })
-      } else {
-        setError('아이디 또는 비밀번호가 틀렸습니다')
+      try {
+        const success = await login(data.username, data.password)
+
+        if (success) {
+          reset()
+          // 로그인 성공 후 원래 경로로 돌아가기 (없으면 기본 경로로)
+          const from =
+            (location.state as { from?: string })?.from || '/analysis'
+          navigate(from, { replace: true })
+        } else {
+          setError('아이디 또는 비밀번호가 틀렸습니다')
+        }
+      } catch (err) {
+        setError('로그인 중 오류가 발생했습니다')
       }
-    } catch (err) {
-      setError('로그인 중 오류가 발생했습니다')
-    }
-  }
+    },
+    [login, reset, location.state, navigate]
+  )
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
@@ -126,7 +134,7 @@ export const LoginForm: React.FC = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={togglePasswordVisibility}
                     disabled={isLoading || isSubmitting}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                   >

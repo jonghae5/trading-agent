@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import json
 import re
 from src.models.base import get_kst_now
+from src.services.mock_data_service import mock_data_service
 
 
 logger = logging.getLogger(__name__)
@@ -33,146 +34,6 @@ class StockSearchService:
     def __init__(self):
         self.cache = {}
         self.cache_duration = 86400  # 24 hours for stock search cache
-        
-        # Popular stocks for quick suggestions
-        self.popular_stocks = {
-            # Tech Giants
-            'AAPL': {'name': 'Apple Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'MSFT': {'name': 'Microsoft Corporation', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'GOOGL': {'name': 'Alphabet Inc. (Class A)', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'GOOG': {'name': 'Alphabet Inc. (Class C)', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'AMZN': {'name': 'Amazon.com Inc.', 'sector': 'Consumer Cyclical', 'exchange': 'NASDAQ'},
-            'META': {'name': 'Meta Platforms Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'TSLA': {'name': 'Tesla Inc.', 'sector': 'Consumer Cyclical', 'exchange': 'NASDAQ'},
-            'NVDA': {'name': 'NVIDIA Corporation', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'NFLX': {'name': 'Netflix Inc.', 'sector': 'Communication Services', 'exchange': 'NASDAQ'},
-            'CRM': {'name': 'Salesforce Inc.', 'sector': 'Technology', 'exchange': 'NYSE'},
-            
-            # Financial Services
-            'JPM': {'name': 'JPMorgan Chase & Co.', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'BAC': {'name': 'Bank of America Corporation', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'WFC': {'name': 'Wells Fargo & Company', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'GS': {'name': 'Goldman Sachs Group Inc.', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'MS': {'name': 'Morgan Stanley', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'BRK.A': {'name': 'Berkshire Hathaway Inc. (Class A)', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'BRK.B': {'name': 'Berkshire Hathaway Inc. (Class B)', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            
-            # Healthcare
-            'JNJ': {'name': 'Johnson & Johnson', 'sector': 'Healthcare', 'exchange': 'NYSE'},
-            'PFE': {'name': 'Pfizer Inc.', 'sector': 'Healthcare', 'exchange': 'NYSE'},
-            'UNH': {'name': 'UnitedHealth Group Incorporated', 'sector': 'Healthcare', 'exchange': 'NYSE'},
-            'ABBV': {'name': 'AbbVie Inc.', 'sector': 'Healthcare', 'exchange': 'NYSE'},
-            'TMO': {'name': 'Thermo Fisher Scientific Inc.', 'sector': 'Healthcare', 'exchange': 'NYSE'},
-            
-            # Consumer Goods
-            'KO': {'name': 'The Coca-Cola Company', 'sector': 'Consumer Defensive', 'exchange': 'NYSE'},
-            'PEP': {'name': 'PepsiCo Inc.', 'sector': 'Consumer Defensive', 'exchange': 'NASDAQ'},
-            'PG': {'name': 'The Procter & Gamble Company', 'sector': 'Consumer Defensive', 'exchange': 'NYSE'},
-            'NKE': {'name': 'NIKE Inc.', 'sector': 'Consumer Cyclical', 'exchange': 'NYSE'},
-            'MCD': {'name': 'McDonald\'s Corporation', 'sector': 'Consumer Cyclical', 'exchange': 'NYSE'},
-            'SBUX': {'name': 'Starbucks Corporation', 'sector': 'Consumer Cyclical', 'exchange': 'NASDAQ'},
-            
-            # Industrial
-            'BA': {'name': 'The Boeing Company', 'sector': 'Industrials', 'exchange': 'NYSE'},
-            'CAT': {'name': 'Caterpillar Inc.', 'sector': 'Industrials', 'exchange': 'NYSE'},
-            'GE': {'name': 'General Electric Company', 'sector': 'Industrials', 'exchange': 'NYSE'},
-            'MMM': {'name': '3M Company', 'sector': 'Industrials', 'exchange': 'NYSE'},
-            
-            # Energy
-            'XOM': {'name': 'Exxon Mobil Corporation', 'sector': 'Energy', 'exchange': 'NYSE'},
-            'CVX': {'name': 'Chevron Corporation', 'sector': 'Energy', 'exchange': 'NYSE'},
-            
-            # ETFs
-            'SPY': {'name': 'SPDR S&P 500 ETF Trust', 'sector': 'ETF', 'exchange': 'NYSE'},
-            'QQQ': {'name': 'Invesco QQQ Trust', 'sector': 'ETF', 'exchange': 'NASDAQ'},
-            'VTI': {'name': 'Vanguard Total Stock Market ETF', 'sector': 'ETF', 'exchange': 'NYSE'},
-            'VOO': {'name': 'Vanguard S&P 500 ETF', 'sector': 'ETF', 'exchange': 'NYSE'},
-            'IWM': {'name': 'iShares Russell 2000 ETF', 'sector': 'ETF', 'exchange': 'NYSE'},
-            
-            # Korean Stocks (ADRs)
-            'TSM': {'name': 'Taiwan Semiconductor Manufacturing Company', 'sector': 'Technology', 'exchange': 'NYSE'},
-            'BABA': {'name': 'Alibaba Group Holding Limited', 'sector': 'Consumer Cyclical', 'exchange': 'NYSE'},
-            'ASML': {'name': 'ASML Holding N.V.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-        }
-        
-        # Extended stock database with more entries
-        self.extended_stocks = {
-            # Additional Tech Stocks
-            'ADBE': {'name': 'Adobe Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'INTC': {'name': 'Intel Corporation', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'AMD': {'name': 'Advanced Micro Devices, Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'ORCL': {'name': 'Oracle Corporation', 'sector': 'Technology', 'exchange': 'NYSE'},
-            'IBM': {'name': 'International Business Machines Corporation', 'sector': 'Technology', 'exchange': 'NYSE'},
-            'CSCO': {'name': 'Cisco Systems, Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'QCOM': {'name': 'QUALCOMM Incorporated', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'TXN': {'name': 'Texas Instruments Incorporated', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'AVGO': {'name': 'Broadcom Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'NOW': {'name': 'ServiceNow, Inc.', 'sector': 'Technology', 'exchange': 'NYSE'},
-            'SNOW': {'name': 'Snowflake Inc.', 'sector': 'Technology', 'exchange': 'NYSE'},
-            'PLTR': {'name': 'Palantir Technologies Inc.', 'sector': 'Technology', 'exchange': 'NYSE'},
-            'SHOP': {'name': 'Shopify Inc.', 'sector': 'Technology', 'exchange': 'NYSE'},
-            'UBER': {'name': 'Uber Technologies, Inc.', 'sector': 'Technology', 'exchange': 'NYSE'},
-            'LYFT': {'name': 'Lyft, Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'SPOT': {'name': 'Spotify Technology S.A.', 'sector': 'Communication Services', 'exchange': 'NYSE'},
-            'ROKU': {'name': 'Roku, Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'ZM': {'name': 'Zoom Video Communications, Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'DOCU': {'name': 'DocuSign, Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            'OKTA': {'name': 'Okta, Inc.', 'sector': 'Technology', 'exchange': 'NASDAQ'},
-            
-            # More Financials
-            'V': {'name': 'Visa Inc.', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'MA': {'name': 'Mastercard Incorporated', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'PYPL': {'name': 'PayPal Holdings, Inc.', 'sector': 'Financial Services', 'exchange': 'NASDAQ'},
-            'SQ': {'name': 'Block, Inc.', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'AXP': {'name': 'American Express Company', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'C': {'name': 'Citigroup Inc.', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            'SCHW': {'name': 'The Charles Schwab Corporation', 'sector': 'Financial Services', 'exchange': 'NYSE'},
-            
-            # More Consumer
-            'WMT': {'name': 'Walmart Inc.', 'sector': 'Consumer Defensive', 'exchange': 'NYSE'},
-            'COST': {'name': 'Costco Wholesale Corporation', 'sector': 'Consumer Defensive', 'exchange': 'NASDAQ'},
-            'TGT': {'name': 'Target Corporation', 'sector': 'Consumer Cyclical', 'exchange': 'NYSE'},
-            'HD': {'name': 'The Home Depot, Inc.', 'sector': 'Consumer Cyclical', 'exchange': 'NYSE'},
-            'LOW': {'name': 'Lowe\'s Companies, Inc.', 'sector': 'Consumer Cyclical', 'exchange': 'NYSE'},
-            'F': {'name': 'Ford Motor Company', 'sector': 'Consumer Cyclical', 'exchange': 'NYSE'},
-            'GM': {'name': 'General Motors Company', 'sector': 'Consumer Cyclical', 'exchange': 'NYSE'},
-            'DIS': {'name': 'The Walt Disney Company', 'sector': 'Communication Services', 'exchange': 'NYSE'},
-            
-            # More Healthcare & Biotech
-            'MRNA': {'name': 'Moderna, Inc.', 'sector': 'Healthcare', 'exchange': 'NASDAQ'},
-            'BNTX': {'name': 'BioNTech SE', 'sector': 'Healthcare', 'exchange': 'NASDAQ'},
-            'GILD': {'name': 'Gilead Sciences, Inc.', 'sector': 'Healthcare', 'exchange': 'NASDAQ'},
-            'AMGN': {'name': 'Amgen Inc.', 'sector': 'Healthcare', 'exchange': 'NASDAQ'},
-            'BIIB': {'name': 'Biogen Inc.', 'sector': 'Healthcare', 'exchange': 'NASDAQ'},
-            'REGN': {'name': 'Regeneron Pharmaceuticals, Inc.', 'sector': 'Healthcare', 'exchange': 'NASDAQ'},
-            
-            # More Energy & Utilities
-            'NEE': {'name': 'NextEra Energy, Inc.', 'sector': 'Utilities', 'exchange': 'NYSE'},
-            'DUK': {'name': 'Duke Energy Corporation', 'sector': 'Utilities', 'exchange': 'NYSE'},
-            'SO': {'name': 'The Southern Company', 'sector': 'Utilities', 'exchange': 'NYSE'},
-            'SLB': {'name': 'Schlumberger Limited', 'sector': 'Energy', 'exchange': 'NYSE'},
-            'COP': {'name': 'ConocoPhillips', 'sector': 'Energy', 'exchange': 'NYSE'},
-            
-            # Communication Services
-            'T': {'name': 'AT&T Inc.', 'sector': 'Communication Services', 'exchange': 'NYSE'},
-            'VZ': {'name': 'Verizon Communications Inc.', 'sector': 'Communication Services', 'exchange': 'NYSE'},
-            'CMCSA': {'name': 'Comcast Corporation', 'sector': 'Communication Services', 'exchange': 'NASDAQ'},
-            
-            # More ETFs
-            'VTI': {'name': 'Vanguard Total Stock Market ETF', 'sector': 'ETF', 'exchange': 'NYSE'},
-            'VXUS': {'name': 'Vanguard Total International Stock ETF', 'sector': 'ETF', 'exchange': 'NASDAQ'},
-            'BND': {'name': 'Vanguard Total Bond Market ETF', 'sector': 'ETF', 'exchange': 'NASDAQ'},
-            'GLD': {'name': 'SPDR Gold Shares', 'sector': 'ETF', 'exchange': 'NYSE'},
-            'SLV': {'name': 'iShares Silver Trust', 'sector': 'ETF', 'exchange': 'NYSE'},
-            'TLT': {'name': 'iShares 20+ Year Treasury Bond ETF', 'sector': 'ETF', 'exchange': 'NASDAQ'},
-            'XLF': {'name': 'Financial Select Sector SPDR Fund', 'sector': 'ETF', 'exchange': 'NYSE'},
-            'XLK': {'name': 'Technology Select Sector SPDR Fund', 'sector': 'ETF', 'exchange': 'NYSE'},
-            'XLE': {'name': 'Energy Select Sector SPDR Fund', 'sector': 'ETF', 'exchange': 'NYSE'},
-            'XLV': {'name': 'Health Care Select Sector SPDR Fund', 'sector': 'ETF', 'exchange': 'NYSE'},
-        }
-        
-        # Combine all stocks
-        self.all_stocks = {**self.popular_stocks, **self.extended_stocks}
     
     def _get_cache_key(self, query: str) -> str:
         """Generate cache key for search query."""
@@ -217,62 +78,36 @@ class StockSearchService:
             return matches / len(query_chars) * 0.3
     
     async def search_stocks_local(self, query: str, limit: int = 10) -> List[StockSearchResult]:
-        """Search stocks using local database."""
+        """Search stocks using centralized mock data service."""
         if not query or len(query.strip()) < 1:
             # Return popular stocks if no query
+            popular_stocks = mock_data_service.get_popular_stocks(limit)
             results = []
-            popular_tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'JPM', 'SPY', 'QQQ']
             
-            for ticker in popular_tickers[:limit]:
-                if ticker in self.all_stocks:
-                    stock_data = self.all_stocks[ticker]
-                    results.append(StockSearchResult(
-                        symbol=ticker,
-                        name=stock_data['name'],
-                        exchange=stock_data['exchange'],
-                        type='etf' if stock_data['sector'] == 'ETF' else 'stock',
-                        sector=stock_data['sector'],
-                        industry=None,
-                        market_cap=None,
-                        currency='USD'
-                    ))
+            for stock_data in popular_stocks:
+                results.append(StockSearchResult(
+                    symbol=stock_data['ticker'],
+                    name=stock_data['name'],
+                    exchange=stock_data['exchange'],
+                    type=stock_data['type'],
+                    sector=stock_data['sector'],
+                    industry=None,
+                    market_cap=None,
+                    currency='USD'
+                ))
             return results
         
-        query = query.upper().strip()
+        # Use centralized search function
+        search_results = mock_data_service.search_stocks(query, limit)
         results = []
         
-        # Score all stocks
-        scored_stocks = []
-        
-        for ticker, data in self.all_stocks.items():
-            # Calculate scores for different matching criteria
-            symbol_score = self._fuzzy_match_score(query, ticker) * 2.0  # Symbol match is most important
-            name_score = self._fuzzy_match_score(query, data['name']) * 1.0
-            
-            # Check if query matches word boundaries in company name
-            name_words = data['name'].lower().split()
-            word_boundary_score = 0
-            for word in name_words:
-                if word.startswith(query.lower()):
-                    word_boundary_score = 1.5
-                    break
-            
-            total_score = max(symbol_score, name_score, word_boundary_score)
-            
-            if total_score > 0.1:  # Only include reasonable matches
-                scored_stocks.append((ticker, data, total_score))
-        
-        # Sort by score (descending)
-        scored_stocks.sort(key=lambda x: x[2], reverse=True)
-        
-        # Convert to results
-        for ticker, data, score in scored_stocks[:limit]:
+        for stock_data in search_results:
             results.append(StockSearchResult(
-                symbol=ticker,
-                name=data['name'],
-                exchange=data['exchange'],
-                type='etf' if data['sector'] == 'ETF' else 'stock',
-                sector=data['sector'],
+                symbol=stock_data['ticker'],
+                name=stock_data['name'],
+                exchange=stock_data['exchange'],
+                type=stock_data['type'],
+                sector=stock_data['sector'],
                 industry=None,
                 market_cap=None,
                 currency='USD'
@@ -285,8 +120,8 @@ class StockSearchService:
         try:
             ticker = ticker.upper().strip()
             
-            # First check local database
-            if ticker in self.all_stocks:
+            # First check centralized mock data service
+            if mock_data_service.get_stock_by_ticker(ticker):
                 return True
             
             # If not in local database, try yfinance
