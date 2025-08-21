@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, memo } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Activity,
   Eye,
-  Download,
   Trash2,
   Filter,
   Search,
@@ -36,6 +35,118 @@ import {
   AnalysisStatsResponse
 } from '../api/history'
 import { ReportDetailView } from '../components/reports/ReportDetailView'
+
+// Stats Overview component
+const StatsOverview = memo<{ stats: AnalysisStatsResponse | null }>(
+  ({ stats }) => {
+    if (!stats) return null
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <BarChart3 className="size-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">총 분석 수</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {stats.total_analyses}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-50 rounded-lg">
+                  <TrendingUp className="size-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">평균 신뢰도</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {stats.average_confidence != null
+                      ? `${Math.round(stats.average_confidence)}%`
+                      : '-'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-50 rounded-lg">
+                  <Activity className="size-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">결정 분포</p>
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {Object.keys(stats.decision_distribution).length === 0 ? (
+                      <span className="text-xs text-gray-400">-</span>
+                    ) : (
+                      Object.entries(stats.decision_distribution).map(
+                        ([decision, count]) => (
+                          <span
+                            key={decision}
+                            className="text-xs bg-gray-100 px-1 py-0.5 rounded"
+                          >
+                            {decision}: {count}
+                          </span>
+                        )
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-50 rounded-lg">
+                  <Calendar className="size-5 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">기간</p>
+                  <p className="text-xl font-bold text-gray-900">30일</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+)
 
 // Status badge component
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
@@ -150,10 +261,10 @@ export const History: React.FC = () => {
     // eslint-disable-next-line
   }, [currentPage, searchTicker])
 
-  const handleSearch = (value: string) => {
+  const handleSearch = useCallback((value: string) => {
     setSearchTicker(value)
     setCurrentPage(1)
-  }
+  }, [])
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-'
@@ -173,25 +284,6 @@ export const History: React.FC = () => {
     return `${minutes}m ${remainingSeconds}s`
   }
 
-  const handleExport = async (sessionId: string, ticker: string) => {
-    try {
-      const response = await historyApi.exportAnalysisReport(sessionId, 'json')
-      const blob = new Blob([JSON.stringify(response, null, 2)], {
-        type: 'application/json'
-      })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `analysis_${ticker}_${sessionId.slice(0, 8)}.json`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-    } catch (err) {
-      alert('Failed to export analysis report')
-    }
-  }
-
   const handleDelete = async (sessionId: string, ticker: string) => {
     if (window.confirm(`정말로 ${ticker} 분석을 삭제하시겠습니까?`)) {
       try {
@@ -209,26 +301,6 @@ export const History: React.FC = () => {
         sessionId={selectedSessionId}
         onBack={() => setSelectedSessionId(null)}
       />
-    )
-  }
-
-  if (loading && sessions.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">
-              분석 히스토리
-            </h1>
-            <p className="text-gray-600 mt-1">
-              과거 분석 내역을 불러오는 중입니다...
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="size-8 animate-spin text-blue-500" />
-        </div>
-      </div>
     )
   }
 
@@ -265,110 +337,7 @@ export const History: React.FC = () => {
       )}
 
       {/* Stats Overview */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 rounded-lg">
-                    <BarChart3 className="size-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">총 분석 수</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {stats.total_analyses}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-50 rounded-lg">
-                    <TrendingUp className="size-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">평균 신뢰도</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {stats.average_confidence != null
-                        ? `${Math.round(stats.average_confidence)}%`
-                        : '-'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-50 rounded-lg">
-                    <Activity className="size-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">결정 분포</p>
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {Object.keys(stats.decision_distribution).length === 0 ? (
-                        <span className="text-xs text-gray-400">-</span>
-                      ) : (
-                        Object.entries(stats.decision_distribution).map(
-                          ([decision, count]) => (
-                            <span
-                              key={decision}
-                              className="text-xs bg-gray-100 px-1 py-0.5 rounded"
-                            >
-                              {decision}: {count}
-                            </span>
-                          )
-                        )
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-50 rounded-lg">
-                    <Calendar className="size-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">기간</p>
-                    <p className="text-xl font-bold text-gray-900">30일</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      )}
+      <StatsOverview stats={stats} />
 
       {/* Search and Filters */}
       <Card>
@@ -416,18 +385,53 @@ export const History: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {sessions.length === 0 ? (
-            <div className="text-center py-12">
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="p-4 border border-gray-200 rounded-lg animate-pulse"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="h-6 bg-gray-200 rounded w-16"></div>
+                        <div className="h-5 bg-gray-200 rounded w-20"></div>
+                        <div className="h-5 bg-gray-200 rounded w-12"></div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[...Array(4)].map((_, j) => (
+                          <div key={j}>
+                            <div className="h-4 bg-gray-200 rounded w-16 mb-1"></div>
+                            <div className="h-4 bg-gray-200 rounded w-20"></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                      <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="text-center py-12 min-h-[400px] flex flex-col justify-center">
               <FileText className="size-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 분석 내역 없음
               </h3>
               <p className="text-gray-500 mb-4">
-                아직 분석을 실행한 기록이 없습니다.
+                {searchTicker
+                  ? `"${searchTicker}"에 대한 분석 결과가 없습니다.`
+                  : '아직 분석을 실행한 기록이 없습니다.'}
               </p>
-              <Button onClick={() => navigate('/analysis')}>
-                첫 분석 시작하기
-              </Button>
+              {!searchTicker && (
+                <Button onClick={() => navigate('/analysis')}>
+                  첫 분석 시작하기
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
