@@ -1,0 +1,291 @@
+2025-08-21 23:52:58,303 - __main__ - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:53:45,446 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:53:45,447 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:53:45,447 - src.core.database - INFO - Initializing database...
+2025-08-21 23:53:45,516 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:53:45,516 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:53:45,518 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:53:45,519 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:53:45,519 - src.main - INFO - Database initialized successfully
+2025-08-21 23:53:45,529 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:53:45,529 - src.main - INFO - Application startup completed
+2025-08-21 23:53:45,544 - request - INFO - [82f5fab8] GET /history - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:53:45,544 - request - INFO - [82f5fab8] 404 - Time: 0.001s
+2025-08-21 23:53:45,629 - request - INFO - [95e086e1] GET /favicon.ico - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:53:45,629 - request - INFO - [95e086e1] 404 - Time: 0.001s
+2025-08-21 23:53:46,320 - request - INFO - [76537e43] GET /history - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:53:46,321 - request - INFO - [76537e43] 404 - Time: 0.000s
+2025-08-21 23:53:47,602 - request - INFO - [4fe30dec] GET / - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:53:47,602 - request - INFO - [4fe30dec] 200 - Time: 0.001s
+2025-08-21 23:53:51,895 - request - INFO - [ebdf68ad] GET /redoc - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:53:51,895 - request - INFO - [ebdf68ad] 404 - Time: 0.001s
+2025-08-21 23:53:53,499 - request - INFO - [61a29adb] GET / - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:53:53,500 - request - INFO - [61a29adb] 200 - Time: 0.001s
+2025-08-21 23:54:33,011 - src.core.database - INFO - Closing database connections...
+2025-08-21 23:54:33,013 - src.core.database - INFO - Database connections closed
+2025-08-21 23:54:33,013 - src.core.database - INFO - Database connections closed
+2025-08-21 23:54:33,013 - src.main - INFO - Database connections closed
+2025-08-21 23:54:33,013 - src.main - INFO - Application shutdown completed
+2025-08-21 23:54:35,192 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:54:35,193 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:54:35,193 - src.core.database - INFO - Initializing database...
+2025-08-21 23:54:35,202 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:54:35,202 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:54:35,204 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:54:35,204 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:54:35,204 - src.main - INFO - Database initialized successfully
+2025-08-21 23:54:35,215 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:54:35,215 - src.main - INFO - Application startup completed
+2025-08-21 23:54:37,515 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:54:37,515 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:54:37,515 - src.core.database - INFO - Initializing database...
+2025-08-21 23:54:37,523 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:54:37,523 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:54:37,525 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:54:37,525 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:54:37,525 - src.main - INFO - Database initialized successfully
+2025-08-21 23:54:37,535 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:54:37,536 - src.main - INFO - Application startup completed
+2025-08-21 23:54:39,951 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:54:39,952 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:54:39,952 - src.core.database - INFO - Initializing database...
+2025-08-21 23:54:39,961 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:54:39,961 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:54:39,963 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:54:39,963 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:54:39,963 - src.main - INFO - Database initialized successfully
+2025-08-21 23:54:39,972 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:54:39,973 - src.main - INFO - Application startup completed
+2025-08-21 23:54:42,708 - request - INFO - [208e09b2] GET /api/v1/auth/me - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:54:42,715 - request - INFO - [208e09b2] 200 - Time: 0.007s
+2025-08-21 23:54:42,775 - request - INFO - [85539ba0] GET /api/v1/insights/search/popular - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:54:42,776 - src.api.insights - INFO - Popular stocks list retrieved - 20 stocks
+2025-08-21 23:54:42,778 - request - INFO - [b83d3ad0] GET /api/v1/analysis/sessions - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:54:42,778 - request - INFO - [894a0208] GET /api/v1/market/fear-greed/history - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:54:42,778 - request - INFO - [e2074df4] GET /api/v1/market/sentiment - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:54:42,779 - request - INFO - [85539ba0] 200 - Time: 0.004s
+2025-08-21 23:54:42,779 - request - INFO - [b4472bea] GET /api/v1/economic/events - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:54:42,796 - request - INFO - [b4472bea] 200 - Time: 0.017s
+2025-08-21 23:54:42,796 - request - INFO - [b83d3ad0] 200 - Time: 0.018s
+2025-08-21 23:54:42,837 - src.services.fear_greed_service - INFO - Fetched fresh Fear & Greed Index data from CNN
+2025-08-21 23:54:43,445 - request - INFO - [e2074df4] 200 - Time: 0.667s
+2025-08-21 23:54:43,626 - request - INFO - [894a0208] 200 - Time: 0.848s
+2025-08-21 23:54:45,873 - request - INFO - [ebb5bc5b] GET /analysis - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:54:45,874 - request - INFO - [ebb5bc5b] 404 - Time: 0.001s
+2025-08-21 23:54:50,576 - src.core.database - INFO - Closing database connections...
+2025-08-21 23:54:50,576 - src.core.database - INFO - Database connections closed
+2025-08-21 23:54:50,576 - src.core.database - INFO - Database connections closed
+2025-08-21 23:54:50,576 - src.main - INFO - Database connections closed
+2025-08-21 23:54:50,576 - src.main - INFO - Application shutdown completed
+2025-08-21 23:54:53,368 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:54:53,369 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:54:53,369 - src.core.database - INFO - Initializing database...
+2025-08-21 23:54:53,380 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:54:53,380 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:54:53,382 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:54:53,382 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:54:53,383 - src.main - INFO - Database initialized successfully
+2025-08-21 23:54:53,393 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:54:53,393 - src.main - INFO - Application startup completed
+2025-08-21 23:54:55,982 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:54:55,983 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:54:55,983 - src.core.database - INFO - Initializing database...
+2025-08-21 23:54:55,993 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:54:55,993 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:54:55,995 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:54:55,995 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:54:55,995 - src.main - INFO - Database initialized successfully
+2025-08-21 23:54:56,005 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:54:56,005 - src.main - INFO - Application startup completed
+2025-08-21 23:54:58,563 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:54:58,564 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:54:58,564 - src.core.database - INFO - Initializing database...
+2025-08-21 23:54:58,574 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:54:58,574 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:54:58,576 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:54:58,576 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:54:58,576 - src.main - INFO - Database initialized successfully
+2025-08-21 23:54:58,586 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:54:58,586 - src.main - INFO - Application startup completed
+2025-08-21 23:54:58,590 - request - INFO - [ccf09ff9] GET /analysis - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:54:58,590 - request - INFO - [ccf09ff9] 404 - Time: 0.000s
+2025-08-21 23:55:06,767 - src.core.database - INFO - Closing database connections...
+2025-08-21 23:55:06,767 - src.core.database - INFO - Database connections closed
+2025-08-21 23:55:06,767 - src.core.database - INFO - Database connections closed
+2025-08-21 23:55:06,767 - src.main - INFO - Database connections closed
+2025-08-21 23:55:06,767 - src.main - INFO - Application shutdown completed
+2025-08-21 23:55:08,986 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:55:08,986 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:55:08,986 - src.core.database - INFO - Initializing database...
+2025-08-21 23:55:08,999 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:55:08,999 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:55:09,001 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:55:09,001 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:55:09,001 - src.main - INFO - Database initialized successfully
+2025-08-21 23:55:09,011 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:55:09,011 - src.main - INFO - Application startup completed
+2025-08-21 23:55:11,543 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:55:11,543 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:55:11,543 - src.core.database - INFO - Initializing database...
+2025-08-21 23:55:11,553 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:55:11,553 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:55:11,556 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:55:11,556 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:55:11,556 - src.main - INFO - Database initialized successfully
+2025-08-21 23:55:11,565 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:55:11,566 - src.main - INFO - Application startup completed
+2025-08-21 23:55:15,203 - src.core.database - INFO - Closing database connections...
+2025-08-21 23:55:15,204 - src.core.database - INFO - Database connections closed
+2025-08-21 23:55:15,204 - src.core.database - INFO - Database connections closed
+2025-08-21 23:55:15,204 - src.main - INFO - Database connections closed
+2025-08-21 23:55:15,204 - src.main - INFO - Application shutdown completed
+2025-08-21 23:55:17,793 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:55:17,793 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:55:17,793 - src.core.database - INFO - Initializing database...
+2025-08-21 23:55:17,803 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:55:17,803 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:55:17,807 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:55:17,807 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:55:17,807 - src.main - INFO - Database initialized successfully
+2025-08-21 23:55:17,816 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:55:17,816 - src.main - INFO - Application startup completed
+2025-08-21 23:55:23,574 - src.core.database - INFO - Closing database connections...
+2025-08-21 23:55:23,575 - src.core.database - INFO - Database connections closed
+2025-08-21 23:55:23,575 - src.core.database - INFO - Database connections closed
+2025-08-21 23:55:23,575 - src.main - INFO - Database connections closed
+2025-08-21 23:55:23,575 - src.main - INFO - Application shutdown completed
+2025-08-21 23:55:25,738 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:55:25,738 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:55:25,738 - src.core.database - INFO - Initializing database...
+2025-08-21 23:55:25,745 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:55:25,745 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:55:25,748 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:55:25,748 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:55:25,748 - src.main - INFO - Database initialized successfully
+2025-08-21 23:55:25,760 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:55:25,760 - src.main - INFO - Application startup completed
+2025-08-21 23:55:38,788 - src.core.database - INFO - Closing database connections...
+2025-08-21 23:55:38,789 - src.core.database - INFO - Database connections closed
+2025-08-21 23:55:38,789 - src.core.database - INFO - Database connections closed
+2025-08-21 23:55:38,789 - src.main - INFO - Database connections closed
+2025-08-21 23:55:38,789 - src.main - INFO - Application shutdown completed
+2025-08-21 23:55:41,188 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:55:41,188 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:55:41,188 - src.core.database - INFO - Initializing database...
+2025-08-21 23:55:41,201 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:55:41,201 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:55:41,204 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:55:41,204 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:55:41,204 - src.main - INFO - Database initialized successfully
+2025-08-21 23:55:41,213 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:55:41,214 - src.main - INFO - Application startup completed
+2025-08-21 23:56:15,954 - src.core.database - INFO - Closing database connections...
+2025-08-21 23:56:15,954 - src.core.database - INFO - Database connections closed
+2025-08-21 23:56:15,954 - src.core.database - INFO - Database connections closed
+2025-08-21 23:56:15,954 - src.main - INFO - Database connections closed
+2025-08-21 23:56:15,954 - src.main - INFO - Application shutdown completed
+2025-08-21 23:56:21,618 - src.main - WARNING - ⚠️ Frontend build directory not found: /Users/1113006/Desktop/aiagent/TradingAgents/be/fe/dist. Frontend will not be served.
+2025-08-21 23:56:21,618 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:56:21,618 - src.core.database - INFO - Initializing database...
+2025-08-21 23:56:21,638 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:56:21,638 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:56:21,640 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:56:21,640 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:56:21,641 - src.main - INFO - Database initialized successfully
+2025-08-21 23:56:21,651 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:56:21,651 - src.main - INFO - Application startup completed
+2025-08-21 23:56:28,368 - request - INFO - [ea9cb027] GET /analysis - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:56:28,369 - request - INFO - [ea9cb027] 404 - Time: 0.001s
+2025-08-21 23:56:31,587 - request - INFO - [347d38ca] GET / - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:56:31,587 - request - INFO - [347d38ca] 404 - Time: 0.001s
+2025-08-21 23:56:32,803 - request - INFO - [29cdab87] GET / - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:56:32,804 - request - INFO - [29cdab87] 404 - Time: 0.000s
+2025-08-21 23:57:00,738 - src.core.database - INFO - Closing database connections...
+2025-08-21 23:57:00,739 - src.core.database - INFO - Database connections closed
+2025-08-21 23:57:00,739 - src.core.database - INFO - Database connections closed
+2025-08-21 23:57:00,739 - src.main - INFO - Database connections closed
+2025-08-21 23:57:00,739 - src.main - INFO - Application shutdown completed
+2025-08-21 23:57:03,146 - src.main - INFO - ✅ Serving frontend static files from: /Users/1113006/Desktop/aiagent/TradingAgents/fe/dist
+2025-08-21 23:57:03,147 - src.main - INFO - Starting Trading Agents API v1.0.0
+2025-08-21 23:57:03,147 - src.core.database - INFO - Initializing database...
+2025-08-21 23:57:03,165 - src.core.database - INFO - Initialized database engines: sync=sqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db, async=sqlite+aiosqlite:////Users/1113006/Desktop/aiagent/TradingAgents/be/trading_agents.db
+2025-08-21 23:57:03,166 - src.core.database - INFO - Creating database tables...
+2025-08-21 23:57:03,177 - src.core.database - INFO - Database tables created successfully
+2025-08-21 23:57:03,177 - src.core.database - INFO - Database initialization completed
+2025-08-21 23:57:03,178 - src.main - INFO - Database initialized successfully
+2025-08-21 23:57:03,219 - src.main - INFO - Found 1 admin user(s), skipping seeder
+2025-08-21 23:57:03,220 - src.main - INFO - Application startup completed
+2025-08-21 23:57:06,364 - request - INFO - [40229548] GET / - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,375 - request - INFO - [40229548] 200 - Time: 0.011s
+2025-08-21 23:57:06,404 - request - INFO - [327b2938] GET /assets/index-BDSNkkmC.js - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,407 - request - INFO - [a845a529] GET /assets/index-bh50muIT.css - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,422 - request - INFO - [327b2938] 200 - Time: 0.017s
+2025-08-21 23:57:06,422 - request - INFO - [a845a529] 200 - Time: 0.015s
+2025-08-21 23:57:06,491 - request - INFO - [dff20e63] GET /api/v1/auth/me - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,495 - request - INFO - [dff20e63] 200 - Time: 0.004s
+2025-08-21 23:57:06,503 - request - INFO - [279f46b6] GET /favicon.svg - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,510 - request - INFO - [279f46b6] 200 - Time: 0.006s
+2025-08-21 23:57:06,550 - request - INFO - [816d1331] GET /api/v1/insights/search/popular - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,551 - src.api.insights - INFO - Popular stocks list retrieved - 20 stocks
+2025-08-21 23:57:06,552 - request - INFO - [336beaa5] GET /api/v1/analysis/sessions - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,553 - request - INFO - [391a4955] GET /api/v1/market/fear-greed/history - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,553 - request - INFO - [816d1331] 200 - Time: 0.003s
+2025-08-21 23:57:06,554 - request - INFO - [147ca4b9] GET /api/v1/market/sentiment - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,555 - request - INFO - [2fce2771] GET /api/v1/economic/events - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:06,580 - request - INFO - [2fce2771] 200 - Time: 0.025s
+2025-08-21 23:57:06,581 - request - INFO - [336beaa5] 200 - Time: 0.028s
+2025-08-21 23:57:06,619 - src.services.fear_greed_service - INFO - Fetched fresh Fear & Greed Index data from CNN
+2025-08-21 23:57:07,220 - request - INFO - [147ca4b9] 200 - Time: 0.666s
+2025-08-21 23:57:07,404 - request - INFO - [391a4955] 200 - Time: 0.851s
+2025-08-21 23:57:08,002 - request - INFO - [79f55306] GET /api/v1/reports/history - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:08,002 - request - INFO - [7fb4d63a] GET /api/v1/reports/stats/summary - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:08,048 - request - INFO - [79f55306] 200 - Time: 0.046s
+2025-08-21 23:57:08,048 - request - INFO - [7fb4d63a] 200 - Time: 0.045s
+2025-08-21 23:57:08,681 - request - INFO - [74b67757] GET /api/v1/economic/historical - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:09,175 - request - INFO - [dab7a3d0] GET /api/v1/reports/history - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:09,175 - request - INFO - [d3711a0a] GET /api/v1/reports/stats/summary - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:09,287 - request - INFO - [dab7a3d0] 200 - Time: 0.113s
+2025-08-21 23:57:09,288 - request - INFO - [d3711a0a] 200 - Time: 0.112s
+2025-08-21 23:57:09,782 - request - INFO - [74b67757] 200 - Time: 1.102s
+2025-08-21 23:57:10,626 - request - INFO - [59e992b2] GET /api/v1/insights/search/popular - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:10,627 - src.api.insights - INFO - Popular stocks list retrieved - 20 stocks
+2025-08-21 23:57:10,628 - request - INFO - [d51c2cb1] GET /api/v1/analysis/sessions - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:10,628 - request - INFO - [36307991] GET /api/v1/market/fear-greed/history - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:10,628 - request - INFO - [a596ebfb] GET /api/v1/market/sentiment - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:10,628 - request - INFO - [057e3fe2] GET /api/v1/economic/events - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:10,629 - request - INFO - [59e992b2] 200 - Time: 0.003s
+2025-08-21 23:57:10,632 - request - INFO - [057e3fe2] 200 - Time: 0.003s
+2025-08-21 23:57:10,633 - request - INFO - [d51c2cb1] 200 - Time: 0.005s
+2025-08-21 23:57:10,649 - src.services.fear_greed_service - INFO - Fetched fresh Fear & Greed Index data from CNN
+2025-08-21 23:57:10,865 - request - INFO - [a596ebfb] 200 - Time: 0.236s
+2025-08-21 23:57:11,066 - request - INFO - [36307991] 200 - Time: 0.438s
+2025-08-21 23:57:13,150 - request - INFO - [f98f88e1] GET /api/v1/economic/historical - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:13,153 - request - INFO - [f98f88e1] 200 - Time: 0.004s
+2025-08-21 23:57:14,448 - request - INFO - [b7fdd3d8] GET /api/v1/reports/history - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:14,448 - request - INFO - [c07095ba] GET /api/v1/reports/stats/summary - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:14,487 - request - INFO - [b7fdd3d8] 200 - Time: 0.040s
+2025-08-21 23:57:14,488 - request - INFO - [c07095ba] 200 - Time: 0.040s
+2025-08-21 23:57:15,895 - request - INFO - [916c9c10] GET /api/v1/economic/historical - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:15,898 - request - INFO - [916c9c10] 200 - Time: 0.004s
+2025-08-21 23:57:16,512 - request - INFO - [9d406c33] GET /api/v1/analysis/sessions - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:16,514 - request - INFO - [9d406c33] 200 - Time: 0.002s
+2025-08-21 23:57:16,804 - request - INFO - [3d81088d] GET /api/v1/economic/historical - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:18,089 - request - INFO - [3d81088d] 200 - Time: 1.285s
+2025-08-21 23:57:19,038 - request - INFO - [b1d2e4ce] GET /api/v1/economic/historical - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:20,145 - request - INFO - [b1d2e4ce] 200 - Time: 1.106s
+2025-08-21 23:57:20,630 - request - INFO - [f53a97e3] GET /api/v1/insights/search/popular - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:20,631 - src.api.insights - INFO - Popular stocks list retrieved - 20 stocks
+2025-08-21 23:57:20,632 - request - INFO - [9fa9ec1b] GET /api/v1/analysis/sessions - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:20,633 - request - INFO - [f53a97e3] 200 - Time: 0.003s
+2025-08-21 23:57:20,633 - request - INFO - [5f5f6211] GET /api/v1/market/fear-greed/history - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:20,633 - request - INFO - [7b3821b1] GET /api/v1/market/sentiment - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:20,634 - request - INFO - [f04cd0fa] GET /api/v1/economic/events - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:20,638 - request - INFO - [f04cd0fa] 200 - Time: 0.004s
+2025-08-21 23:57:20,639 - request - INFO - [9fa9ec1b] 200 - Time: 0.006s
+2025-08-21 23:57:20,645 - src.services.fear_greed_service - INFO - Fetched fresh Fear & Greed Index data from CNN
+2025-08-21 23:57:20,844 - request - INFO - [7b3821b1] 200 - Time: 0.212s
+2025-08-21 23:57:21,074 - request - INFO - [5f5f6211] 200 - Time: 0.442s
+2025-08-21 23:57:26,513 - request - INFO - [8b7889e0] GET /api/v1/analysis/sessions - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:26,516 - request - INFO - [8b7889e0] 200 - Time: 0.002s
+2025-08-21 23:57:36,514 - request - INFO - [bbff8d68] GET /api/v1/analysis/sessions - IP: 127.0.0.1 - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.
+2025-08-21 23:57:36,518 - request - INFO - [bbff8d68] 200 - Time: 0.004s
