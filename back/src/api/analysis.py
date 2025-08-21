@@ -711,7 +711,7 @@ async def get_live_session_data(
         total_agents = len(analysis_session.selected_analysts) + 5
         completed_agents = analysis_session.agents_completed or 0
 
-        progress_percentage = (len(agents_status) /  total_agents) * 100
+        progress_percentage = round((len(agents_status) / total_agents) * 100)
         current_agent =  None
         # Get recent messages if requested
         messages = []
