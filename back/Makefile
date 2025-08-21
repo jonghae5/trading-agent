@@ -1,4 +1,4 @@
-.PHONY: install run deploy clean
+.PHONY: install run deploy clean killpy
 
 # Install dependencies
 install:
@@ -7,7 +7,6 @@ install:
 # 개발용 FastAPI 서버 실행
 run:
 	uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
-
 
 # Deploy FastAPI server in background
 deploy:
@@ -20,3 +19,8 @@ clean:
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	rm -rf build/
 	rm -rf dist/
+
+# Kill all python processes using lsof and kill
+killpy:
+	@echo "Killing all python and python3 processes using lsof and kill..."
+	- for pid in $(lsof -t -c python -c python3); do kill -9 $$pid; done
