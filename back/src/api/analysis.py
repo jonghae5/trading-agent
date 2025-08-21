@@ -383,7 +383,10 @@ async def get_analysis_status(
 
         completed_agents = analysis_session.agents_completed or 0
         
-        
+        # Calculate progress percentage
+        progress_percentage = 0.0
+        if total_agents > 0:
+            progress_percentage = round((completed_agents / total_agents) * 100, 1)
         
         agents_status = {}
         current_agent = None
