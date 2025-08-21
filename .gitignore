@@ -52,7 +52,7 @@ front/.env.production.local
 # vercel
 front/.vercel
 
+back/*.db
+back/*.db-wal
+back/*.db-shm
 
-back/trading_agents.db
-back/trading_agents.db-shm
-back/trading_agents.db-wal
