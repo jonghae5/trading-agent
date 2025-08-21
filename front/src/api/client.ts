@@ -1,0 +1,314 @@
+/**
+ * API client configuration and utilities
+ */
+
+import { API_BASE_URL } from '../lib/constants'
+import type { ErrorData, StockSearchResult } from '../types'
+
+export interface ApiResponse<T = unknown> {
+  success: boolean
+  message: string
+  data?: T
+  error?: string
+  status_code?: number
+}
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+    public data?: ErrorData
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
+class ApiClient {
+  private baseURL: string
+
+  constructor(baseURL: string = API_BASE_URL) {
+    this.baseURL = baseURL.replace(/\/$/, '') // Remove trailing slash
+  }
+
+  // 쿠키 방식에서는 토큰을 직접 관리하지 않음
+  setToken(token: string) {
+    // No-op for cookie-based auth
+  }
+
+  clearToken() {
+    // No-op for cookie-based auth
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`
+
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      credentials: 'include', // 쿠키를 포함하여 요청
+      mode: 'cors',
+      ...options
+    }
+
+    try {
+      const response = await fetch(url, config)
+
+      if (!response.ok) {
+        let errorData: ErrorData
+        try {
+          errorData = await response.json()
+        } catch {
+          errorData = { message: response.statusText }
+        }
+
+        throw new ApiError(
+          response.status,
+          errorData.message || errorData.detail || 'Request failed',
+          errorData
+        )
+      }
+
+      // Handle empty responses
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json()
+      } else {
+        return {} as T
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error
+      }
+
+      // Network or other errors
+      throw new ApiError(
+        0,
+        error instanceof Error ? error.message : 'Network error',
+        { originalError: error }
+      )
+    }
+  }
+
+  // HTTP methods
+  async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
+    let url = endpoint
+    if (params) {
+      const searchParams = new URLSearchParams()
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value))
+        }
+      })
+      const queryString = searchParams.toString()
+      if (queryString) {
+        url += `?${queryString}`
+      }
+    }
+
+    return this.request<T>(url, { method: 'GET' })
+  }
+
+  async post<T>(endpoint: string, data?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined
+    })
+  }
+
+  async put<T>(endpoint: string, data?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined
+    })
+  }
+
+  async patch<T>(endpoint: string, data?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined
+    })
+  }
+
+  async delete<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE' })
+  }
+}
+
+// Global API client instance
+export const apiClient = new ApiClient()
+
+// Helper function to handle API responses
+export function handleApiResponse<T>(response: ApiResponse<T>): T {
+  if (!response.success) {
+    throw new Error(response.message || 'API request failed')
+  }
+  return response.data as T
+}
+
+// Fear & Greed Index API functions
+export interface FearGreedIndexData {
+  value: number
+  classification: string
+  timestamp: string
+  previous_close?: number
+  one_week_ago?: number
+  one_month_ago?: number
+  one_year_ago?: number
+}
+
+export interface FearGreedHistoricalPoint {
+  date: string
+  value: number
+  classification: string
+}
+
+export interface FearGreedHistoricalData {
+  data: FearGreedHistoricalPoint[]
+  period_days: number
+  start_date: string
+  end_date: string
+  total_points: number
+}
+
+export interface MarketSentimentSummary {
+  current: FearGreedIndexData
+  trend: 'improving' | 'declining' | 'neutral'
+  volatility: 'low' | 'medium' | 'high'
+  historical_comparison: {
+    previous_close?: number
+    one_week_ago?: number
+    one_month_ago?: number
+    one_year_ago?: number
+  }
+  recent_history: FearGreedHistoricalPoint[]
+}
+
+export interface AdvancedSentimentAnalysis {
+  fear_greed_index: FearGreedIndexData
+  social_sentiment?: {
+    twitter_sentiment: number
+    reddit_sentiment: number
+    social_volume: string
+    trending_topics: string[]
+  }
+  news_sentiment?: {
+    overall_sentiment: number
+    positive_articles: number
+    negative_articles: number
+    neutral_articles: number
+    key_themes: string[]
+  }
+  options_sentiment?: {
+    put_call_ratio: number
+    vix_level: number
+    options_flow: string
+    gamma_exposure: string
+  }
+  combined_sentiment_score: number
+  confidence_level: number
+  timestamp: string
+}
+
+// Stock Quote API functions
+export interface StockQuoteData {
+  ticker: string
+  company_name: string
+  price: number
+  change: number
+  change_percent: number
+  volume: number
+  day_low: number | null
+  day_high: number | null
+  week_52_low: number | null
+  week_52_high: number | null
+  previous_close: number
+  market_cap: number | null
+  pe_ratio: number | null
+  timestamp: string
+  source?: string
+}
+
+export interface ChartDataPoint {
+  timestamp: string
+  price: number
+  volume: number
+}
+
+// Stock Quote API methods
+export const stockApi = {
+  // Get stock quote
+  async getQuote(ticker: string): Promise<StockQuoteData> {
+    const response = await apiClient.get<ApiResponse<StockQuoteData>>(
+      `/api/v1/market/quote/${ticker}`
+    )
+    return handleApiResponse(response)
+  },
+
+  // Get chart data for real-time charts
+  async getChartData(
+    ticker: string,
+    interval: string = '1m',
+    range: string = '1d'
+  ): Promise<ChartDataPoint[]> {
+    const response = await apiClient.get<ApiResponse<ChartDataPoint[]>>(
+      `/api/v1/market/chart/${ticker}`,
+      { interval, range }
+    )
+    return handleApiResponse(response)
+  },
+
+  // Search stocks
+  async searchStocks(
+    query: string,
+    limit: number = 10
+  ): Promise<StockSearchResult[]> {
+    const response = await apiClient.get<ApiResponse<StockSearchResult[]>>(
+      '/api/v1/market/search',
+      { query, limit }
+    )
+    return handleApiResponse(response)
+  }
+}
+
+// Fear & Greed Index API methods
+export const fearGreedApi = {
+  // Get historical Fear & Greed Index data
+  async getHistory(
+    days: number = 30,
+    aggregation: string = 'daily'
+  ): Promise<FearGreedHistoricalData> {
+    const response = await apiClient.get<ApiResponse<FearGreedHistoricalData>>(
+      '/api/v1/market/fear-greed/history',
+      { days, aggregation }
+    )
+    return handleApiResponse(response)
+  },
+
+  // Get comprehensive market sentiment summary
+  async getSentimentSummary(): Promise<MarketSentimentSummary> {
+    const response = await apiClient.get<ApiResponse<MarketSentimentSummary>>(
+      '/api/v1/market/sentiment'
+    )
+    return handleApiResponse(response)
+  },
+
+  // Get advanced sentiment analysis
+  async getAdvancedAnalysis(
+    options: {
+      include_social?: boolean
+      include_news?: boolean
+      include_options?: boolean
+    } = {}
+  ): Promise<AdvancedSentimentAnalysis> {
+    const response = await apiClient.get<
+      ApiResponse<AdvancedSentimentAnalysis>
+    >('/api/v1/market/sentiment/analysis', options)
+    return handleApiResponse(response)
+  }
+}
