@@ -230,7 +230,6 @@ print("settings.is_production", settings.is_production)
 # --- Serve frontend static files in production ---
 if settings.is_production:
     # Assume frontend build files are in ../front/dist or ./front/dist
-    # You can adjust this path as needed
     frontend_build_path = os.path.join(project_root, "front", "dist")
     if not os.path.exists(frontend_build_path):
         # Try relative to current file
@@ -243,16 +242,21 @@ if settings.is_production:
     else:
         logger.warning(f"⚠️ Frontend build directory not found: {frontend_build_path}. Frontend will not be served.")
 
-    # SPA fallback (API 경로 제외)
-    from fastapi.responses import FileResponse
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        if full_path.startswith("api/v1"):
-            # API 경로는 404 처리
-            return {"detail": "Not Found"}, 404
-        frontend_build_path = os.path.join(os.path.dirname(__file__), "..", "front", "dist")
+    # SPA fallback: 모든 비-API 경로는 index.html로 리다이렉트 (React Router 지원)
+    from fastapi.responses import FileResponse, JSONResponse
+    from starlette.requests import Request
+
+    @app.route("/{full_path:path}", methods=["GET"])
+    async def serve_spa(request: Request, full_path: str):
+        # API 경로는 404 처리
+        if full_path.startswith("api/v1") or full_path.startswith("api"):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+        # React Router SPA fallback: 항상 index.html 반환
         index_path = os.path.join(frontend_build_path, "index.html")
-        return FileResponse(index_path)
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        else:
+            return JSONResponse({"detail": "Frontend index.html not found"}, status_code=404)
 
 
 @app.get("/health")
