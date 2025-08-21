@@ -229,12 +229,12 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 print("settings.is_production", settings.is_production)
 # --- Serve frontend static files in production ---
 if settings.is_production:
-    # Assume frontend build files are in ../fe/dist or ./fe/dist
+    # Assume frontend build files are in ../front/dist or ./front/dist
     # You can adjust this path as needed
-    frontend_build_path = os.path.join(project_root, "fe", "dist")
+    frontend_build_path = os.path.join(project_root, "front", "dist")
     if not os.path.exists(frontend_build_path):
         # Try relative to current file
-        frontend_build_path = os.path.join(os.path.dirname(__file__), "..", "fe", "dist")
+        frontend_build_path = os.path.join(os.path.dirname(__file__), "..", "front", "dist")
     frontend_build_path = os.path.abspath(frontend_build_path)
     if os.path.exists(frontend_build_path):
         # Mount at root, so /, /index.html, /static/*, etc. are served
