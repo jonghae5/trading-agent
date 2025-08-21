@@ -38,6 +38,7 @@ class TradingAgentsGraph:
         selected_analysts=["market", "social", "news", "fundamentals"],
         debug=False,
         config: Dict[str, Any] = None,
+        api_key = None,
     ):
         """Initialize the trading agents graph and components.
 
@@ -48,6 +49,11 @@ class TradingAgentsGraph:
         """
         self.debug = debug
         self.config = config or DEFAULT_CONFIG
+
+
+        # Ensure OPENAPI_KEY is set in environment variables if present in settings
+        if api_key:
+            os.environ["OPENAI_API_KEY"] = api_key
 
         # Update the interface's config
         set_config(self.config)

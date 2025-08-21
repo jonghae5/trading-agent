@@ -20,6 +20,7 @@ from src.core.security import User
 from src.models.base import get_kst_now
 from src.models.analysis import AnalysisSession, ReportSection, AgentExecution, AnalysisStatus, AgentStatus, ProgressEvent, MessageLog
 from src.schemas.analysis import AnalysisConfigRequest, AnalysisMessage, ToolCallMessage, AgentUpdateMessage
+from src.core.config import get_settings
 from sqlalchemy import select, and_, func
 
 # Import TradingAgents
@@ -28,6 +29,7 @@ from tradingagents.default_config import DEFAULT_CONFIG
 
 logger = logging.getLogger(__name__)
 
+settings = get_settings()
 
 @dataclass
 class AnalysisTask:
@@ -139,11 +141,13 @@ class AnalysisManager:
                 "session_id": session_id[:8]  # Short ID for collections
             })
             
+            
             # Initialize trading graph
             graph = TradingAgentsGraph(
                 [analyst.value for analyst in config.analysts],
                 config=full_config,
-                debug=True
+                debug=True,
+                api_key=settings.OPENAI_API_KEY
             )
             
             analysis_task.graph = graph
