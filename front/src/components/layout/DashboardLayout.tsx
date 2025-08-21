@@ -15,27 +15,6 @@ export const DashboardLayout: React.FC = () => {
   const { sidebarCollapsed } = useUIStore()
   const { isAuthenticated } = useAuthStore()
 
-  // Skip authentication in development mode
-  const isDevelopment =
-    import.meta.env.DEV || import.meta.env.MODE === 'development'
-  const shouldBypassAuth = isDevelopment
-
-  if (!shouldBypassAuth && !isAuthenticated) {
-    // Show login page in production
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="mb-4 text-2xl font-bold text-gray-900">
-            Login Required
-          </h1>
-          <p className="text-gray-600">
-            Please log in to access the dashboard.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-white">
       {/* Mobile Backdrop */}
