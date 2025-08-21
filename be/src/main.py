@@ -243,6 +243,16 @@ if settings.is_production:
     else:
         logger.warning(f"⚠️ Frontend build directory not found: {frontend_build_path}. Frontend will not be served.")
 
+    # SPA fallback (API 경로 제외)
+    from fastapi.responses import FileResponse
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path.startswith("api/v1"):
+            # API 경로는 404 처리
+            return {"detail": "Not Found"}, 404
+        frontend_build_path = os.path.join(os.path.dirname(__file__), "..", "front", "dist")
+        index_path = os.path.join(frontend_build_path, "index.html")
+        return FileResponse(index_path)
 
 
 @app.get("/health")
