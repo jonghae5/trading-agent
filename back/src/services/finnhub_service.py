@@ -221,25 +221,7 @@ class FinnhubService:
         """Get merger and acquisition news."""
         return await self.get_market_news("merger", limit)
     
-    async def get_multiple_sentiments(self, symbols: List[str]) -> Dict[str, SentimentData]:
-        """Get sentiment data for multiple symbols."""
-        results = {}
-        tasks = []
-        
-        for symbol in symbols:
-            task = self.get_news_sentiment(symbol)
-            tasks.append((symbol, task))
-        
-        for symbol, task in tasks:
-            try:
-                sentiment = await task
-                if sentiment:
-                    results[symbol] = sentiment
-            except Exception as e:
-                logger.error(f"Error fetching sentiment for {symbol}: {e}")
-        
-        return results
-    
+ 
     def _get_sample_news(self, limit: int = 20) -> List[NewsArticle]:
         """Get sample news when API is unavailable."""
         sample_news = [
