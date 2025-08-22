@@ -24,3 +24,5 @@ clean:
 killpy:
 	@echo "Killing all python and python3 processes using lsof and kill..."
 	- for pid in $(lsof -t -c python -c python3); do kill -9 $$pid; done
+	@echo "Killing all processes using port 8000..."
+	- for pid in $(lsof -t -i:8000); do kill -9 $$pid; done
