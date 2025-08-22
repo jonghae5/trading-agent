@@ -6,7 +6,7 @@ import logging
 import sys
 import threading
 from typing import Optional, List, Dict, Any, Union
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import aiohttp
 from dataclasses import dataclass
@@ -127,7 +127,7 @@ class FinnhubService:
                     id=str(item.get("id", "")),
                     title=item.get("headline", ""),
                     description=item.get("summary", ""),
-                    published_at=datetime.fromtimestamp(item.get("datetime", 0)),
+                    published_at=datetime.fromtimestamp(item.get("datetime", 0), tz=timezone.utc),
                     source=item.get("source", "Finnhub"),
                     url=item.get("url", ""),
                     image=item.get("image", ""),
@@ -164,7 +164,7 @@ class FinnhubService:
                     id=str(item.get("id", "")),
                     title=item.get("headline", ""),
                     description=item.get("summary", ""),
-                    published_at=datetime.fromtimestamp(item.get("datetime", 0)),
+                    published_at=datetime.fromtimestamp(item.get("datetime", 0), tz=timezone.utc),
                     source=item.get("source", "Finnhub"),
                     url=item.get("url", ""),
                     image=item.get("image", ""),
