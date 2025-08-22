@@ -2,7 +2,7 @@
 
 import logging
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select, and_, desc, func
 
@@ -14,7 +14,7 @@ from src.schemas.analysis import (
     ReportSectionResponse,
     AnalysisStatsResponse
 )
-from src.schemas.common import ApiResponse, PaginatedResponse
+from src.schemas.common import ApiResponse
 from src.core.security import get_current_user, User
 from src.models.base import get_kst_now
 router = APIRouter()

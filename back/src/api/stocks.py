@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.core.security import User
 from src.core.security import get_current_user
-from src.services.fred_service import get_fred_service
 from back.src.services.stock_service import get_stock_service
 from src.schemas.common import ApiResponse
 
@@ -13,7 +12,6 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Service instances
-fred_service = get_fred_service()
 stocks_service = get_stock_service()
 
 
