@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import json
 import re
 import pandas as pd
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy import select, func, and_, desc
 from sqlalchemy.dialects.sqlite import insert
 
@@ -49,29 +49,7 @@ class StockSearchService:
         self.ticker_cache_duration = 3600  # 1 hour cache for tickers
         self.yfinance_cache = {}  # Cache for yfinance API results
         self.yfinance_cache_duration = 1800  # 30 minutes for API results
-        
-        # Major indices for comprehensive stock universe
-        self.major_indices = {
-            'SPY': {'name': 'S&P 500', 'tickers': []},
-            'QQQ': {'name': 'NASDAQ 100', 'tickers': []},
-            'IWM': {'name': 'Russell 2000', 'tickers': []},
-            'VTI': {'name': 'Total Stock Market', 'tickers': []}
-        }
-        
-        # Sector-to-FRED mapping for economic context
-        self.sector_fred_mapping = {
-            'Technology': ['NAPM', 'INDPRO', 'PAYEMS'],  # Manufacturing PMI, Industrial Production, Employment
-            'Healthcare': ['UMCSENT', 'DSPIC96', 'CPIAUCSL'],  # Consumer Sentiment, Income, CPI
-            'Financial Services': ['FEDFUNDS', 'DGS10', 'UNRATE'],  # Fed Funds, 10Y Treasury, Unemployment
-            'Consumer Cyclical': ['RSAFS', 'PCE', 'UMCSENT'],  # Retail Sales, Consumer Spending, Sentiment
-            'Consumer Defensive': ['CPIAUCSL', 'PCE', 'PSAVERT'],  # CPI, Consumer Spending, Savings Rate
-            'Energy': ['DCOILWTICO', 'DHHNGSP', 'INDPRO'],  # Oil, Natural Gas, Industrial Production
-            'Real Estate': ['HOUST', 'MORTGAGE30US', 'CSUSHPISA'],  # Housing Starts, Mortgage Rates, Home Prices
-            'Utilities': ['CPIAUCSL', 'INDPRO', 'FEDFUNDS'],  # CPI, Industrial Production, Interest Rates
-            'Materials': ['INDPRO', 'GOLDAMGBD228NLBM', 'DCOILWTICO'],  # Industrial Production, Gold, Oil
-            'Industrials': ['NAPM', 'INDPRO', 'HOUST'],  # Manufacturing PMI, Industrial Production, Housing
-            'Communication Services': ['UMCSENT', 'DSPIC96', 'PCE']  # Consumer Sentiment, Income, Spending
-        }
+
     
     def _get_ticker_cache_key(self, ticker: str) -> str:
         """Generate cache key for ticker search."""
@@ -355,6 +333,33 @@ class StockSearchService:
                         }
                         return results
             
+            # Step 4: 마지막으로 name LIKE 검색 시도
+            name_results = await self._search_stocks_by_name_in_db(ticker, limit)
+            
+            results = []
+            for stock_data in name_results:
+                results.append(StockSearchResult(
+                    symbol=stock_data['symbol'],
+                    name=stock_data['name'],
+                    exchange=stock_data['exchange'],
+                    type=stock_data['type'],
+                    sector=stock_data.get('sector'),
+                    industry=stock_data.get('industry'),
+                    market_cap=stock_data.get('market_cap'),
+                    currency=stock_data.get('currency', 'USD')
+                ))
+            
+            if results:
+                elapsed = time.perf_counter() - start_time
+                logger.info(f"🔍 Name search for '{ticker}' took {elapsed:.4f}s, found {len(results)} results")
+                
+                # Cache results
+                self.ticker_cache[cache_key] = {
+                    'results': results,
+                    'timestamp': get_kst_now()
+                }
+                return results
+            
             # No results found anywhere
             elapsed = time.perf_counter() - start_time  
             logger.info(f"❌ No results found for '{ticker}' in {elapsed:.4f}s")
@@ -547,44 +552,6 @@ class StockSearchService:
             logger.debug(f"FRED search enhancement failed: {e}")
             return []
     
-    async def _enrich_with_economic_context(self, stock_result: StockSearchResult) -> StockSearchResult:
-        """Enrich stock data with relevant economic indicators from FRED."""
-        if not stock_result.sector or not settings.FRED_API_KEY:
-            return stock_result
-        
-        try:
-            # Get relevant FRED indicators for this sector
-            fred_indicators = self.sector_fred_mapping.get(stock_result.sector, [])
-            
-            if not fred_indicators:
-                return stock_result
-            
-            # Get latest values for the indicators (limit to 3 to avoid rate limits)
-            economic_context = {}
-            for indicator in fred_indicators[:3]:  # Limit to 3 indicators
-                try:
-                    latest_value = await self.fred_service.get_latest_value(indicator)
-                    if latest_value and latest_value.value is not None:
-                        economic_context[indicator] = {
-                            'value': latest_value.value,
-                            'date': latest_value.date.strftime('%Y-%m-%d')
-                        }
-                except Exception as e:
-                    logger.debug(f"Could not fetch FRED indicator {indicator}: {e}")
-                    continue
-            
-            # For now, we'll store this as additional metadata
-            # In a production system, you might add this to the StockSearchResult dataclass
-            # or create a separate economic context service
-            if economic_context:
-                logger.info(f"Enriched {stock_result.symbol} with economic indicators: {list(economic_context.keys())}")
-            
-            return stock_result
-            
-        except Exception as e:
-            logger.debug(f"Error enriching {stock_result.symbol} with economic context: {e}")
-            return stock_result
-    
     async def get_popular_stocks(self, limit: int = 20) -> List[StockSearchResult]:
         """Get popular stocks from database."""
         try:
@@ -641,6 +608,29 @@ class StockSearchService:
                 
         except Exception as e:
             logger.error(f"Error in DB ticker search: {e}")
+            return []
+    
+    async def _search_stocks_by_name_in_db(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Search stocks by name LIKE in database."""
+        try:
+            async with self.db_manager.get_async_session() as session:
+                query_upper = query.upper().strip()
+                
+                # Search by name contains query (case insensitive)
+                stmt = select(StockInfo).where(
+                    and_(
+                        StockInfo.is_active == True,
+                        func.upper(StockInfo.name).like(f'%{query_upper}%')  # case insensitive name search
+                    )
+                ).order_by(StockInfo.name).limit(limit)
+                
+                result = await session.execute(stmt)
+                stocks = result.scalars().all()
+                
+                return [stock.to_dict() for stock in stocks]
+                
+        except Exception as e:
+            logger.error(f"Error in DB name search: {e}")
             return []
     
     async def _upsert_stock_to_db(self, ticker: str, stock_data: Dict[str, Any]) -> bool:
