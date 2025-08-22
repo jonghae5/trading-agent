@@ -9,7 +9,6 @@ interface NewsSearchProps {
   className?: string
 }
 
-
 export const NewsSearch: React.FC<NewsSearchProps> = ({
   onSearch,
   isLoading = false,
@@ -46,7 +45,6 @@ export const NewsSearch: React.FC<NewsSearchProps> = ({
             onKeyDown={handleKeyPress}
             placeholder="뉴스 검색 (종목명 또는 티커)..."
             disabled={isLoading}
-            showPopularStocks={true}
             className="w-full"
           />
         </div>

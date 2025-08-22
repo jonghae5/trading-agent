@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from src.core.database import get_db
 from src.core.security import verify_password, create_tokens, get_current_user, User, Token
+from src.core.config import settings
 from src.models.user import User as UserModel
 
 router = APIRouter()
@@ -44,7 +45,7 @@ async def login(
         value=tokens.access_token,
         expires=expire_date,
         httponly=True,
-        secure=False,  # 개발환경에서는 False, 프로덕션에서는 True
+        secure=settings.is_production,  # 프로덕션에서는 True, 개발환경에서는 False
         samesite="lax"
     )
     
@@ -55,7 +56,7 @@ async def login(
         value=tokens.refresh_token,
         expires=refresh_expire,
         httponly=True,
-        secure=False,
+        secure=settings.is_production,
         samesite="lax"
     )
     
@@ -74,13 +75,13 @@ async def logout(response: Response):
     response.delete_cookie(
         key="access_token",
         httponly=True,
-        secure=False,
+        secure=settings.is_production,
         samesite="lax"
     )
     response.delete_cookie(
         key="refresh_token", 
         httponly=True,
-        secure=False,
+        secure=settings.is_production,
         samesite="lax"
     )
     return {"message": "Successfully logged out"}

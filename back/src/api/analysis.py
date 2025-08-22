@@ -22,7 +22,6 @@ from src.schemas.analysis import (
     AnalysisStatusResponse,
     AnalysisListResponse,
     AnalysisMetricsResponse,
-    AnalysisStatsResponse,
     ReportSectionResponse,
     AgentExecutionResponse,
     ProgressEventResponse,

@@ -49,7 +49,7 @@ class EconomicEvent:
         return self.date
 
 
-class EconomicEventsService:
+class EconomicService:
     """Service for providing major economic events and crisis markers."""
     
     # Major economic events and crises
@@ -513,9 +513,9 @@ class EconomicEventsService:
 
 
 # Global service instance
-economic_events_service = EconomicEventsService()
+economic_events_service = EconomicService()
 
 
-def get_economic_events_service() -> EconomicEventsService:
+def get_economic_service() -> EconomicService:
     """Get the global economic events service instance."""
     return economic_events_service

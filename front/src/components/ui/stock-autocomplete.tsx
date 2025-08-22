@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, TrendingUp, Building2, Zap, X } from 'lucide-react'
-import { insightsApi } from '../../api/insights'
+import { stocksApi } from '../../api/stocks'
 import { debounce } from '../../utils/debounce'
 
 export interface StockSearchResult {
@@ -29,7 +29,7 @@ interface StockAutocompleteProps {
   className?: string
   disabled?: boolean
   error?: boolean
-  showPopularStocks?: boolean
+  // showPopularStocks?: boolean   // 삭제 또는 무시
 }
 
 export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
@@ -40,14 +40,14 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   placeholder = 'Search stocks...',
   className = '',
   disabled = false,
-  error = false,
-  showPopularStocks = true
+  error = false
+  // showPopularStocks = true   // 삭제 또는 무시
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [results, setResults] = useState<StockSearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
-  const [popularStocks, setPopularStocks] = useState<StockSearchResult[]>([])
+  // const [popularStocks, setPopularStocks] = useState<StockSearchResult[]>([]) // 삭제
 
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -57,18 +57,14 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   const debouncedSearch = useCallback(
     debounce(async (query: string) => {
       if (!query.trim()) {
-        if (showPopularStocks && popularStocks.length > 0) {
-          setResults(popularStocks.slice(0, 8))
-        } else {
-          setResults([])
-        }
+        setResults([])
         setLoading(false)
         return
       }
 
       try {
         setLoading(true)
-        const response = await insightsApi.searchStocks(query.trim(), 10)
+        const response = await stocksApi.searchStocks(query.trim(), 10)
         setResults(response.results || [])
       } catch (error) {
         console.error('Stock search failed:', error)
@@ -77,23 +73,23 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
         setLoading(false)
       }
     }, 300),
-    [popularStocks, showPopularStocks]
+    []
   )
 
-  // Load popular stocks on mount
-  useEffect(() => {
-    if (showPopularStocks) {
-      const loadPopularStocks = async () => {
-        try {
-          const response = await insightsApi.getPopularStocks(20)
-          setPopularStocks(response.results || [])
-        } catch (error) {
-          console.error('Failed to load popular stocks:', error)
-        }
-      }
-      loadPopularStocks()
-    }
-  }, [showPopularStocks])
+  // popularStocks 관련 코드 제거
+  // useEffect(() => {
+  //   if (showPopularStocks) {
+  //     const loadPopularStocks = async () => {
+  //       try {
+  //         const response = await stocksApi.getPopularStocks(20)
+  //         setPopularStocks(response.results || [])
+  //       } catch (error) {
+  //         console.error('Failed to load popular stocks:', error)
+  //       }
+  //     }
+  //     loadPopularStocks()
+  //   }
+  // }, [showPopularStocks])
 
   // Handle search when value changes
   useEffect(() => {
@@ -119,10 +115,14 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   // Handle input focus
   const handleInputFocus = useCallback(() => {
     setIsOpen(true)
-    if (!value.trim() && showPopularStocks && popularStocks.length > 0) {
-      setResults(popularStocks.slice(0, 8))
+    // popularStocks 관련 코드 제거
+    // if (!value.trim() && showPopularStocks && popularStocks.length > 0) {
+    //   setResults(popularStocks.slice(0, 8))
+    // }
+    if (!value.trim()) {
+      setResults([])
     }
-  }, [value, showPopularStocks, popularStocks])
+  }, [value])
 
   // Handle stock selection
   const handleStockSelect = useCallback(
@@ -297,12 +297,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
             ) : results.length > 0 ? (
               <>
                 {/* Results Header */}
-                {!value.trim() && showPopularStocks && (
-                  <div className="px-4 py-2 bg-gray-50 border-b text-xs font-medium text-gray-700">
-                    Popular Stocks
-                  </div>
-                )}
-
+                {/* popularStocks 관련 헤더 제거 */}
                 {/* Results List */}
                 <div ref={resultsRef} className="max-h-80 overflow-y-auto">
                   {results.map((stock, index) => (

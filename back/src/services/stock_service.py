@@ -36,7 +36,7 @@ class StockSearchResult:
     currency: Optional[str] = None
 
 
-class StockSearchService:
+class StockService:
     """Service for searching and finding stock tickers."""
     
     def __init__(self):
@@ -160,72 +160,6 @@ class StockSearchService:
                 if result:
                     results[ticker] = result
             return results
-    
-    async def _build_popular_stocks(self) -> List[Dict[str, Any]]:
-        """Build popular stocks based on market cap and volume (optimized with batch processing)."""
-        start_time = time.perf_counter()
-        try:
-            # Popular tickers by market cap and trading volume
-            popular_tickers = [
-                # Mega Cap Tech
-                'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA',
-                # Financial Services 
-                'JPM', 'V', 'MA', 'BRK.B', 'BAC', 'WFC',
-                # Healthcare & Consumer
-                'JNJ', 'UNH', 'PG', 'KO', 'PEP', 'WMT', 'HD',
-                # Communication & Entertainment
-                'DIS', 'NFLX', 'CRM', 'ADBE',
-                # ETFs
-                'SPY', 'QQQ', 'VTI', 'VOO', 'IWM'
-            ]
-            
-            # Use batch processing for better performance
-            loop = asyncio.get_event_loop()
-            
-            # Split tickers into smaller batches to avoid overwhelming the API
-            batch_size = 10
-            all_results = {}
-            
-            for i in range(0, len(popular_tickers), batch_size):
-                batch = popular_tickers[i:i + batch_size]
-                
-                # Process batch
-                batch_results = await loop.run_in_executor(
-                    self.executor,
-                    self._get_multiple_stocks_info_sync,
-                    batch
-                )
-                
-                all_results.update(batch_results)
-            
-            # Convert to list format
-            results = []
-            for ticker in popular_tickers:
-                if ticker in all_results and all_results[ticker]:
-                    results.append(all_results[ticker])
-            
-            # Sort by market cap (descending)
-            results.sort(key=lambda x: x.get('market_cap', 0) or 0, reverse=True)
-            
-            elapsed = time.perf_counter() - start_time
-            logger.info(f"Built {len(results)} popular stocks in {elapsed:.4f} seconds")
-            
-            return results
-            
-        except Exception as e:
-            elapsed = time.perf_counter() - start_time
-            logger.error(f"Error building popular stocks: {e} (elapsed {elapsed:.4f}s)")
-            return self._get_fallback_popular_stocks()
-    
-    def _get_fallback_popular_stocks(self) -> List[Dict[str, Any]]:
-        """Fallback popular stocks if API fails."""
-        return [
-            {'symbol': 'AAPL', 'name': 'Apple Inc.', 'exchange': 'NASDAQ', 'type': 'equity', 'sector': 'Technology', 'currency': 'USD'},
-            {'symbol': 'MSFT', 'name': 'Microsoft Corporation', 'exchange': 'NASDAQ', 'type': 'equity', 'sector': 'Technology', 'currency': 'USD'},
-            {'symbol': 'GOOGL', 'name': 'Alphabet Inc.', 'exchange': 'NASDAQ', 'type': 'equity', 'sector': 'Technology', 'currency': 'USD'},
-            {'symbol': 'AMZN', 'name': 'Amazon.com Inc.', 'exchange': 'NASDAQ', 'type': 'equity', 'sector': 'Consumer Cyclical', 'currency': 'USD'},
-            {'symbol': 'SPY', 'name': 'SPDR S&P 500 ETF Trust', 'exchange': 'ARCA', 'type': 'etf', 'sector': 'Diversified', 'currency': 'USD'}
-        ]
     
 
     async def search_stocks_by_ticker(self, ticker: str, limit: int = 10) -> List[StockSearchResult]:
@@ -486,30 +420,7 @@ class StockSearchService:
                     type='etf', sector='Diversified', currency='USD'
                 )
             ]
-    
-    async def get_dynamic_popular_stocks(self, limit: int = 20) -> List[Dict[str, Any]]:
-        """Get dynamically updated popular stocks based on real market data."""
-        # Check if we have recent cache
-        now = get_kst_now()
-        if (self.popular_stocks_last_updated and 
-            self.popular_stocks_cache and
-            now - self.popular_stocks_last_updated < timedelta(hours=6)):  # Cache for 6 hours
-            return self.popular_stocks_cache[:limit]
-        
-        try:
-            # Build fresh popular stocks list
-            popular_stocks = await self._build_popular_stocks()
-            
-            # Update cache
-            self.popular_stocks_cache = popular_stocks
-            self.popular_stocks_last_updated = now
-            
-            return popular_stocks[:limit]
-            
-        except Exception as e:
-            logger.error(f"Error getting dynamic popular stocks: {e}")
-            # Return fallback
-            return self._get_fallback_popular_stocks()[:limit]
+
     
     def _is_fast_cache_valid(self, cache_time: datetime) -> bool:
         """Check if fast cache is still valid."""
@@ -749,9 +660,9 @@ class StockSearchService:
 
 
 # Global service instance
-stock_search_service = StockSearchService()
+stock_service = StockService()
 
 
-def get_stock_search_service() -> StockSearchService:
+def get_stock_service() -> StockService:
     """Get the global stock search service instance."""
-    return stock_search_service
+    return stock_service

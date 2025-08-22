@@ -290,7 +290,7 @@ class FearGreedService:
         monthly_data.sort(key=lambda x: x.date, reverse=True)
         return monthly_data
     
-    async def get_market_sentiment_summary(self) -> Dict[str, Any]:
+    async def get_fear_greed_summary(self) -> Dict[str, Any]:
         """Get comprehensive market sentiment summary."""
         try:
             # Get current Fear & Greed Index

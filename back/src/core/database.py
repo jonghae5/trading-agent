@@ -189,18 +189,30 @@ def get_database_manager() -> DatabaseManager:
 
 def get_db():
     """Dependency to get database session."""
-    session = db_manager.get_session_raw()
+    if not db_manager.SessionLocal:
+        raise RuntimeError("Database not initialized")
+    
+    session = db_manager.SessionLocal()
     try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 
 
 async def get_async_db():
     """Dependency to get async database session."""
-    session = db_manager.get_async_session_raw()
+    if not db_manager.AsyncSessionLocal:
+        raise RuntimeError("Async database not initialized")
+    
+    session = db_manager.AsyncSessionLocal()
     try:
         yield session
+    except Exception:
+        await session.rollback()
+        raise
     finally:
         await session.close()
 

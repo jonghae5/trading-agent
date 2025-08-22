@@ -124,7 +124,7 @@ export const Analysis: React.FC = () => {
     try {
       const [history, summary] = await Promise.all([
         fearGreedApi.getHistory(1825, 'daily'), // Last 5 years, daily data
-        fearGreedApi.getSentimentSummary()
+        fearGreedApi.getSummary()
       ])
 
       const current = {
@@ -266,7 +266,6 @@ export const Analysis: React.FC = () => {
                   }
                   onSelect={handleStockSelect}
                   placeholder="종목 코드나 회사명으로 검색..."
-                  showPopularStocks={true}
                 />
                 <p className="text-xs md:text-sm text-gray-500 mt-1">
                   주식, ETF, 지수를 검색하려면 입력을 시작하세요

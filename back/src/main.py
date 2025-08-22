@@ -323,7 +323,23 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Global exception handler."""
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    from src.middleware.logging import StructuredLogger
+    
+    # Get request ID if available
+    request_id = getattr(request.state, 'request_id', 'unknown')
+    
+    # Structured error logging
+    StructuredLogger.log_structured(
+        logger,
+        logging.ERROR,
+        "Unhandled Exception",
+        request_id=request_id,
+        error_type=exc.__class__.__name__,
+        error_message=str(exc),
+        method=request.method,
+        path=str(request.url.path),
+        client_ip=request.client.host if request.client else "unknown"
+    )
     
     # Don't expose internal errors in production
     if settings.is_production:
@@ -340,7 +356,8 @@ async def global_exception_handler(request: Request, exc: Exception):
             "status_code": 500,
             "message": message,
             "detail": detail,
-            "path": str(request.url.path)
+            "path": str(request.url.path),
+            "request_id": request_id
         },
         headers=SecurityHeaders.get_security_headers()
     )

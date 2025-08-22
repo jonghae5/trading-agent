@@ -176,7 +176,7 @@ export interface FearGreedHistoricalData {
   total_points: number
 }
 
-export interface MarketSentimentSummary {
+export interface FearGreedSummarySummary {
   current: FearGreedIndexData
   trend: 'improving' | 'declining' | 'neutral'
   volatility: 'low' | 'medium' | 'high'
@@ -240,42 +240,6 @@ export interface ChartDataPoint {
   volume: number
 }
 
-// Stock Quote API methods
-export const stockApi = {
-  // Get stock quote
-  async getQuote(ticker: string): Promise<StockQuoteData> {
-    const response = await apiClient.get<ApiResponse<StockQuoteData>>(
-      `/api/v1/market/quote/${ticker}`
-    )
-    return handleApiResponse(response)
-  },
-
-  // Get chart data for real-time charts
-  async getChartData(
-    ticker: string,
-    interval: string = '1m',
-    range: string = '1d'
-  ): Promise<ChartDataPoint[]> {
-    const response = await apiClient.get<ApiResponse<ChartDataPoint[]>>(
-      `/api/v1/market/chart/${ticker}`,
-      { interval, range }
-    )
-    return handleApiResponse(response)
-  },
-
-  // Search stocks
-  async searchStocks(
-    query: string,
-    limit: number = 10
-  ): Promise<StockSearchResult[]> {
-    const response = await apiClient.get<ApiResponse<StockSearchResult[]>>(
-      '/api/v1/market/search',
-      { query, limit }
-    )
-    return handleApiResponse(response)
-  }
-}
-
 // Fear & Greed Index API methods
 export const fearGreedApi = {
   // Get historical Fear & Greed Index data
@@ -284,31 +248,19 @@ export const fearGreedApi = {
     aggregation: string = 'daily'
   ): Promise<FearGreedHistoricalData> {
     const response = await apiClient.get<ApiResponse<FearGreedHistoricalData>>(
-      '/api/v1/market/fear-greed/history',
+      '/api/v1/fear-greed/history',
       { days, aggregation }
     )
     return handleApiResponse(response)
   },
 
   // Get comprehensive market sentiment summary
-  async getSentimentSummary(): Promise<MarketSentimentSummary> {
-    const response = await apiClient.get<ApiResponse<MarketSentimentSummary>>(
-      '/api/v1/market/sentiment'
+  async getSummary(): Promise<FearGreedSummarySummary> {
+    const response = await apiClient.get<ApiResponse<FearGreedSummarySummary>>(
+      '/api/v1/fear-greed/summary'
     )
-    return handleApiResponse(response)
-  },
 
-  // Get advanced sentiment analysis
-  async getAdvancedAnalysis(
-    options: {
-      include_social?: boolean
-      include_news?: boolean
-      include_options?: boolean
-    } = {}
-  ): Promise<AdvancedSentimentAnalysis> {
-    const response = await apiClient.get<
-      ApiResponse<AdvancedSentimentAnalysis>
-    >('/api/v1/market/sentiment/analysis', options)
+    console.log('response', response)
     return handleApiResponse(response)
   }
 }

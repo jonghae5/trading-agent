@@ -3,11 +3,42 @@
 import time
 import uuid
 import logging
-from typing import Callable
+import json
+from typing import Callable, Dict, Any
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
+
+
+class StructuredLogger:
+    """Utility class for structured logging."""
+    
+    @staticmethod
+    def log_structured(
+        logger: logging.Logger,
+        level: int,
+        message: str,
+        **kwargs
+    ) -> None:
+        """Log structured data as JSON."""
+        log_data = {
+            "message": message,
+            "timestamp": time.time(),
+            **kwargs
+        }
+        
+        # Format as JSON for production, human-readable for development
+        try:
+            from src.core.config import settings
+            if settings.is_production:
+                extra_msg = json.dumps(log_data, default=str)
+            else:
+                extra_msg = f"{message} | {json.dumps(kwargs, default=str)}"
+        except:
+            extra_msg = f"{message} | {kwargs}"
+        
+        logger.log(level, extra_msg)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -42,9 +73,16 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         client_ip = self._get_client_ip(request)
         user_agent = request.headers.get("user-agent", "unknown")
         
-        self.logger.info(
-            f"[{request_id}] {request.method} {request.url.path} - "
-            f"IP: {client_ip} - User-Agent: {user_agent[:100]}"
+        StructuredLogger.log_structured(
+            self.logger,
+            logging.INFO,
+            "HTTP Request Started",
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+            client_ip=client_ip,
+            user_agent=user_agent[:100],
+            query_params=dict(request.query_params) if request.query_params else None
         )
         
         # Process request
@@ -55,9 +93,15 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             process_time = time.time() - start_time
             
             # Log response
-            self.logger.info(
-                f"[{request_id}] {response.status_code} - "
-                f"Time: {process_time:.3f}s"
+            StructuredLogger.log_structured(
+                self.logger,
+                logging.INFO,
+                "HTTP Request Completed",
+                request_id=request_id,
+                status_code=response.status_code,
+                process_time_seconds=round(process_time, 3),
+                method=request.method,
+                path=request.url.path
             )
             
             # Add headers
@@ -70,10 +114,16 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             # Log error
             process_time = time.time() - start_time
             
-            self.logger.error(
-                f"[{request_id}] ERROR - {str(e)} - "
-                f"Time: {process_time:.3f}s",
-                exc_info=True
+            StructuredLogger.log_structured(
+                self.logger,
+                logging.ERROR,
+                "HTTP Request Failed",
+                request_id=request_id,
+                error_type=e.__class__.__name__,
+                error_message=str(e),
+                process_time_seconds=round(process_time, 3),
+                method=request.method,
+                path=request.url.path
             )
             
             raise
