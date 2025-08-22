@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import { Search } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { StockAutocomplete, StockSearchResult } from '../ui/stock-autocomplete'
@@ -7,6 +7,24 @@ interface NewsSearchProps {
   onSearch: (filters: { query?: string; limit?: number }) => void
   isLoading?: boolean
   className?: string
+}
+
+function useDebouncedCallback<T extends (...args: any[]) => void>(
+  callback: T,
+  delay: number
+) {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      timeoutRef.current = setTimeout(() => {
+        callback(...args)
+      }, delay)
+    },
+    [callback, delay]
+  )
 }
 
 export const NewsSearch: React.FC<NewsSearchProps> = ({
@@ -25,6 +43,12 @@ export const NewsSearch: React.FC<NewsSearchProps> = ({
     setQuery(stock.symbol)
   }, [])
 
+  // 디바운스된 검색 함수 (버튼 클릭용)
+  const debouncedHandleSearch = useDebouncedCallback(() => {
+    onSearch({ query: query.trim() || undefined, limit: 20 })
+  }, 400)
+
+  // 즉시 검색 (엔터키 등)
   const handleSearch = useCallback(() => {
     onSearch({ query: query.trim() || undefined, limit: 20 })
   }, [query, onSearch])
@@ -55,7 +79,7 @@ export const NewsSearch: React.FC<NewsSearchProps> = ({
         </div>
 
         <button
-          onClick={handleSearch}
+          onClick={debouncedHandleSearch}
           disabled={isLoading}
           className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2"
         >

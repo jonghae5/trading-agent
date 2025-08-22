@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from src.core.security import get_current_user
 from src.models.user import User
+from src.models.base import kst_to_naive
 from src.schemas.common import ApiResponse
 from src.core.config import get_settings
 from src.services.finnhub_service import get_finnhub_service
@@ -62,7 +63,7 @@ async def _fetch_news_from_api(limit=20) -> List[NewsArticle]:
                 summary=getattr(article, "description", None),
                 sentiment=_determine_sentiment_simple(article.title),
                 source=getattr(article, "source", "Finnhub"),
-                published_at=article.published_at.isoformat() if hasattr(article, "published_at") else "",
+                published_at=kst_to_naive(article.published_at).isoformat() if hasattr(article, "published_at") and article.published_at else "",
                 relevance_score=0.8,
                 tags=[article.category] if hasattr(article, "category") else ["economic"],
                 url=getattr(article, "url", None),
@@ -99,7 +100,7 @@ async def _fetch_company_news_from_api(query:str) -> List[NewsArticle]:
                 summary=getattr(article, "description", None),
                 sentiment=_determine_sentiment_simple(article.title),
                 source=getattr(article, "source", "Finnhub"),
-                published_at=article.published_at.isoformat() if hasattr(article, "published_at") else "",
+                published_at=kst_to_naive(article.published_at).isoformat() if hasattr(article, "published_at") and article.published_at else "",
                 relevance_score=0.8,
                 tags=[article.category] if hasattr(article, "category") else ["economic"],
                 url=getattr(article, "url", None),
