@@ -45,7 +45,7 @@ async def login(
         value=tokens.access_token,
         expires=expire_date,
         httponly=True,
-        secure=settings.is_production,  # 프로덕션에서는 True, 개발환경에서는 False
+        secure=False,  # 프로덕션에서는 True, 개발환경에서는 False
         samesite="lax"
     )
     
@@ -56,7 +56,7 @@ async def login(
         value=tokens.refresh_token,
         expires=refresh_expire,
         httponly=True,
-        secure=settings.is_production,
+        secure=False,
         samesite="lax"
     )
     
@@ -75,13 +75,13 @@ async def logout(response: Response):
     response.delete_cookie(
         key="access_token",
         httponly=True,
-        secure=settings.is_production,
+        secure=False,
         samesite="lax"
     )
     response.delete_cookie(
         key="refresh_token", 
         httponly=True,
-        secure=settings.is_production,
+        secure=False,
         samesite="lax"
     )
     return {"message": "Successfully logged out"}
