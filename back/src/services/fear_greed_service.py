@@ -1,6 +1,5 @@
 """CNN Fear & Greed Index service for market sentiment analysis."""
 
-import asyncio
 import logging
 import sys
 from typing import Optional, List, Dict, Any
