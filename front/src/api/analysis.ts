@@ -34,7 +34,7 @@ export interface AnalysisStartRequest {
 
 export interface AnalysisControlRequest {
   session_id: string
-  action: 'stop' | 'pause' | 'resume'
+  action: 'stop' | 'pause'
 }
 
 export interface AnalysisResponse {

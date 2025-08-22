@@ -191,7 +191,6 @@ export interface SocketEvents {
   'analysis:start': AnalysisConfig
   'analysis:stop': void
   'analysis:pause': void
-  'analysis:resume': void
 
   // Server to Client
   'analysis:status': AnalysisState

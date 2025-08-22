@@ -58,7 +58,6 @@ interface AnalysisStreamActions {
   startAnalysis: () => Promise<void>
   stopAnalysis: () => Promise<void>
   pauseAnalysis: () => Promise<void>
-  resumeAnalysis: () => Promise<void>
   addMessage: (message: Omit<AnalysisMessage, 'id'>) => void
   addToolCall: (toolCall: Omit<ToolCall, 'id'>) => void
   updateAgentStatus: (agent: string, status: AgentStatus) => void
@@ -306,30 +305,6 @@ export const useAnalysisStore = create<AnalysisStore>()(
       } catch (error) {
         console.error('Failed to pause analysis:', error)
         set({ error: 'Failed to pause analysis' })
-      }
-    },
-
-    resumeAnalysis: async () => {
-      const { currentSessionId } = get()
-      if (!currentSessionId) return
-
-      try {
-        await analysisApi.controlAnalysis({
-          session_id: currentSessionId,
-          action: 'resume'
-        })
-
-        set({ isPaused: false })
-
-        get().addMessage({
-          timestamp: getKSTTimestamp(),
-          type: 'system',
-          content: 'Analysis resumed',
-          agent: 'System'
-        })
-      } catch (error) {
-        console.error('Failed to resume analysis:', error)
-        set({ error: 'Failed to resume analysis' })
       }
     },
 

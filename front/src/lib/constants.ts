@@ -258,7 +258,6 @@ export const SOCKET_EVENTS = {
   ANALYSIS_START: 'analysis:start',
   ANALYSIS_STOP: 'analysis:stop',
   ANALYSIS_PAUSE: 'analysis:pause',
-  ANALYSIS_RESUME: 'analysis:resume',
 
   // Server to Client
   ANALYSIS_STATUS: 'analysis:status',
