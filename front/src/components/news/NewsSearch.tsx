@@ -20,7 +20,7 @@ export const NewsSearch: React.FC<NewsSearchProps> = ({
   const [query, setQuery] = useState('')
 
   // Debounce search query to avoid excessive API calls
-  const debouncedQuery = useDebounce(query, 2000)
+  const debouncedQuery = useDebounce(query, 1500)
 
   // Trigger search when query changes
   React.useEffect(() => {
