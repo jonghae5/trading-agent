@@ -370,6 +370,53 @@ export interface MetricsStreamMessage extends StreamMessage {
   data: AnalysisMetrics
 }
 
+// News Types for Fred API Integration
+export interface NewsArticle {
+  id: string
+  title: string
+  summary?: string
+  sentiment: 'positive' | 'negative' | 'neutral'
+  source: string
+  published_at: string
+  relevance_score: number
+  tags: string[]
+  url?: string
+  ticker_sentiment?: Record<string, any>
+}
+
+export interface NewsCategory {
+  id: string
+  name: string
+  description: string
+  icon: string
+  count: number
+}
+
+export interface NewsSearchFilters {
+  query?: string
+  sentiment?: 'positive' | 'negative' | 'neutral' | 'all'
+  source?: string
+  dateFrom?: string
+  dateTo?: string
+  limit?: number
+}
+
+export interface NewsSearchResult {
+  articles: NewsArticle[]
+  total: number
+  hasMore: boolean
+  searchQuery?: string
+}
+
+export interface FredNewsResponse {
+  success: boolean
+  data: {
+    latest_news: NewsArticle[]
+    total_count: number
+  }
+  message?: string
+}
+
 // Utility Types
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]

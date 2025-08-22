@@ -4,13 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Brain,
   History,
-  TrendingUp,
   BarChart3,
   ChevronLeft,
   ChevronRight,
   Shield,
   Activity,
-  LogOut
+  LogOut,
+  Newspaper
 } from 'lucide-react'
 
 import { useUIStore } from '../../stores/uiStore'
@@ -36,6 +36,12 @@ const navigation: NavigationItem[] = [
     href: '/history',
     icon: History,
     description: 'View analysis history'
+  },
+  {
+    name: '📰 뉴스',
+    href: '/news',
+    icon: Newspaper,
+    description: 'Real-time financial news'
   },
   // {
   //   name: '📈 주식분석',
@@ -162,7 +168,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
+      <nav className="flex-1 space-y-1 px-2 py-4">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href
 

@@ -8,6 +8,7 @@ from .reports import router as reports_router
 from .market import router as market_router
 from .economic import router as economic_router
 from .insights import router as insights_router
+from .news import router as news_router
 
 # Main API router
 api_router = APIRouter()
@@ -19,5 +20,6 @@ api_router.include_router(reports_router, prefix="/reports", tags=["reports"])
 api_router.include_router(market_router, prefix="/market", tags=["market"])
 api_router.include_router(economic_router, prefix="/economic", tags=["economic"])
 api_router.include_router(insights_router, prefix="/insights", tags=["insights"])
+api_router.include_router(news_router, prefix="/news", tags=["news"])
 
 __all__ = ["api_router"]

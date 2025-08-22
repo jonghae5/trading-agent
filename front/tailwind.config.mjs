@@ -18,6 +18,9 @@ export default {
           900: '#1e3a8a'
         }
       },
+      screens: {
+        'xs': '475px',
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif']
       },
@@ -28,5 +31,23 @@ export default {
       }
     }
   },
-  plugins: []
+  plugins: [
+    // Add line-clamp utilities
+    function({ addUtilities }) {
+      addUtilities({
+        '.line-clamp-2': {
+          overflow: 'hidden',
+          display: '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '2',
+        },
+        '.line-clamp-3': {
+          overflow: 'hidden',
+          display: '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '3',
+        },
+      })
+    }
+  ]
 }

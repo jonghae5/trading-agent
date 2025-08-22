@@ -7,6 +7,7 @@ import { Analysis } from '../pages/Analysis'
 import { History } from '../pages/History'
 import { Stocks } from '../pages/Stocks'
 import { Economics } from '../pages/Economics'
+import { News } from '../pages/News'
 import { useAuthStore } from '../stores/authStore'
 import { initStorageErrorHandling } from '../utils/storage'
 
@@ -55,6 +56,7 @@ function App() {
             }
           />
           <Route path="history" element={<History />} />
+          <Route path="news" element={<News />} />
           <Route path="stocks" element={<Stocks />} />
           <Route path="economics" element={<Economics />} />
 
