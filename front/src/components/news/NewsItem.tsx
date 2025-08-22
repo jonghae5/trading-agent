@@ -129,16 +129,16 @@ export const NewsItem: React.FC<NewsItemProps> = ({
         )}
 
         {/* Relevance Score */}
-        {article.relevanceScore && (
+        {article.relevance_score && (
           <div className="flex items-center gap-1">
             <div className="h-1 w-8 rounded-full bg-gray-200">
               <div
                 className="h-1 rounded-full bg-blue-500"
-                style={{ width: `${article.relevanceScore * 100}%` }}
+                style={{ width: `${article.relevance_score * 100}%` }}
               />
             </div>
             <span className="text-xs text-gray-400">
-              {Math.round(article.relevanceScore * 100)}%
+              {Math.round(article.relevance_score * 100)}%
             </span>
           </div>
         )}
