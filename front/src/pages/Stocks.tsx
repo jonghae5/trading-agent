@@ -45,6 +45,7 @@ import { Input } from '../components/ui/input'
 import { StockAutocomplete } from '../components/ui/stock-autocomplete'
 import { useAnalysisStore } from '../stores/analysisStore'
 import { apiClient } from '../api'
+import { getKSTDate } from '../lib/utils'
 
 const mockStocks = [
   {
@@ -168,7 +169,7 @@ export const Stocks: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [watchlist, setWatchlist] = useState<string[]>(['AAPL', 'TSLA', 'NVDA'])
   const [isLoading, setIsLoading] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [lastUpdate, setLastUpdate] = useState<Date>(getKSTDate())
   const [realTimeData, setRealTimeData] = useState<Record<string, any>>({})
   const [activeFilter, setActiveFilter] = useState<
     'all' | 'favorites' | 'gainers' | 'active'
@@ -179,7 +180,7 @@ export const Stocks: React.FC = () => {
   // Simulate real-time data updates
   useEffect(() => {
     const interval = setInterval(() => {
-      setLastUpdate(new Date())
+      setLastUpdate(getKSTDate())
       // In a real app, this would fetch actual real-time data
       fetchRealTimeData()
     }, 30000) // Update every 30 seconds
@@ -357,10 +358,9 @@ export const Stocks: React.FC = () => {
                           ? watchlist.includes(stock.symbol)
                           : false
                       const aiAnalysis =
-                        analysisHistory &&
-                        typeof stock?.symbol === 'string'
-                          ? analysisHistory.find(analysis => 
-                              analysis.ticker === stock.symbol
+                        analysisHistory && typeof stock?.symbol === 'string'
+                          ? analysisHistory.find(
+                              (analysis) => analysis.ticker === stock.symbol
                             )
                           : null
                       const hasAIAnalysis = !!aiAnalysis

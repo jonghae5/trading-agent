@@ -38,6 +38,7 @@ import {
   MarketSentimentSummary
 } from '../api/client'
 import { economicApi, EconomicEvent } from '../api/economic'
+import { getKSTDate, newKSTDate } from '../lib/utils'
 
 // Helper function to get Fear & Greed color
 const getFearGreedColor = (value: number): string => {
@@ -115,8 +116,8 @@ export const Analysis: React.FC = () => {
     setEventsLoading(true)
     try {
       // Get events for the last 5 years to match Fear & Greed data range
-      const endDate = new Date()
-      const startDate = new Date()
+      const endDate = getKSTDate()
+      const startDate = getKSTDate()
       startDate.setFullYear(startDate.getFullYear() - 5)
 
       const response = await economicApi.getEconomicEvents({
@@ -435,7 +436,7 @@ export const Analysis: React.FC = () => {
                       </div>
                       <div className="text-xs md:text-sm text-gray-500">
                         마지막 업데이트:{' '}
-                        {new Date(fearGreedData.timestamp).toLocaleString(
+                        {newKSTDate(fearGreedData.timestamp).toLocaleString(
                           'ko-KR'
                         )}
                       </div>
@@ -523,7 +524,7 @@ export const Analysis: React.FC = () => {
                     fontSize={11}
                     interval={Math.floor(fearGreedHistory.data.length / 20)}
                     tickFormatter={(value) => {
-                      const date = new Date(value)
+                      const date = newKSTDate(value)
                       return `${date.getFullYear()}-${String(
                         date.getMonth() + 1
                       ).padStart(2, '0')}`
@@ -573,7 +574,7 @@ export const Analysis: React.FC = () => {
                             </p>
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-xs text-gray-500">
-                                {new Date(
+                                {newKSTDate(
                                   eventData.eventDate
                                 ).toLocaleDateString('ko-KR')}
                               </span>
@@ -615,7 +616,7 @@ export const Analysis: React.FC = () => {
                       return (
                         <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
                           <div className="font-medium text-sm">
-                            {new Date(label).toLocaleDateString('ko-KR', {
+                            {newKSTDate(label).toLocaleDateString('ko-KR', {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric'
@@ -714,14 +715,14 @@ export const Analysis: React.FC = () => {
                         const eventData: EventDataPoint[] = []
 
                         economicEvents.forEach((event) => {
-                          const eventDate = new Date(event.date)
+                          const eventDate = newKSTDate(event.date)
 
                           // Find closest Fear & Greed data point
                           let closestData: any = null
                           let minDiff = Infinity
 
                           fearGreedHistory.data.forEach((item) => {
-                            const itemDate = new Date(item.date)
+                            const itemDate = newKSTDate(item.date)
                             const timeDiff = Math.abs(
                               eventDate.getTime() - itemDate.getTime()
                             )
@@ -847,7 +848,7 @@ export const Analysis: React.FC = () => {
                           {session.ticker}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {new Date(session.created_at).toLocaleDateString()}
+                          {newKSTDate(session.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

@@ -408,11 +408,10 @@ export interface NewsSearchResult {
   searchQuery?: string
 }
 
-export interface FredNewsResponse {
+export interface NewsResponse {
   success: boolean
   data: {
     latest_news: NewsArticle[]
-    total_count: number
   }
   message?: string
 }

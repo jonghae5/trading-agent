@@ -35,6 +35,7 @@ import {
   AnalysisStatsResponse
 } from '../api/history'
 import { ReportDetailView } from '../components/reports/ReportDetailView'
+import { newKSTDate } from '../lib/utils'
 
 // Stats Overview component
 const StatsOverview = memo<{ stats: AnalysisStatsResponse | null }>(
@@ -268,7 +269,7 @@ export const History: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-'
-    return new Date(dateString).toLocaleString('ko-KR', {
+    return newKSTDate(dateString).toLocaleString('ko-KR', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

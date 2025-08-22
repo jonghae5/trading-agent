@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client'
+import { getKSTDate, newKSTDate } from '../lib/utils'
 
 export interface EconomicObservation {
   date: string
@@ -315,7 +316,7 @@ export const economicUtils = {
    * Get date string for N years ago
    */
   getDateYearsAgo(years: number): string {
-    const date = new Date()
+    const date = getKSTDate()
     date.setFullYear(date.getFullYear() - years)
     return date.toISOString().split('T')[0]
   },
@@ -324,7 +325,7 @@ export const economicUtils = {
    * Get date string for N months ago
    */
   getDateMonthsAgo(months: number): string {
-    const date = new Date()
+    const date = getKSTDate()
     date.setMonth(date.getMonth() - months)
     return date.toISOString().split('T')[0]
   },
@@ -333,7 +334,7 @@ export const economicUtils = {
    * Format date for display
    */
   formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('ko-KR', {
+    return newKSTDate(dateString).toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -344,7 +345,7 @@ export const economicUtils = {
    * Get preset date ranges
    */
   getPresetRanges() {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getKSTDate().toISOString().split('T')[0]
 
     return {
       '1Y': {
@@ -382,7 +383,7 @@ export const economicUtils = {
 
     // Group observations by year-month
     observations.forEach((obs) => {
-      const date = new Date(obs.date)
+      const date = newKSTDate(obs.date)
       const monthKey = `${date.getFullYear()}-${String(
         date.getMonth() + 1
       ).padStart(2, '0')}`
@@ -412,8 +413,8 @@ export const economicUtils = {
    * Determine if data should be aggregated based on time range
    */
   shouldAggregateData(startDate: string, endDate: string): boolean {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = newKSTDate(startDate)
+    const end = newKSTDate(endDate)
     const yearsDiff =
       (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
 

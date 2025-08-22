@@ -1,10 +1,7 @@
 import React, { useState, useCallback } from 'react'
-import { Search, X } from 'lucide-react'
-
-import { Input } from '../ui/input'
+import { Search } from 'lucide-react'
 import { cn } from '../../lib/utils'
-import { useDebounce } from '../../hooks/useDebounce'
-import { motion } from 'framer-motion'
+import { StockAutocomplete, StockSearchResult } from '../ui/stock-autocomplete'
 
 interface NewsSearchProps {
   onSearch: (filters: { query?: string; limit?: number }) => void
@@ -19,79 +16,57 @@ export const NewsSearch: React.FC<NewsSearchProps> = ({
 }) => {
   const [query, setQuery] = useState('')
 
-  // Debounce search query to avoid excessive API calls
-  const debouncedQuery = useDebounce(query, 1500)
-
-  // Trigger search when query changes
+  // Load default news on mount
   React.useEffect(() => {
-    onSearch({ query: debouncedQuery || undefined, limit: 20 })
-  }, [debouncedQuery, onSearch])
+    onSearch({ limit: 20 })
+  }, [onSearch])
 
-  const handleQueryChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setQuery(e.target.value)
-    },
-    []
-  )
-
-  const handleClearSearch = useCallback(() => {
-    setQuery('')
+  const handleStockSelect = useCallback((stock: StockSearchResult) => {
+    setQuery(stock.symbol)
   }, [])
+
+  const handleSearch = useCallback(() => {
+    onSearch({ query: query.trim() || undefined, limit: 20 })
+  }, [query, onSearch])
+
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        handleSearch()
+      }
+    },
+    [handleSearch]
+  )
 
   return (
     <div className={cn('space-y-3', className)}>
-      {/* Search Input */}
-      <div className="relative">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="뉴스 검색..."
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <StockAutocomplete
             value={query}
-            onChange={handleQueryChange}
-            className="pl-10 pr-16 sm:pr-20 text-sm sm:text-base"
+            onChange={setQuery}
+            onSelect={handleStockSelect}
+            onKeyDown={handleKeyPress}
+            placeholder="뉴스 검색 (종목명 또는 티커)..."
             disabled={isLoading}
+            showPopularStocks={true}
+            className="w-full"
           />
-
-          {/* Action buttons */}
-          <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5 sm:gap-1">
-            {query && (
-              <motion.button
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                onClick={handleClearSearch}
-                className="rounded-full p-1.5 sm:p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                title="Clear search"
-              >
-                <X className="h-3 w-3" />
-              </motion.button>
-            )}
-          </div>
         </div>
 
-        {/* Loading indicator */}
-        {isLoading && (
-          <div className="absolute right-10 sm:right-12 top-1/2 -translate-y-1/2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-          </div>
-        )}
+        <button
+          onClick={handleSearch}
+          disabled={isLoading}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2"
+        >
+          {isLoading ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          검색
+        </button>
       </div>
-
-      {/* Quick Search Suggestions */}
-      {!query && (
-        <div className="flex flex-wrap gap-1 sm:gap-2">
-          {['AAPL', 'SPY', 'TSLA', 'SOXL'].map((suggestion) => (
-            <button
-              key={suggestion}
-              onClick={() => setQuery(suggestion)}
-              className="rounded-full bg-gray-100 px-2 sm:px-3 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-800"
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { MarkdownRenderer } from '../common/MarkdownRenderer'
+import { newKSTDate } from '../../lib/utils'
 
 interface Message {
   id: string
@@ -191,7 +192,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
   }
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString('en-US', {
+    return newKSTDate(timestamp).toLocaleTimeString('en-US', {
       hour12: false,
       hour: '2-digit',
       minute: '2-digit',

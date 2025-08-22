@@ -1,9 +1,6 @@
 """News API endpoints for fetching real financial news."""
 
 import logging
-import aiohttp
-import asyncio
-from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
@@ -12,7 +9,6 @@ from src.core.security import get_current_user
 from src.models.user import User
 from src.schemas.common import ApiResponse
 from src.core.config import get_settings
-from src.services.fred_service import get_fred_service
 from src.services.finnhub_service import get_finnhub_service
 
 settings = get_settings()
@@ -42,12 +38,12 @@ class NewsSearchResult(BaseModel):
     search_query: Optional[str] = None
 
 
-class FredNewsResponse(BaseModel):
+class NewsResponse(BaseModel):
     """News categorized response."""
     latest_news: List[NewsArticle]
 
 
-async def _fetch_news_from_api() -> List[NewsArticle]:
+async def _fetch_news_from_api(limit=20) -> List[NewsArticle]:
     """Fetch real news from FRED service and other financial APIs."""
     articles = []
     
@@ -75,6 +71,8 @@ async def _fetch_news_from_api() -> List[NewsArticle]:
             articles.append(news_article)
         
         logger.info(f"Fetched {len(articles)} news articles from FRED service")
+
+        articles = sorted(articles, key=lambda x: x.published_at, reverse=True)[:limit]
         return articles
         
     except Exception as e:
@@ -135,11 +133,11 @@ def _determine_sentiment_simple(title: str) -> str:
 
 
 
-@router.get("/categorized", response_model=ApiResponse[FredNewsResponse])
-async def get_categorized_news(
+@router.get("", response_model=ApiResponse[NewsResponse])
+async def get_news(
     current_user: User = Depends(get_current_user)
 ):
-    """Get categorized financial news."""
+    """Get financial news."""
     try:
         # Fetch all news articles
         all_articles = await _fetch_news_from_api()
@@ -148,21 +146,16 @@ async def get_categorized_news(
             return ApiResponse(
                 success=True,
                 message="No news available at this time",
-                data=FredNewsResponse(
+                data=NewsResponse(
                     latest_news=[]
                 )
             )
         
-        # Just return the same news for all categories (ignore sentiment)
-        latest_news = sorted(all_articles, key=lambda x: x.published_at, reverse=True)[:10]
-        
         return ApiResponse(
             success=True,
             message=f"Successfully fetched {len(all_articles)} news articles",
-            data=FredNewsResponse(
-                positive_news=latest_news[:5],
-                negative_news=latest_news[:5],
-                latest_news=latest_news
+            data=NewsResponse(
+                latest_news=all_articles,
             )
         )
         

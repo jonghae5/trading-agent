@@ -7,33 +7,26 @@ import type {
   NewsArticle,
   NewsSearchFilters,
   NewsSearchResult,
-  FredNewsResponse
+  NewsResponse
 } from '../types'
+import { getKSTDate } from '../lib/utils'
 
 export interface NewsApiService {
   // Get categorized news from Fred API
-  getCategorizedNews(): Promise<{
+  getNews(): Promise<{
     latest: NewsArticle[]
   }>
-
   // Search news with filters
   searchNews(filters: NewsSearchFilters): Promise<NewsSearchResult>
-
-  // Get news by sentiment
-  getNewsBySentiment(
-    sentiment: 'positive' | 'negative' | 'latest'
-  ): Promise<NewsArticle[]>
 }
 
 class NewsApi implements NewsApiService {
   /**
    * Fetch categorized news from Fred API
    */
-  async getCategorizedNews() {
+  async getNews() {
     try {
-      const response = await apiClient.get<FredNewsResponse>(
-        '/api/v1/news/categorized'
-      )
+      const response = await apiClient.get<NewsResponse>('/api/v1/news')
 
       if (!response.success || !response.data) {
         throw new Error(response.message || 'Failed to fetch news')
@@ -80,35 +73,17 @@ class NewsApi implements NewsApiService {
       }
     }
   }
-
-  /**
-   * Get news by specific sentiment category
-   */
-  async getNewsBySentiment(
-    sentiment: 'positive' | 'negative' | 'latest'
-  ): Promise<NewsArticle[]> {
-    try {
-      const response = await apiClient.get<ApiResponse<NewsArticle[]>>(
-        `/api/v1/news/${sentiment}`
-      )
-
-      return handleApiResponse(response)
-    } catch (error) {
-      console.error(`Error fetching ${sentiment} news:`, error)
-      return []
-    }
-  }
 }
 
 // Export singleton instance
 export const newsApi = new NewsApi()
 
 // Export convenience functions
-export const fetchNewsByCategory = async (
+export const fetchNews = async (
   category: 'latest' | 'positive' | 'negative'
 ): Promise<NewsArticle[]> => {
   try {
-    const categorizedNews = await newsApi.getCategorizedNews()
+    const categorizedNews = await newsApi.getNews()
     // Only 'latest' is available from API, so for 'positive'/'negative' fallback to mock
 
     return categorizedNews.latest
@@ -165,7 +140,9 @@ export const mockNewsData = {
         'The central bank maintains current interest rates while monitoring inflation trends closely.',
       sentiment: 'neutral' as const,
       source: 'CNBC',
-      published_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
+      published_at: new Date(
+        getKSTDate().getTime() - 30 * 60 * 1000
+      ).toISOString(), // 30 minutes ago
       relevance_score: 0.95,
       tags: ['central bank', 'interest rates', 'monetary policy']
     },
@@ -176,7 +153,9 @@ export const mockNewsData = {
         'Companies report varied quarterly performance as investors assess market conditions.',
       sentiment: 'neutral' as const,
       source: 'MarketWatch',
-      published_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+      published_at: new Date(
+        getKSTDate().getTime() - 1 * 60 * 60 * 1000
+      ).toISOString(), // 1 hour ago
       relevance_score: 0.87,
       tags: ['earnings', 'quarterly results', 'companies']
     }

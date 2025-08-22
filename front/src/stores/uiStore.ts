@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Theme } from '../types'
+import { getKSTDate } from '../lib/utils'
 
 interface UIState {
   theme: Theme
@@ -106,7 +107,7 @@ export const useUIStore = create<UIStore>()(
         const newToast: Toast = {
           ...toast,
           id,
-          timestamp: new Date(),
+          timestamp: getKSTDate(),
           duration: toast.duration ?? 5000
         }
 
@@ -115,7 +116,11 @@ export const useUIStore = create<UIStore>()(
         }))
 
         // Auto-remove toast after duration
-        if (newToast.duration && typeof newToast.duration === 'number' && newToast.duration > 0) {
+        if (
+          newToast.duration &&
+          typeof newToast.duration === 'number' &&
+          newToast.duration > 0
+        ) {
           setTimeout(() => {
             get().removeToast(id)
           }, newToast.duration)

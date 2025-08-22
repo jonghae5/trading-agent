@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Search,
-  Filter,
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  Tag
-} from 'lucide-react'
+import { Search, Filter, RefreshCw, Clock } from 'lucide-react'
 import { NewsItem } from '../components/news/NewsItem'
 import { NewsSearch } from '../components/news/NewsSearch'
-import { fetchNewsByCategory, searchNews } from '../api/news'
-import { NewsArticle, NewsSearchFilters } from '../types'
+import { fetchNews, searchNews } from '../api/news'
+import { NewsArticle } from '../types'
+import { getKSTDate } from '../lib/utils'
 
 export const News: React.FC = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([])
@@ -20,8 +13,7 @@ export const News: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
-  const [showFilters, setShowFilters] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [lastUpdated, setLastUpdated] = useState<Date>(getKSTDate())
 
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -30,9 +22,9 @@ export const News: React.FC = () => {
     else setLoading(true)
 
     try {
-      const data = await fetchNewsByCategory('latest')
+      const data = await fetchNews('latest')
       setArticles(data.slice(0, 20))
-      setLastUpdated(new Date())
+      setLastUpdated(getKSTDate())
     } catch (error) {
       console.error('Failed to load articles:', error)
     } finally {
@@ -92,18 +84,6 @@ export const News: React.FC = () => {
 
             <div className="flex items-center gap-2 sm:gap-3">
               <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg border transition-all text-sm sm:text-base ${
-                  showFilters
-                    ? 'bg-blue-50 border-blue-200 text-blue-700'
-                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">필터</span>
-              </button>
-
-              <button
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50 text-sm sm:text-base"
@@ -118,19 +98,17 @@ export const News: React.FC = () => {
 
           {/* Search */}
           <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mb-6 overflow-hidden"
-              >
-                <NewsSearch
-                  onSearch={(filters) => setSearchQuery(filters.query || '')}
-                  isLoading={loading}
-                />
-              </motion.div>
-            )}
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-6"
+            >
+              <NewsSearch
+                onSearch={(filters) => setSearchQuery(filters.query || '')}
+                isLoading={loading}
+              />
+            </motion.div>
           </AnimatePresence>
 
           {/* Latest News Header */}

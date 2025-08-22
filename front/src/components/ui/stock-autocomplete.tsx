@@ -24,6 +24,7 @@ interface StockAutocompleteProps {
   value: string
   onChange: (value: string) => void
   onSelect?: (stock: StockSearchResult) => void
+  onKeyDown?: (e: React.KeyboardEvent) => void
   placeholder?: string
   className?: string
   disabled?: boolean
@@ -35,6 +36,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   value,
   onChange,
   onSelect,
+  onKeyDown,
   placeholder = 'Search stocks...',
   className = '',
   disabled = false,
@@ -101,15 +103,18 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   }, [value, isOpen, debouncedSearch])
 
   // Handle input change
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value
-    onChange(newValue)
-    setSelectedIndex(-1)
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value
+      onChange(newValue)
+      setSelectedIndex(-1)
 
-    if (!isOpen && newValue.trim()) {
-      setIsOpen(true)
-    }
-  }, [onChange, isOpen])
+      if (!isOpen && newValue.trim()) {
+        setIsOpen(true)
+      }
+    },
+    [onChange, isOpen]
+  )
 
   // Handle input focus
   const handleInputFocus = useCallback(() => {
@@ -120,40 +125,57 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
   }, [value, showPopularStocks, popularStocks])
 
   // Handle stock selection
-  const handleStockSelect = useCallback((stock: StockSearchResult) => {
-    onChange(stock.symbol)
-    setIsOpen(false)
-    setSelectedIndex(-1)
-    onSelect?.(stock)
-    inputRef.current?.blur()
-  }, [onChange, onSelect])
+  const handleStockSelect = useCallback(
+    (stock: StockSearchResult) => {
+      onChange(stock.symbol)
+      setIsOpen(false)
+      setSelectedIndex(-1)
+      onSelect?.(stock)
+      inputRef.current?.blur()
+    },
+    [onChange, onSelect]
+  )
 
   // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!isOpen || results.length === 0) return
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!isOpen || results.length === 0) {
+        // If dropdown is not open or no results, pass the event to parent
+        onKeyDown?.(e)
+        return
+      }
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0))
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1))
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (selectedIndex >= 0 && selectedIndex < results.length) {
-          handleStockSelect(results[selectedIndex])
-        }
-        break
-      case 'Escape':
-        setIsOpen(false)
-        setSelectedIndex(-1)
-        inputRef.current?.blur()
-        break
-    }
-  }, [isOpen, results.length, selectedIndex, handleStockSelect])
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0))
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1))
+          break
+        case 'Enter':
+          e.preventDefault()
+          if (selectedIndex >= 0 && selectedIndex < results.length) {
+            handleStockSelect(results[selectedIndex])
+          } else {
+            // If no item selected, pass Enter to parent
+            onKeyDown?.(e)
+          }
+          break
+        case 'Escape':
+          setIsOpen(false)
+          setSelectedIndex(-1)
+          inputRef.current?.blur()
+          break
+        default:
+          // Pass other keys to parent
+          onKeyDown?.(e)
+          break
+      }
+    },
+    [isOpen, results.length, selectedIndex, handleStockSelect, onKeyDown]
+  )
 
   // Handle click outside
   useEffect(() => {
@@ -265,7 +287,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-80 overflow-hidden"
+            className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-96 overflow-hidden"
           >
             {loading ? (
               <div className="px-4 py-8 text-center text-gray-500">
@@ -282,7 +304,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
                 )}
 
                 {/* Results List */}
-                <div ref={resultsRef} className="max-h-72 overflow-y-auto">
+                <div ref={resultsRef} className="max-h-80 overflow-y-auto">
                   {results.map((stock, index) => (
                     <motion.div
                       key={`${stock.symbol}-${index}`}

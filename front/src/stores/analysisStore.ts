@@ -16,7 +16,12 @@ import {
   DEFAULT_RESEARCH_DEPTH,
   DEFAULT_ANALYSTS
 } from '../lib/constants'
-import { generateId, getKSTDate } from '../lib/utils'
+import {
+  generateId,
+  getKSTDate,
+  getKSTTimestamp,
+  newKSTDate
+} from '../lib/utils'
 import { analysisApi, AnalysisResponse, AnalysisStatusResponse } from '../api'
 
 interface ConfigState {
@@ -208,7 +213,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
           currentSessionId: response.session_id,
           isRunning: true,
           isPaused: false,
-          startTime: new Date(response.created_at),
+          startTime: newKSTDate(response.created_at),
           endTime: null,
           messages: [],
           toolCalls: [],
@@ -225,7 +230,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
 
         // Add initial system messages
         get().addMessage({
-          timestamp: new Date().toISOString(),
+          timestamp: getKSTTimestamp(),
           type: 'system',
           content: `Starting analysis for ${config.ticker} on ${
             config.analysisDate
@@ -234,7 +239,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
         })
 
         get().addMessage({
-          timestamp: new Date().toISOString(),
+          timestamp: getKSTTimestamp(),
           type: 'system',
           content: `Selected analysts: ${config.analysts.join(', ')}`,
           agent: 'System'
@@ -265,11 +270,11 @@ export const useAnalysisStore = create<AnalysisStore>()(
         set({
           isRunning: false,
           isPaused: false,
-          endTime: new Date()
+          endTime: getKSTDate()
         })
 
         get().addMessage({
-          timestamp: new Date().toISOString(),
+          timestamp: getKSTTimestamp(),
           type: 'system',
           content: 'Analysis stopped by user',
           agent: 'System'
@@ -293,7 +298,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
         set({ isPaused: true })
 
         get().addMessage({
-          timestamp: new Date().toISOString(),
+          timestamp: getKSTTimestamp(),
           type: 'system',
           content: 'Analysis paused',
           agent: 'System'
@@ -317,7 +322,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
         set({ isPaused: false })
 
         get().addMessage({
-          timestamp: new Date().toISOString(),
+          timestamp: getKSTTimestamp(),
           type: 'system',
           content: 'Analysis resumed',
           agent: 'System'
@@ -370,7 +375,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
       set({ progress: newProgress })
 
       get().addMessage({
-        timestamp: new Date().toISOString(),
+        timestamp: getKSTTimestamp(),
         type: 'system',
         content: `${agent} status updated to ${status}`,
         agent: 'System'
@@ -382,7 +387,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
         type: section,
         agentName,
         content,
-        timestamp: new Date()
+        timestamp: getKSTDate()
       }
 
       set((state) => ({
@@ -393,7 +398,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
       }))
 
       get().addMessage({
-        timestamp: new Date().toISOString(),
+        timestamp: getKSTTimestamp(),
         type: 'analysis',
         content: `${agentName} completed ${section} report`,
         agent: agentName
@@ -413,7 +418,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
       set({
         isRunning: false,
         isPaused: false,
-        endTime: new Date(),
+        endTime: getKSTDate(),
         agentStatus: completedStatus,
         progress: 100,
         currentAgent: null
@@ -426,7 +431,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
           : 0
 
       get().addMessage({
-        timestamp: new Date().toISOString(),
+        timestamp: getKSTTimestamp(),
         type: 'system',
         content: `Analysis completed successfully in ${duration} seconds`,
         agent: 'System'
@@ -453,7 +458,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
       set({ agentStatus: errorStatus })
 
       get().addMessage({
-        timestamp: new Date().toISOString(),
+        timestamp: getKSTTimestamp(),
         type: 'error',
         content: `Analysis error: ${error}`,
         agent: 'System'
@@ -502,7 +507,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
       // If running, also calculate time-based progress (10% per minute)
       if (isRunning && startTime) {
         const elapsedMinutes =
-          (new Date().getTime() - startTime.getTime()) / (1000 * 60)
+          (getKSTDate().getTime() - startTime.getTime()) / (1000 * 60)
         const timeProgress = Math.min(Math.floor(elapsedMinutes * 10), 100)
 
         // Use the higher of agent progress or time progress, but never exceed 100%
@@ -589,10 +594,10 @@ export const useAnalysisStore = create<AnalysisStore>()(
               isPaused: sessionData.status === 'paused',
               error: sessionData.error_message || null,
               startTime: sessionData.started_at
-                ? new Date(sessionData.started_at)
+                ? newKSTDate(sessionData.started_at)
                 : null,
               endTime: sessionData.completed_at
-                ? new Date(sessionData.completed_at)
+                ? newKSTDate(sessionData.completed_at)
                 : null
             }
 
@@ -613,7 +618,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
               const convertedMessages = sessionData.messages.map(
                 (msg: any) => ({
                   id: generateId(),
-                  timestamp: msg.created_at || new Date().toISOString(),
+                  timestamp: msg.created_at || getKSTTimestamp(),
                   type:
                     (msg.message_type as
                       | 'system'
@@ -751,8 +756,8 @@ export const useAnalysisStore = create<AnalysisStore>()(
             toolCallCount: data.tool_call_count,
             isPaused: data.status === 'paused',
             error: data.error_message || null,
-            startTime: data.started_at ? new Date(data.started_at) : null,
-            endTime: data.completed_at ? new Date(data.completed_at) : null
+            startTime: data.started_at ? newKSTDate(data.started_at) : null,
+            endTime: data.completed_at ? newKSTDate(data.completed_at) : null
           }
 
           // Only update isRunning if we're not currently running or if the session is definitely completed
@@ -831,7 +836,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
                   type: sectionType,
                   agentName: section.agent_name,
                   content: section.content,
-                  timestamp: new Date(section.created_at)
+                  timestamp: newKSTDate(section.created_at)
                 }
               }
             })

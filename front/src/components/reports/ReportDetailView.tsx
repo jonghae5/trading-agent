@@ -32,7 +32,12 @@ import {
 } from '../ui/card'
 import { Button } from '../ui/button'
 import { MarkdownRenderer } from '../common/MarkdownRenderer'
-import { historyApi, AnalysisSession, HistoryReportSection } from '../../api/history'
+import {
+  historyApi,
+  AnalysisSession,
+  HistoryReportSection
+} from '../../api/history'
+import { newKSTDate } from '../../lib/utils'
 
 interface ReportDetailViewProps {
   sessionId: string
@@ -101,7 +106,7 @@ const ReportSectionCard: React.FC<{ section: HistoryReportSection }> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">
-              {new Date(section.created_at).toLocaleString('ko-KR')}
+              {newKSTDate(section.created_at).toLocaleString('ko-KR')}
             </span>
             <Eye
               className={`size-4 transition-transform ${
@@ -155,7 +160,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR', {
+    return newKSTDate(dateString).toLocaleString('ko-KR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -641,8 +646,8 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
               {session.report_sections
                 .sort(
                   (a, b) =>
-                    new Date(a.created_at).getTime() -
-                    new Date(b.created_at).getTime()
+                    newKSTDate(a.created_at).getTime() -
+                    newKSTDate(b.created_at).getTime()
                 )
                 .map((section, index) => (
                   <motion.div
@@ -867,11 +872,17 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
                     </div>
                     <div className="text-right">
                       <div className="text-xs md:text-sm text-gray-600">
-                        상태: {execution.status === 'completed' ? '완료' : execution.status === 'failed' ? '실패' : '진행중'}
+                        상태:{' '}
+                        {execution.status === 'completed'
+                          ? '완료'
+                          : execution.status === 'failed'
+                            ? '실패'
+                            : '진행중'}
                       </div>
                       {execution.execution_time_seconds && (
                         <div className="text-xs md:text-sm text-gray-500">
-                          소요시간: {formatDuration(execution.execution_time_seconds)}
+                          소요시간:{' '}
+                          {formatDuration(execution.execution_time_seconds)}
                         </div>
                       )}
                     </div>
@@ -889,7 +900,13 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
                               : 'bg-blue-500'
                         }`}
                         style={{
-                          width: `${execution.status === 'completed' ? 100 : execution.status === 'failed' ? 100 : 50}%`
+                          width: `${
+                            execution.status === 'completed'
+                              ? 100
+                              : execution.status === 'failed'
+                                ? 100
+                                : 50
+                          }%`
                         }}
                       ></div>
                     </div>

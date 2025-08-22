@@ -23,10 +23,10 @@ import {
   CardTitle
 } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { economicApi, economicUtils, IndicatorGroups } from '../api'
+import { economicApi, economicUtils } from '../api'
+import { getKSTDate, newKSTDate } from '../lib/utils'
 import type {
   HistoricalDataResponse,
-  EconomicEvent,
   EconomicObservation
 } from '../api/economic'
 
@@ -132,7 +132,7 @@ export const Economics: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showEvents, setShowEvents] = useState(true)
-  const [lastUpdate, setLastUpdate] = useState(new Date())
+  const [lastUpdate, setLastUpdate] = useState(getKSTDate())
 
   // Load economic data
   const loadEconomicData = useCallback(async () => {
@@ -143,7 +143,7 @@ export const Economics: React.FC = () => {
       const startDate = economicUtils.getDateYearsAgo(
         TIME_RANGES[selectedTimeRange].years
       )
-      const endDate = new Date().toISOString().split('T')[0]
+      const endDate = getKSTDate().toISOString().split('T')[0]
 
       const indicators = INDICATOR_CATEGORIES[selectedCategory].indicators
 
@@ -168,7 +168,7 @@ export const Economics: React.FC = () => {
       } else {
         setHistoricalData(data)
       }
-      setLastUpdate(new Date())
+      setLastUpdate(getKSTDate())
     } catch (err) {
       console.error('Failed to load economic data:', err)
       setError('경제 데이터를 불러오는데 실패했습니다.')
@@ -423,18 +423,18 @@ export const Economics: React.FC = () => {
                                   }
                                   // Then by date
                                   return (
-                                    new Date(a.date).getTime() -
-                                    new Date(b.date).getTime()
+                                    newKSTDate(a.date).getTime() -
+                                    newKSTDate(b.date).getTime()
                                   )
                                 })
 
                               priorityEvents.forEach((event) => {
-                                const eventDate = new Date(event.date)
+                                const eventDate = newKSTDate(event.date)
 
                                 // Find closest data point for Y position
                                 let yValue = null
                                 const exactMatch = data.find((d) => {
-                                  const dataDate = new Date(d.date)
+                                  const dataDate = newKSTDate(d.date)
                                   return (
                                     Math.abs(
                                       dataDate.getTime() - eventDate.getTime()
@@ -449,11 +449,11 @@ export const Economics: React.FC = () => {
                                   // Interpolate between closest points
                                   const beforePoint = data
                                     .filter(
-                                      (d) => new Date(d.date) <= eventDate
+                                      (d) => newKSTDate(d.date) <= eventDate
                                     )
                                     .slice(-1)[0]
                                   const afterPoint = data.filter(
-                                    (d) => new Date(d.date) >= eventDate
+                                    (d) => newKSTDate(d.date) >= eventDate
                                   )[0]
 
                                   if (beforePoint && afterPoint) {
@@ -491,7 +491,7 @@ export const Economics: React.FC = () => {
                               dataKey="date"
                               fontSize={12}
                               tickFormatter={(value) => {
-                                const date = new Date(value)
+                                const date = newKSTDate(value)
                                 return date.getFullYear().toString()
                               }}
                             />
@@ -520,7 +520,7 @@ export const Economics: React.FC = () => {
                                       </p>
                                       <div className="flex items-center justify-between">
                                         <span className="text-xs text-gray-500">
-                                          {new Date(
+                                          {newKSTDate(
                                             event.detail_date
                                           ).toLocaleDateString('ko-KR')}
                                         </span>
@@ -553,7 +553,7 @@ export const Economics: React.FC = () => {
                                 return (
                                   <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
                                     <div className="font-medium text-sm">
-                                      {new Date(label).toLocaleDateString(
+                                      {newKSTDate(label).toLocaleDateString(
                                         'ko-KR'
                                       )}
                                     </div>
@@ -623,8 +623,10 @@ export const Economics: React.FC = () => {
                                     style={{ backgroundColor: event.color }}
                                   />
                                   <span className="text-gray-600">
-                                    {new Date(event.detail_date).getFullYear()}:{' '}
-                                    {event.title}
+                                    {newKSTDate(
+                                      event.detail_date
+                                    ).getFullYear()}
+                                    : {event.title}
                                   </span>
                                 </div>
                               ))}
@@ -689,7 +691,7 @@ export const Economics: React.FC = () => {
                           </p>
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-gray-500">
-                              {new Date(event.detail_date).toLocaleDateString(
+                              {newKSTDate(event.detail_date).toLocaleDateString(
                                 'ko-KR'
                               )}
                             </span>

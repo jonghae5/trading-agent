@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
-import { cn } from '../../lib/utils'
+import { cn, newKSTDate } from '../../lib/utils'
 import type { NewsArticle } from '../../types'
 
 interface NewsItemProps {
@@ -55,7 +55,7 @@ export const NewsItem: React.FC<NewsItemProps> = ({
     }
   }
 
-  const timeAgo = formatDistanceToNow(new Date(article.published_at), {
+  const timeAgo = formatDistanceToNow(newKSTDate(article.published_at), {
     addSuffix: true
   })
 

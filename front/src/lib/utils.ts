@@ -37,10 +37,31 @@ export function formatRelativeTime(date: Date | string): string {
 }
 
 /**
- * Get current KST date
+ * Get current KST date - Intl API를 사용한 한국시간
  */
 export function getKSTDate(): Date {
-  return new Date()
+  return new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' })
+  )
+}
+
+/**
+ * Create a new Date in Korean timezone
+ */
+export function newKSTDate(dateInput?: string | number | Date): Date {
+  if (!dateInput) {
+    return getKSTDate()
+  }
+
+  const date = new Date(dateInput)
+  return new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+}
+
+/**
+ * Get current KST timestamp as ISO string
+ */
+export function getKSTTimestamp(): string {
+  return getKSTDate().toISOString()
 }
 
 /**
@@ -68,7 +89,7 @@ export function validateTicker(ticker: string): boolean {
 export function validateDate(date: string): boolean {
   if (!date) return false
   const parsedDate = parseISO(date)
-  return isValid(parsedDate) && parsedDate <= new Date()
+  return isValid(parsedDate) && parsedDate <= getKSTDate()
 }
 
 /**
@@ -271,7 +292,7 @@ export function throttle<T extends (...args: any[]) => any>(
 export function isSessionExpired(expiresAt: Date | string): boolean {
   const expiration =
     typeof expiresAt === 'string' ? parseISO(expiresAt) : expiresAt
-  return expiration <= new Date()
+  return expiration <= getKSTDate()
 }
 
 /**
@@ -280,7 +301,7 @@ export function isSessionExpired(expiresAt: Date | string): boolean {
 export function getRemainingSessionTime(expiresAt: Date | string): number {
   const expiration =
     typeof expiresAt === 'string' ? parseISO(expiresAt) : expiresAt
-  const now = new Date()
+  const now = getKSTDate()
   const diffMs = expiration.getTime() - now.getTime()
   return Math.max(0, Math.floor(diffMs / (1000 * 60)))
 }
