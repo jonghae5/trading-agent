@@ -31,6 +31,7 @@ from src.middleware import (
     SecurityHeadersMiddleware
 )
 from src.models.user import User, UserPreference
+from src.services.stock_seeder import seed_stock_database_on_startup
 
 # Initialize settings
 settings = get_settings()
@@ -139,6 +140,17 @@ async def lifespan(app: FastAPI):
         
         # Run database seeder if needed
         await run_seeder_if_needed()
+        
+        # Seed stock database on startup
+        logger.info("🌱 Starting stock database seeding...")
+        stock_seeding_result = await seed_stock_database_on_startup(force_refresh=False)
+        
+        if stock_seeding_result['status'] == 'completed':
+            logger.info(f"✅ Stock database seeded successfully: {stock_seeding_result['successful_inserts']} stocks added")
+        elif stock_seeding_result['status'] == 'already_seeded':
+            logger.info(f"✅ Stock database already contains {stock_seeding_result['count']} stocks")
+        else:
+            logger.warning(f"⚠️ Stock database seeding failed: {stock_seeding_result.get('error', 'Unknown error')}")
         
         # Initialize other services here (Redis, external APIs, etc.)
         

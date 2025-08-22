@@ -138,7 +138,7 @@ class EconomicEventsService:
             color="#DC143C",
             icon="🌏",
             impact_duration_months=18,
-            related_indicators=["VIXCLS", "GOLDAMGBD228NLBM"]
+            related_indicators=["VIXCLS"]
         ),
         
         # 2000년 - 닷컴 버블 붕괴
@@ -215,7 +215,7 @@ class EconomicEventsService:
             color="#4682B4",
             icon="🇪🇺",
             impact_duration_months=36,
-            related_indicators=["VIXCLS", "GOLDAMGBD228NLBM"]
+            related_indicators=["VIXCLS"]
         ),
         
         # 2015년 - 중국 증시 폭락

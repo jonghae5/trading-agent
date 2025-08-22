@@ -39,7 +39,7 @@ async def get_analysis_history(
         
         # Apply ticker filter
         if ticker:
-            query = query.where(AnalysisSession.ticker == ticker.upper())
+            query = query.where(AnalysisSession.ticker.contains(ticker.upper()))
         
         # Count total
         count_query = select(func.count()).select_from(
@@ -299,7 +299,7 @@ async def get_analysis_stats(
         )
         
         if ticker:
-            base_query = base_query.where(AnalysisSession.ticker == ticker.upper())
+            base_query = base_query.where(AnalysisSession.ticker.contains(ticker.upper()))
         
         # Get total count
         count_result = db.execute(
@@ -320,7 +320,7 @@ async def get_analysis_stats(
         )
         
         if ticker:
-            decisions_query = decisions_query.where(AnalysisSession.ticker == ticker.upper())
+            decisions_query = decisions_query.where(AnalysisSession.ticker.contains(ticker.upper()))
         
         decisions_query = decisions_query.group_by(AnalysisSession.final_decision)
         
@@ -342,7 +342,7 @@ async def get_analysis_stats(
         )
         
         if ticker:
-            confidence_query = confidence_query.where(AnalysisSession.ticker == ticker.upper())
+            confidence_query = confidence_query.where(AnalysisSession.ticker.contains(ticker.upper()))
         
         confidence_result = db.execute(confidence_query)
         average_confidence = confidence_result.scalar()

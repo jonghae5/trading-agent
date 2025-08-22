@@ -124,7 +124,6 @@ class FredService:
         
         # Commodities
         "DCOILWTICO": "DCOILWTICO",  # WTI Crude Oil Price
-        "GOLDAMGBD228NLBM": "GOLDAMGBD228NLBM",  # Gold Price
         "DHHNGSP": "DHHNGSP",  # Natural Gas Price
         
         # Government Finance
@@ -419,7 +418,7 @@ class FredService:
         """Get a summary of key economic indicators."""
         key_indicators = [
             "GDP", "UNRATE", "CPIAUCSL", "FEDFUNDS", "DGS10",
-            "UMCSENT", "PAYEMS", "VIXCLS", "DCOILWTICO", "GOLDAMGBD228NLBM"
+            "UMCSENT", "PAYEMS", "VIXCLS", "DCOILWTICO"
         ]
         
         summary = {}
