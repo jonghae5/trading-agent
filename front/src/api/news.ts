@@ -109,12 +109,13 @@ export const fetchNewsByCategory = async (
 ): Promise<NewsArticle[]> => {
   try {
     const categorizedNews = await newsApi.getCategorizedNews()
-    console.log('오종해', categorizedNews)
-    return categorizedNews[category]
+    // Only 'latest' is available from API, so for 'positive'/'negative' fallback to mock
+
+    return categorizedNews.latest
   } catch (error) {
     console.error(`Failed to fetch ${category} news:`, error)
     // Return mock data as fallback
-    return mockNewsData[category]
+    return mockNewsData.latest
   }
 }
 
@@ -126,11 +127,7 @@ export const searchNews = async (
   } catch (error) {
     console.error('Failed to search news:', error)
     // Return filtered mock data as fallback
-    const allMockArticles = [
-      ...mockNewsData.latest,
-      ...mockNewsData.positive,
-      ...mockNewsData.negative
-    ]
+    const allMockArticles = [...mockNewsData.latest]
 
     let filtered = allMockArticles
 
@@ -160,54 +157,6 @@ export const searchNews = async (
 
 // Mock data for development (fallback when Fred API is unavailable)
 export const mockNewsData = {
-  positive: [
-    {
-      id: 'pos-1',
-      title: 'Market Rally Continues as Tech Stocks Surge',
-      summary:
-        "Major technology stocks showed strong performance in today's trading session, driving broader market gains.",
-      sentiment: 'positive' as const,
-      source: 'Financial Times',
-      publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-      relevanceScore: 0.85,
-      tags: ['technology', 'market', 'stocks']
-    },
-    {
-      id: 'pos-2',
-      title: 'Federal Reserve Signals Optimistic Economic Outlook',
-      summary:
-        'Fed officials express confidence in economic recovery and stable inflation expectations.',
-      sentiment: 'positive' as const,
-      source: 'Reuters',
-      publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-      relevanceScore: 0.92,
-      tags: ['federal reserve', 'economy', 'inflation']
-    }
-  ],
-  negative: [
-    {
-      id: 'neg-1',
-      title: 'Energy Sector Faces Headwinds as Oil Prices Decline',
-      summary:
-        'Crude oil prices dropped significantly amid concerns over global demand and supply chain issues.',
-      sentiment: 'negative' as const,
-      source: 'Bloomberg',
-      publishedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
-      relevanceScore: 0.78,
-      tags: ['energy', 'oil', 'commodities']
-    },
-    {
-      id: 'neg-2',
-      title: 'Manufacturing Data Shows Unexpected Weakness',
-      summary:
-        'Latest manufacturing indices indicate slower growth than anticipated, raising economic concerns.',
-      sentiment: 'negative' as const,
-      source: 'Wall Street Journal',
-      publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
-      relevanceScore: 0.83,
-      tags: ['manufacturing', 'economy', 'data']
-    }
-  ],
   latest: [
     {
       id: 'latest-1',
@@ -216,8 +165,8 @@ export const mockNewsData = {
         'The central bank maintains current interest rates while monitoring inflation trends closely.',
       sentiment: 'neutral' as const,
       source: 'CNBC',
-      publishedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-      relevanceScore: 0.95,
+      published_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
+      relevance_score: 0.95,
       tags: ['central bank', 'interest rates', 'monetary policy']
     },
     {
@@ -227,8 +176,8 @@ export const mockNewsData = {
         'Companies report varied quarterly performance as investors assess market conditions.',
       sentiment: 'neutral' as const,
       source: 'MarketWatch',
-      publishedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
-      relevanceScore: 0.87,
+      published_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+      relevance_score: 0.87,
       tags: ['earnings', 'quarterly results', 'companies']
     }
   ]
