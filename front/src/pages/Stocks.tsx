@@ -754,7 +754,7 @@ export const Stocks: React.FC = () => {
                         ? 'Return'
                         : 'Market Cap'
                   ]}
-                  labelFormatter={(label, payload) => {
+                  labelFormatter={(label: any, payload: Array<{payload?: {stock?: string}}>) => {
                     if (payload && payload.length > 0) {
                       return `${payload[0]?.payload?.stock || ''}`
                     }
