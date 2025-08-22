@@ -9,23 +9,6 @@ interface NewsSearchProps {
   className?: string
 }
 
-function useDebouncedCallback<T extends (...args: any[]) => void>(
-  callback: T,
-  delay: number
-) {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  return useCallback(
-    (...args: Parameters<T>) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-      timeoutRef.current = setTimeout(() => {
-        callback(...args)
-      }, delay)
-    },
-    [callback, delay]
-  )
-}
 
 export const NewsSearch: React.FC<NewsSearchProps> = ({
   onSearch,
@@ -34,21 +17,11 @@ export const NewsSearch: React.FC<NewsSearchProps> = ({
 }) => {
   const [query, setQuery] = useState('')
 
-  // Load default news on mount
-  React.useEffect(() => {
-    onSearch({ limit: 20 })
-  }, [onSearch])
-
   const handleStockSelect = useCallback((stock: StockSearchResult) => {
     setQuery(stock.symbol)
   }, [])
 
-  // 디바운스된 검색 함수 (버튼 클릭용)
-  const debouncedHandleSearch = useDebouncedCallback(() => {
-    onSearch({ query: query.trim() || undefined, limit: 20 })
-  }, 400)
-
-  // 즉시 검색 (엔터키 등)
+  // 검색 함수 (버튼 클릭, 엔터키)
   const handleSearch = useCallback(() => {
     onSearch({ query: query.trim() || undefined, limit: 20 })
   }, [query, onSearch])
@@ -79,7 +52,7 @@ export const NewsSearch: React.FC<NewsSearchProps> = ({
         </div>
 
         <button
-          onClick={debouncedHandleSearch}
+          onClick={handleSearch}
           disabled={isLoading}
           className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2"
         >

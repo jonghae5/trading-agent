@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Filter, RefreshCw, Clock } from 'lucide-react'
+import { Search, RefreshCw, Clock } from 'lucide-react'
 import { NewsItem } from '../components/news/NewsItem'
 import { NewsSearch } from '../components/news/NewsSearch'
 import { fetchNews, searchNews } from '../api/news'
@@ -12,10 +12,10 @@ export const News: React.FC = () => {
   const [filteredArticles, setFilteredArticles] = useState<NewsArticle[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [searching, setSearching] = useState(false)
 
   const [lastUpdated, setLastUpdated] = useState<Date>(getKSTDate())
 
-  const [searchQuery, setSearchQuery] = useState('')
 
   const loadArticles = async (refresh = false) => {
     if (refresh) setRefreshing(true)
@@ -36,15 +36,20 @@ export const News: React.FC = () => {
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
       setFilteredArticles([])
+      // 검색어가 없을 때 기본 뉴스 로드
+      await loadArticles()
       return
     }
 
+    setSearching(true)
     try {
       const results = await searchNews({ query, limit: 20 })
       setFilteredArticles(results.articles.slice(0, 20))
     } catch (error) {
       console.error('Search failed:', error)
       setFilteredArticles([])
+    } finally {
+      setSearching(false)
     }
   }
 
@@ -56,14 +61,9 @@ export const News: React.FC = () => {
     loadArticles()
   }, [])
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      handleSearch(searchQuery)
-    } else {
-      setFilteredArticles([])
-    }
-  }, [searchQuery])
-
+  const onSearch = (searchQuery: string) => {
+    handleSearch(searchQuery)
+  }
   const displayArticles =
     filteredArticles.length > 0 ? filteredArticles : articles
 
@@ -105,8 +105,8 @@ export const News: React.FC = () => {
               className="mb-6"
             >
               <NewsSearch
-                onSearch={(filters) => setSearchQuery(filters.query || '')}
-                isLoading={loading}
+                onSearch={(filters) => onSearch(filters.query || '')}
+                isLoading={loading || searching}
               />
             </motion.div>
           </AnimatePresence>
@@ -144,6 +144,27 @@ export const News: React.FC = () => {
                   </p>
                 </div>
               </motion.div>
+            ) : searching ? (
+              // News search skeleton
+              Array.from({ length: 6 }).map((_, index) => (
+                <motion.div
+                  key={`skeleton-${index}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse"
+                >
+                  <div className="space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-full"></div>
+                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    <div className="flex justify-between items-center pt-2">
+                      <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
             ) : displayArticles.length === 0 ? (
               <motion.div
                 key="empty"
