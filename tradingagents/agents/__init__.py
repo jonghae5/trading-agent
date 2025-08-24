@@ -19,6 +19,9 @@ from .managers.risk_manager import create_risk_manager
 
 from .trader.trader import create_trader
 
+from .lgnd_investors.ben_graham_analyst import create_ben_graham_analyst
+from .lgnd_investors.warren_buffett_analyst import create_warren_buffett_analyst
+
 __all__ = [
     "FinancialSituationMemory",
     "Toolkit",
@@ -38,4 +41,6 @@ __all__ = [
     "create_safe_debator",
     "create_social_media_analyst",
     "create_trader",
+    "create_ben_graham_analyst",
+    "create_warren_buffett_analyst",
 ]

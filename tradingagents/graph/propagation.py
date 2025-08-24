@@ -37,6 +37,8 @@ class Propagator:
             ),
             "market_report": "",
             "fundamentals_report": "",
+            "ben_graham_report": "",
+            "warren_buffett_report": "",
             "sentiment_report": "",
             "news_report": "",
         }

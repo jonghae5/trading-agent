@@ -41,7 +41,7 @@ class GraphSetup:
         self.conditional_logic = conditional_logic
 
     def setup_graph(
-        self, selected_analysts=["market", "social", "news", "fundamentals"]
+        self, selected_analysts=["market", "social", "news", "fundamentals", "ben_graham", "warren_buffett"]
     ):
         """Set up and compile the agent workflow graph.
 
@@ -51,6 +51,8 @@ class GraphSetup:
                 - "social": Social media analyst
                 - "news": News analyst
                 - "fundamentals": Fundamentals analyst
+                - "ben_graham": Ben Graham value investment analyst
+                - "warren_buffett": Warren Buffett investment analyst
         """
         if len(selected_analysts) == 0:
             raise ValueError("Trading Agents Graph Setup Error: Analyst를 적어도 1개는 선택해주세요.")
@@ -87,6 +89,20 @@ class GraphSetup:
             )
             delete_nodes["fundamentals"] = create_msg_delete()
             tool_nodes["fundamentals"] = self.tool_nodes["fundamentals"]
+        
+        if "ben_graham" in selected_analysts:
+            analyst_nodes["ben_graham"] = create_ben_graham_analyst(
+                self.quick_thinking_llm, self.toolkit
+            )
+            delete_nodes["ben_graham"] = create_msg_delete()
+            tool_nodes["ben_graham"] = self.tool_nodes["ben_graham"]
+
+        if "warren_buffett" in selected_analysts:
+            analyst_nodes["warren_buffett"] = create_warren_buffett_analyst(
+                self.quick_thinking_llm, self.toolkit
+            )
+            delete_nodes["warren_buffett"] = create_msg_delete()
+            tool_nodes["warren_buffett"] = self.tool_nodes["warren_buffett"]
 
         # Create researcher and manager nodes
         bull_researcher_node = create_bull_researcher(

@@ -16,6 +16,8 @@ def create_safe_debator(llm):
         sentiment_report = state["sentiment_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
+        ben_graham_report = state["ben_graham_report"]
+        warren_buffett_report = state["warren_buffett_report"]
 
         trader_decision = state["trader_investment_plan"]
 
@@ -29,6 +31,9 @@ def create_safe_debator(llm):
 소셜 미디어 심리 보고서: {sentiment_report}
 최신 세계 정세 보고서: {news_report}
 기업 펀더멘털 보고서: {fundamentals_report}
+벤자민 그레이엄 보고서: {ben_graham_report}
+워렌 버핏 보고서: {warren_buffett_report}
+
 현재 대화 내역: {history} 위험 성향 분석가의 마지막 답변: {current_risky_response} 중립 성향 분석가의 마지막 답변: {current_neutral_response}. 만약 다른 관점의 답변이 없다면, 내용을 지어내지 말고 당신의 의견만 제시하세요.
 
 그들의 낙관론에 의문을 제기하고, 그들이 간과했을 수 있는 잠재적 단점에 초점을 맞추세요. 각 반론에 대응하여 보수적 관점이 회사 자산을 지키는 가장 안전한 길임을 보여주세요. 논쟁과 비판에 집중하여 저위험 전략의 강점을 부각시키세요. 특별한 형식 없이 대화하듯 자연스럽게 답변하세요.

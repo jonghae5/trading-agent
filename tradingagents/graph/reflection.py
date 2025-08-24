@@ -53,8 +53,11 @@ class Reflector:
         curr_sentiment_report = current_state["sentiment_report"]
         curr_news_report = current_state["news_report"]
         curr_fundamentals_report = current_state["fundamentals_report"]
+        curr_ben_graham_report = current_state["ben_graham_report"]
+        curr_warren_buffett_report = current_state["warren_buffett_report"]
+        
 
-        return f"{curr_market_report}\n\n{curr_sentiment_report}\n\n{curr_news_report}\n\n{curr_fundamentals_report}"
+        return f"{curr_market_report}\n\n{curr_sentiment_report}\n\n{curr_news_report}\n\n{curr_fundamentals_report}\n\n{curr_ben_graham_report}\n\n{curr_warren_buffett_report}"
 
     def _reflect_on_component(
         self, component_type: str, report: str, situation: str, returns_losses

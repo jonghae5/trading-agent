@@ -20,7 +20,9 @@ import {
   Users,
   PieChart,
   TrendingDown,
-  Minus
+  Minus,
+  Gem,
+  Award
 } from 'lucide-react'
 
 import {
@@ -31,6 +33,7 @@ import {
   CardTitle
 } from '../ui/card'
 import { Button } from '../ui/button'
+import { ConfirmDialog } from '../ui/dialog'
 import { MarkdownRenderer } from '../common/MarkdownRenderer'
 import {
   historyApi,
@@ -59,7 +62,7 @@ const ReportSectionCard: React.FC<{ section: HistoryReportSection }> = ({
       case 'news_report':
         return FileText
       case 'fundamentals_report':
-        return TrendingUp
+        return DollarSign
       case 'bull_analysis':
         return TrendingUp
       case 'bear_analysis':
@@ -72,6 +75,10 @@ const ReportSectionCard: React.FC<{ section: HistoryReportSection }> = ({
         return Target
       case 'trader_investment_plan':
         return Zap
+      case 'warren_buffett_report':
+        return Award
+      case 'ben_graham_report':
+        return Gem
       default:
         return FileText
     }
@@ -137,6 +144,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   const [session, setSession] = useState<AnalysisSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     loadReportDetail()
@@ -181,21 +189,20 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
     return `${minutes}m ${remainingSeconds}s`
   }
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDeleteConfirm = async () => {
     if (!session) return
 
-    if (
-      window.confirm(
-        `Are you sure you want to delete the analysis for ${session.ticker}?`
-      )
-    ) {
-      try {
-        await historyApi.deleteAnalysisReport(sessionId)
-        onBack()
-      } catch (err) {
-        console.error('Delete failed:', err)
-        alert('Failed to delete analysis report')
-      }
+    try {
+      await historyApi.deleteAnalysisReport(sessionId)
+      onBack()
+    } catch (err) {
+      console.error('Delete failed:', err)
+      // 에러 시에도 커스텀 알림 사용할 수 있지만 일단 alert 유지
+      alert('리포트 삭제에 실패했습니다')
     }
   }
 
@@ -341,7 +348,7 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
         <div className="flex gap-2 justify-end">
           <Button
             variant="outline"
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             size="sm"
             className="text-red-600 hover:text-red-700 hover:border-red-300 flex-shrink-0"
           >
@@ -932,6 +939,18 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteConfirm}
+        title="분석 리포트 삭제"
+        message={`정말로 ${session?.ticker} 종목의 분석 리포트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`}
+        confirmText="삭제"
+        cancelText="취소"
+        variant="danger"
+      />
     </div>
   )
 }

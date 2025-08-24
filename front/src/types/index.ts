@@ -9,7 +9,9 @@ export enum AnalystType {
   MARKET = 'market',
   SOCIAL = 'social',
   NEWS = 'news',
-  FUNDAMENTALS = 'fundamentals'
+  FUNDAMENTALS = 'fundamentals',
+  BEN_GRAHAM = 'ben_graham',
+  WARREN_BUFFETT = 'warren_buffett'
 }
 
 export enum LLMProvider {
@@ -84,6 +86,8 @@ export enum ReportSectionType {
   SENTIMENT_REPORT = 'sentiment_report',
   NEWS_REPORT = 'news_report',
   FUNDAMENTALS_REPORT = 'fundamentals_report',
+  BEN_GRAHAM_REPORT = 'ben_graham_report',
+  WARREN_BUFFETT_REPORT = 'warren_buffett_report',
   INVESTMENT_PLAN = 'investment_plan',
   TRADER_INVESTMENT_PLAN = 'trader_investment_plan',
   FINAL_TRADE_DECISION = 'final_trade_decision'
@@ -424,3 +428,38 @@ export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>
 
 export type OptionalFields<T, K extends keyof T> = Omit<T, K> &
   Partial<Pick<T, K>>
+
+// Ben Graham Analysis Types
+export interface BenGrahamAnalysisRequest {
+  ticker: string
+  analysisDate: string
+}
+
+export interface BenGrahamAnalysisResult {
+  ticker: string
+  analysis_date: string
+  analysis_type: string
+  analyst: string
+  report: string
+  generated_at: string
+  // Parsed metrics
+  earnings_score?: number
+  financial_strength_score?: number
+  valuation_score?: number
+  total_score?: number
+  investment_signal?: 'bullish' | 'bearish' | 'neutral'
+  confidence?: number
+  // Key ratios
+  pe_ratio?: number
+  pb_ratio?: number
+  current_ratio?: number
+  debt_ratio?: number
+  graham_number?: number
+  margin_of_safety?: number
+}
+
+export interface BenGrahamAnalysisResponse {
+  success: boolean
+  message: string
+  data: BenGrahamAnalysisResult
+}

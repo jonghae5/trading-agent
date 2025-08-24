@@ -29,6 +29,7 @@ import {
 } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { ConfirmDialog } from '../components/ui/dialog'
 import {
   historyApi,
   AnalysisSession,
@@ -39,7 +40,7 @@ import { newKSTDate } from '../lib/utils'
 
 // Stats Overview component
 const StatsOverview = memo<{ stats: AnalysisStatsResponse | null }>(
-  ({ stats }) => {
+  function StatsOverview({ stats }) {
     if (!stats) return null
 
     return (
@@ -148,9 +149,12 @@ const StatsOverview = memo<{ stats: AnalysisStatsResponse | null }>(
     )
   }
 )
+StatsOverview.displayName = 'StatsOverview'
 
 // Status badge component
-const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: string }> = function StatusBadge({
+  status
+}) {
   const getStatusConfig = (status: string) => {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -179,9 +183,12 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     </span>
   )
 }
+StatusBadge.displayName = 'StatusBadge'
 
 // Decision badge component
-const DecisionBadge: React.FC<{ decision?: string }> = ({ decision }) => {
+const DecisionBadge: React.FC<{ decision?: string }> = function DecisionBadge({
+  decision
+}) {
   if (!decision) return <span className="text-gray-400">-</span>
 
   const getDecisionColor = (decision: string) => {
@@ -208,9 +215,10 @@ const DecisionBadge: React.FC<{ decision?: string }> = ({ decision }) => {
     </span>
   )
 }
+DecisionBadge.displayName = 'DecisionBadge'
 
 // Main History component
-export const History: React.FC = () => {
+export const History: React.FC = function History() {
   const navigate = useNavigate()
   const [sessions, setSessions] = useState<AnalysisSession[]>([])
   const [stats, setStats] = useState<AnalysisStatsResponse | null>(null)
@@ -227,6 +235,13 @@ export const History: React.FC = () => {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null
   )
+
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{
+    sessionId: string
+    ticker: string
+  } | null>(null)
 
   // Load data
   const loadData = async () => {
@@ -285,14 +300,20 @@ export const History: React.FC = () => {
     return `${minutes}m ${remainingSeconds}s`
   }
 
-  const handleDelete = async (sessionId: string, ticker: string) => {
-    if (window.confirm(`정말로 ${ticker} 분석을 삭제하시겠습니까?`)) {
-      try {
-        await historyApi.deleteAnalysisReport(sessionId)
-        await loadData()
-      } catch (err) {
-        alert('Failed to delete analysis report')
-      }
+  const handleDeleteClick = (sessionId: string, ticker: string) => {
+    setDeleteTarget({ sessionId, ticker })
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+
+    try {
+      await historyApi.deleteAnalysisReport(deleteTarget.sessionId)
+      await loadData()
+    } catch (err) {
+      console.error('Delete failed:', err)
+      alert('분석 리포트 삭제에 실패했습니다')
     }
   }
 
@@ -539,7 +560,10 @@ export const History: React.FC = () => {
                           size="sm"
                           variant="outline"
                           onClick={() =>
-                            handleDelete(session.session_id, session.ticker)
+                            handleDeleteClick(
+                              session.session_id,
+                              session.ticker
+                            )
                           }
                           className="text-red-600 hover:text-red-700 hover:border-red-300"
                         >
@@ -585,6 +609,22 @@ export const History: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false)
+          setDeleteTarget(null)
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="분석 리포트 삭제"
+        message={`정말로 ${deleteTarget?.ticker} 종목의 분석 리포트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`}
+        confirmText="삭제"
+        cancelText="취소"
+        variant="danger"
+      />
     </div>
   )
 }
+History.displayName = 'History'

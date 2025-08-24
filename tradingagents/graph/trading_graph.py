@@ -35,7 +35,7 @@ class TradingAgentsGraph:
 
     def __init__(
         self,
-        selected_analysts=["market", "social", "news", "fundamentals"],
+        selected_analysts=["market", "social", "news", "fundamentals", "ben_graham", "warren_buffett"],
         debug=False,
         config: Dict[str, Any] = None,
         api_key = None,
@@ -159,6 +159,30 @@ class TradingAgentsGraph:
                     # offline tools
                 ]
             ),
+            "ben_graham": ToolNode(
+                [
+                    # online tools
+                    self.toolkit.get_fundamentals_openai,
+                    self.toolkit.get_finnhub_company_insider_sentiment,
+                    self.toolkit.get_finnhub_company_insider_transactions,
+                    self.toolkit.get_simfin_balance_sheet,
+                    self.toolkit.get_simfin_cashflow,
+                    self.toolkit.get_simfin_income_stmt,
+                    # offline tools
+                ]
+            ),
+            "warren_buffett": ToolNode(
+                [
+                    # online tools
+                    self.toolkit.get_fundamentals_openai,
+                    self.toolkit.get_finnhub_company_insider_sentiment,
+                    self.toolkit.get_finnhub_company_insider_transactions,
+                    self.toolkit.get_simfin_balance_sheet,
+                    self.toolkit.get_simfin_cashflow,
+                    self.toolkit.get_simfin_income_stmt,
+                    # offline tools
+                ]
+            ),
         }
 
     def propagate(self, company_name, trade_date):
@@ -205,6 +229,8 @@ class TradingAgentsGraph:
             "sentiment_report": final_state["sentiment_report"],
             "news_report": final_state["news_report"],
             "fundamentals_report": final_state["fundamentals_report"],
+            "ben_graham_report": final_state["ben_graham_report"],
+            "warren_buffett_report": final_state["warren_buffett_report"],
             "investment_debate_state": {
                 "bull_history": final_state["investment_debate_state"]["bull_history"],
                 "bear_history": final_state["investment_debate_state"]["bear_history"],

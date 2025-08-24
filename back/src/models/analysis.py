@@ -43,6 +43,8 @@ class ReportSectionType(str, Enum):
     SENTIMENT_REPORT = "sentiment_report"
     NEWS_REPORT = "news_report"
     FUNDAMENTALS_REPORT = "fundamentals_report"
+    BEN_GRAHAM_REPORT = "ben_graham_report"
+    WARREN_BUFFETT_REPORT = "warren_buffett_report"
     INVESTMENT_PLAN = "investment_plan"
     TRADER_INVESTMENT_PLAN = "trader_investment_plan"
     FINAL_TRADE_DECISION = "final_trade_decision"

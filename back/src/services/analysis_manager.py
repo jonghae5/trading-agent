@@ -295,6 +295,8 @@ class AnalysisManager:
             "sentiment_report": ("Social Analyst", "sentiment_report"),
             "news_report": ("News Analyst", "news_report"),
             "fundamentals_report": ("Fundamentals Analyst", "fundamentals_report"),
+            "ben_graham_report": ("Ben Graham Analyst", "ben_graham_report"),
+            "warren_buffett_report": ("Warren Buffett Analyst", "warren_buffett_report"),
         }
         
         # Investment debate state mappings
@@ -471,6 +473,12 @@ class AnalysisManager:
         
         if "fundamentals_report" in chunk and chunk["fundamentals_report"]:
             completed_agents.append("Fundamentals Analyst")
+        
+        if "ben_graham_report" in chunk and chunk["ben_graham_report"]:
+            completed_agents.append("Ben Graham Analyst")
+        
+        if "warren_buffett_report" in chunk and chunk["warren_buffett_report"]:
+            completed_agents.append("Warren Buffett Analyst")
         
         # Investment debate agents
         if "investment_debate_state" in chunk:

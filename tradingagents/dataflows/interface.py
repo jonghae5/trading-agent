@@ -178,62 +178,70 @@ def get_simfin_balance_sheet(
     if not data or 'data' not in data:
         return f"No balance sheet data available for {ticker}"
     
-    # Get the most recent report
+    # Get up to 5 recent reports for Graham analysis (need historical data)
     reports = data['data']
     if not reports:
         return f"No {freq} balance sheet reports found for {ticker}"
     
-    latest_report = reports[0]  # Reports are typically ordered by date (most recent first)
+    # Use up to 5 most recent reports for trend analysis
+    reports_to_analyze = reports[:min(5, len(reports))]
     
-    # Extract balance sheet information
-    report_date = latest_report.get('filedDate', 'Unknown')
-    period = latest_report.get('period', 'Unknown')
-    year = latest_report.get('year', 'Unknown')
+    result_str = f"## {freq.title()} Balance Sheet for {ticker} - {len(reports_to_analyze)} Years Analysis:\n\n"
     
-    result_str = f"## {freq.title()} Balance Sheet for {ticker} (Period: {period}, Year: {year}, Filed: {report_date}):\n\n"
-    
-    # Extract balance sheet data from the report
-    if 'report' in latest_report and 'bs' in latest_report['report']:
-        bs_data = latest_report['report']['bs']
+    # Process multiple years of data
+    for i, report in enumerate(reports_to_analyze):
+        # Extract balance sheet information for each year
+        report_date = report.get('filedDate', 'Unknown')
+        period = report.get('period', 'Unknown')
+        year = report.get('year', 'Unknown')
         
-        # Group the data by categories
-        assets = {}
-        liabilities = {}
-        equity = {}
+        result_str += f"### Year {year} ({period}) - Filed: {report_date}\n\n"
         
-        for item in bs_data:
-            concept = item.get('concept', '')
-            value = item.get('value', 0)
-            unit = item.get('unit', '')
+        # Extract balance sheet data from each report
+        if 'report' in report and 'bs' in report['report']:
+            bs_data = report['report']['bs']
             
-            # Categorize based on common balance sheet concepts
-            if any(keyword in concept.lower() for keyword in ['asset', 'cash', 'inventory', 'receivable', 'investment']):
-                assets[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-            elif any(keyword in concept.lower() for keyword in ['liability', 'debt', 'payable', 'accrued']):
-                liabilities[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-            elif any(keyword in concept.lower() for keyword in ['equity', 'capital', 'retained', 'stockholder']):
-                equity[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-        
-        # Format the output
-        if assets:
-            result_str += "### Assets:\n"
-            for concept, value in assets.items():
-                result_str += f"- {concept}: {value}\n"
+            # Group the data by categories for this year
+            assets = {}
+            liabilities = {}
+            equity = {}
+            
+            for item in bs_data:
+                concept = item.get('concept', '')
+                value = item.get('value', 0)
+                unit = item.get('unit', '')
+                
+                # Categorize based on common balance sheet concepts
+                if any(keyword in concept.lower() for keyword in ['asset', 'cash', 'inventory', 'receivable', 'investment']):
+                    assets[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+                elif any(keyword in concept.lower() for keyword in ['liability', 'debt', 'payable', 'accrued']):
+                    liabilities[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+                elif any(keyword in concept.lower() for keyword in ['equity', 'capital', 'retained', 'stockholder']):
+                    equity[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            
+            # Format the output for this year (show key items only to avoid too much text)
+            key_items = []
+            if assets:
+                total_assets = next((v for k, v in assets.items() if 'total' in k.lower() and 'asset' in k.lower()), 'N/A')
+                current_assets = next((v for k, v in assets.items() if 'current' in k.lower() and 'asset' in k.lower()), 'N/A')
+                key_items.append(f"Total Assets: {total_assets}")
+                key_items.append(f"Current Assets: {current_assets}")
+            
+            if liabilities:
+                total_liabilities = next((v for k, v in liabilities.items() if 'total' in k.lower() and 'liabilit' in k.lower()), 'N/A')
+                current_liabilities = next((v for k, v in liabilities.items() if 'current' in k.lower() and 'liabilit' in k.lower()), 'N/A')
+                key_items.append(f"Total Liabilities: {total_liabilities}")
+                key_items.append(f"Current Liabilities: {current_liabilities}")
+            
+            if equity:
+                stockholder_equity = next((v for k, v in equity.items() if 'stockholder' in k.lower() or 'shareholder' in k.lower()), 'N/A')
+                key_items.append(f"Stockholder Equity: {stockholder_equity}")
+            
+            for item in key_items:
+                result_str += f"- {item}\n"
             result_str += "\n"
-        
-        if liabilities:
-            result_str += "### Liabilities:\n"
-            for concept, value in liabilities.items():
-                result_str += f"- {concept}: {value}\n"
-            result_str += "\n"
-        
-        if equity:
-            result_str += "### Equity:\n"
-            for concept, value in equity.items():
-                result_str += f"- {concept}: {value}\n"
-            result_str += "\n"
-    else:
-        result_str += "Balance sheet details not available in the expected format.\n"
+        else:
+            result_str += "Balance sheet details not available for this year.\n\n"
     
     result_str += "\nThis balance sheet shows the company's financial position, including assets (what the company owns), liabilities (what it owes), and equity (shareholders' ownership). The fundamental accounting equation Assets = Liabilities + Equity must balance."
     
@@ -265,71 +273,81 @@ def get_simfin_cashflow(
     if not data or 'data' not in data:
         return f"No cash flow data available for {ticker}"
     
-    # Get the most recent report
+    # Get up to 5 recent reports for Graham analysis (need historical data)
     reports = data['data']
     if not reports:
         return f"No {freq} cash flow reports found for {ticker}"
     
-    latest_report = reports[0]  # Reports are typically ordered by date (most recent first)
+    # Use up to 5 most recent reports for trend analysis
+    reports_to_analyze = reports[:min(5, len(reports))]
     
-    # Extract cash flow information
-    report_date = latest_report.get('filedDate', 'Unknown')
-    period = latest_report.get('period', 'Unknown')
-    year = latest_report.get('year', 'Unknown')
+    result_str = f"## {freq.title()} Cash Flow Statement for {ticker} - {len(reports_to_analyze)} Years Analysis:\n\n"
     
-    result_str = f"## {freq.title()} Cash Flow Statement for {ticker} (Period: {period}, Year: {year}, Filed: {report_date}):\n\n"
-    
-    # Extract cash flow data from the report
-    if 'report' in latest_report and 'cf' in latest_report['report']:
-        cf_data = latest_report['report']['cf']
+    # Process multiple years of data
+    for i, report in enumerate(reports_to_analyze):
+        # Extract cash flow information for each year
+        report_date = report.get('filedDate', 'Unknown')
+        period = report.get('period', 'Unknown')
+        year = report.get('year', 'Unknown')
         
-        # Group the data by categories
-        operating = {}
-        investing = {}
-        financing = {}
-        other = {}
+        result_str += f"### Year {year} ({period}) - Filed: {report_date}\n\n"
         
-        for item in cf_data:
-            concept = item.get('concept', '')
-            value = item.get('value', 0)
-            unit = item.get('unit', '')
+        # Extract cash flow data from each report
+        if 'report' in report and 'cf' in report['report']:
+            cf_data = report['report']['cf']
             
-            # Categorize based on common cash flow concepts
-            if any(keyword in concept.lower() for keyword in ['operating', 'depreciation', 'working']):
-                operating[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-            elif any(keyword in concept.lower() for keyword in ['investing', 'investment', 'acquisition', 'disposal']):
-                investing[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-            elif any(keyword in concept.lower() for keyword in ['financing', 'debt', 'dividend', 'share', 'stock']):
-                financing[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-            else:
-                other[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-        
-        # Format the output
-        if operating:
-            result_str += "### Operating Activities:\n"
-            for concept, value in operating.items():
-                result_str += f"- {concept}: {value}\n"
+            # Group the data by categories for this year
+            operating = {}
+            investing = {}
+            financing = {}
+            other = {}
+            
+            for item in cf_data:
+                concept = item.get('concept', '')
+                value = item.get('value', 0)
+                unit = item.get('unit', '')
+                
+                # Categorize based on common cash flow concepts
+                if any(keyword in concept.lower() for keyword in ['operating', 'depreciation', 'working']):
+                    operating[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+                elif any(keyword in concept.lower() for keyword in ['investing', 'investment', 'acquisition', 'disposal']):
+                    investing[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+                elif any(keyword in concept.lower() for keyword in ['financing', 'debt', 'dividend', 'share', 'stock']):
+                    financing[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+                else:
+                    other[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            
+            # Format the output for this year (show key items only)
+            key_items = []
+            if operating:
+                operating_cash_flow = next((v for k, v in operating.items() if 'cash flow' in k.lower() and 'operating' in k.lower()), 'N/A')
+                if operating_cash_flow != 'N/A':
+                    key_items.append(f"Operating Cash Flow: {operating_cash_flow}")
+            
+            if investing:
+                investing_cash_flow = next((v for k, v in investing.items() if 'cash flow' in k.lower() and 'investing' in k.lower()), 'N/A')
+                if investing_cash_flow != 'N/A':
+                    key_items.append(f"Investing Cash Flow: {investing_cash_flow}")
+            
+            if financing:
+                financing_cash_flow = next((v for k, v in financing.items() if 'cash flow' in k.lower() and 'financing' in k.lower()), 'N/A')
+                if financing_cash_flow != 'N/A':
+                    key_items.append(f"Financing Cash Flow: {financing_cash_flow}")
+            
+            # Also look for net cash flow or free cash flow
+            if other:
+                net_cash_flow = next((v for k, v in other.items() if 'net' in k.lower() and 'cash' in k.lower()), 'N/A')
+                free_cash_flow = next((v for k, v in other.items() if 'free' in k.lower() and 'cash' in k.lower()), 'N/A')
+                if net_cash_flow != 'N/A':
+                    key_items.append(f"Net Cash Flow: {net_cash_flow}")
+                if free_cash_flow != 'N/A':
+                    key_items.append(f"Free Cash Flow: {free_cash_flow}")
+            
+            for item in key_items:
+                result_str += f"- {item}\n"
             result_str += "\n"
-        
-        if investing:
-            result_str += "### Investing Activities:\n"
-            for concept, value in investing.items():
-                result_str += f"- {concept}: {value}\n"
-            result_str += "\n"
-        
-        if financing:
-            result_str += "### Financing Activities:\n"
-            for concept, value in financing.items():
-                result_str += f"- {concept}: {value}\n"
-            result_str += "\n"
-        
-        if other:
-            result_str += "### Other Items:\n"
-            for concept, value in other.items():
-                result_str += f"- {concept}: {value}\n"
-            result_str += "\n"
-    else:
-        result_str += "Cash flow statement details not available in the expected format.\n"
+        else:
+            result_str += "Cash flow statement details not available for this year.\n\n"
     
     result_str += "\nThis cash flow statement shows how cash moves in and out of the company through operating activities (core business), investing activities (asset purchases/sales), and financing activities (debt, equity, dividends)."
     
@@ -361,63 +379,67 @@ def get_simfin_income_statements(
     if not data or 'data' not in data:
         return f"No income statement data available for {ticker}"
     
-    # Get the most recent report
+    # Get up to 5 recent reports for Graham analysis (need historical data) 
     reports = data['data']
     if not reports:
         return f"No {freq} income statement reports found for {ticker}"
     
-    latest_report = reports[0]  # Reports are typically ordered by date (most recent first)
+    # Use up to 5 most recent reports for trend analysis
+    reports_to_analyze = reports[:min(5, len(reports))]
     
-    # Extract income statement information
-    report_date = latest_report.get('filedDate', 'Unknown')
-    period = latest_report.get('period', 'Unknown')
-    year = latest_report.get('year', 'Unknown')
+    result_str = f"## {freq.title()} Income Statement for {ticker} - {len(reports_to_analyze)} Years Analysis:\n\n"
     
-    result_str = f"## {freq.title()} Income Statement for {ticker} (Period: {period}, Year: {year}, Filed: {report_date}):\n\n"
-    
-    # Extract income statement data from the report
-    if 'report' in latest_report and 'ic' in latest_report['report']:
-        ic_data = latest_report['report']['ic']
+    # Process multiple years of data
+    for i, report in enumerate(reports_to_analyze):
+        # Extract income statement information for each year
+        report_date = report.get('filedDate', 'Unknown')
+        period = report.get('period', 'Unknown') 
+        year = report.get('year', 'Unknown')
         
-        # Group the data by categories
-        revenue = {}
-        expenses = {}
-        other_income = {}
+        result_str += f"### Year {year} ({period}) - Filed: {report_date}\n\n"
         
-        for item in ic_data:
-            concept = item.get('concept', '')
-            value = item.get('value', 0)
-            unit = item.get('unit', '')
+        # Extract income statement data from each report
+        if 'report' in report and 'ic' in report['report']:
+            ic_data = report['report']['ic']
             
-            # Categorize based on common income statement concepts
-            if any(keyword in concept.lower() for keyword in ['revenue', 'sales', 'income']):
-                if not any(keyword in concept.lower() for keyword in ['expense', 'cost', 'loss']):
-                    revenue[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-            elif any(keyword in concept.lower() for keyword in ['expense', 'cost', 'depreciation', 'amortization']):
-                expenses[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-            else:
-                other_income[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
-        
-        # Format the output
-        if revenue:
-            result_str += "### Revenue & Income:\n"
-            for concept, value in revenue.items():
-                result_str += f"- {concept}: {value}\n"
+            # Group the data by categories for this year
+            revenue = {}
+            expenses = {}
+            other_income = {}
+            
+            for item in ic_data:
+                concept = item.get('concept', '')
+                value = item.get('value', 0)
+                unit = item.get('unit', '')
+                
+                # Categorize based on common income statement concepts
+                if any(keyword in concept.lower() for keyword in ['revenue', 'sales', 'income']):
+                    if not any(keyword in concept.lower() for keyword in ['expense', 'cost', 'loss']):
+                        revenue[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+                elif any(keyword in concept.lower() for keyword in ['expense', 'cost', 'depreciation', 'amortization']):
+                    expenses[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+                else:
+                    other_income[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+            
+            # Format the output for this year (show key items only)
+            key_items = []
+            if revenue:
+                total_revenue = next((v for k, v in revenue.items() if 'revenue' in k.lower() or 'sales' in k.lower()), 'N/A')
+                key_items.append(f"Total Revenue: {total_revenue}")
+            
+            if other_income:
+                net_income = next((v for k, v in other_income.items() if 'net income' in k.lower() or 'net earnings' in k.lower()), 'N/A')
+                eps = next((v for k, v in other_income.items() if 'earnings per share' in k.lower() or 'eps' in k.lower()), 'N/A')
+                if net_income != 'N/A':
+                    key_items.append(f"Net Income: {net_income}")
+                if eps != 'N/A':
+                    key_items.append(f"Earnings Per Share: {eps}")
+            
+            for item in key_items:
+                result_str += f"- {item}\n"
             result_str += "\n"
-        
-        if expenses:
-            result_str += "### Expenses & Costs:\n"
-            for concept, value in expenses.items():
-                result_str += f"- {concept}: {value}\n"
-            result_str += "\n"
-        
-        if other_income:
-            result_str += "### Other Items:\n"
-            for concept, value in other_income.items():
-                result_str += f"- {concept}: {value}\n"
-            result_str += "\n"
-    else:
-        result_str += "Income statement details not available in the expected format.\n"
+        else:
+            result_str += "Income statement details not available for this year.\n\n"
     
     result_str += "\nThis income statement shows the company's financial performance over a specific period, including revenues (money earned), expenses (costs incurred), and net income (profit or loss)."
     

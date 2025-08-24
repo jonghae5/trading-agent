@@ -15,6 +15,8 @@ def create_risky_debator(llm):
         sentiment_report = state["sentiment_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
+        ben_graham_report = state["ben_graham_report"]
+        warren_buffett_report = state["warren_buffett_report"]
 
         trader_decision = state["trader_investment_plan"]
 
@@ -28,6 +30,8 @@ def create_risky_debator(llm):
 소셜 미디어 심리 보고서: {sentiment_report}
 최신 세계 동향 뉴스: {news_report}
 회사 펀더멘털 보고서: {fundamentals_report}
+벤자민 그레이엄 보고서: {ben_graham_report}
+워렌 버핏 보고서: {warren_buffett_report}
 현재 대화 히스토리: {history}
 마지막 보수적 분석가의 주장: {current_safe_response}
 마지막 중립적 분석가의 주장: {current_neutral_response}

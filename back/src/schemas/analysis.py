@@ -12,6 +12,8 @@ class AnalystType(str, Enum):
     SOCIAL = "social"
     NEWS = "news"
     FUNDAMENTALS = "fundamentals"
+    BEN_GRAHAM = "ben_graham"
+    WARREN_BUFFETT = "warren_buffett"
 
 
 class LLMProvider(str, Enum):
@@ -57,6 +59,8 @@ class ReportSectionType(str, Enum):
     SENTIMENT_REPORT = "sentiment_report"
     NEWS_REPORT = "news_report"
     FUNDAMENTALS_REPORT = "fundamentals_report"
+    BEN_GRAHAM_REPORT = "ben_graham_report"
+    WARREN_BUFFETT_REPORT = "warren_buffett_report"
     BULL_ANALYSIS = "bull_analysis"
     BEAR_ANALYSIS = "bear_analysis"
     JUDGE_DECISION = "judge_decision"

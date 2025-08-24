@@ -40,6 +40,26 @@ const getFearGreedColor = (value: number): string => {
   return '#059669' // emerald-600 - Extreme Greed
 }
 
+// Helper function to get analyst display name
+const getAnalystDisplayName = (analyst: AnalystType): string => {
+  switch (analyst) {
+    case AnalystType.MARKET:
+      return '시장'
+    case AnalystType.SOCIAL:
+      return '소셜 미디어'
+    case AnalystType.NEWS:
+      return '뉴스'
+    case AnalystType.FUNDAMENTALS:
+      return '펀더멘털'
+    case AnalystType.BEN_GRAHAM:
+      return '벤자민 그레이엄 가치투자'
+    case AnalystType.WARREN_BUFFETT:
+      return '워렌버핏 가치투자'
+    default:
+      return analyst
+  }
+}
+
 export const Analysis: React.FC = () => {
   const {
     isRunning,
@@ -67,7 +87,9 @@ export const Analysis: React.FC = () => {
     AnalystType.MARKET,
     AnalystType.SOCIAL,
     AnalystType.NEWS,
-    AnalystType.FUNDAMENTALS
+    AnalystType.FUNDAMENTALS,
+    AnalystType.BEN_GRAHAM,
+    AnalystType.WARREN_BUFFETT
   ])
 
   // Fear & Greed Index state
@@ -313,7 +335,7 @@ export const Analysis: React.FC = () => {
                             className="rounded text-blue-600"
                           />
                           <span className="text-sm md:text-base font-medium">
-                            {analyst}
+                            {getAnalystDisplayName(analyst)}
                           </span>
                         </div>
                       </div>
