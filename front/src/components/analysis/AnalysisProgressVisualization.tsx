@@ -1,19 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import {
-  Brain,
-  TrendingUp,
-  Users,
-  Newspaper,
-  BarChart3,
-  Target,
-  Shield,
-  Zap,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Loader2
-} from 'lucide-react'
+import { Brain, Zap, Clock } from 'lucide-react'
 import { Card, CardContent } from '../ui/card'
 import { AgentStatus, AnalystType } from '../../types'
 import { AnimatedProgressRing } from './AnimatedProgressRing'
@@ -38,22 +25,6 @@ interface AnalysisProgressVisualizationProps {
   llmCallCount: number
   toolCallCount: number
   selectedAnalysts: AnalystType[]
-}
-
-// Agent icons mapping
-const agentIcons: Record<string, React.ElementType> = {
-  'Market Analyst': TrendingUp,
-  'Social Analyst': Users,
-  'News Analyst': Newspaper,
-  'Fundamentals Analyst': BarChart3,
-  'Bull Researcher': TrendingUp,
-  'Bear Researcher': TrendingUp,
-  'Research Manager': Brain,
-  Trader: Target,
-  'Risky Analyst': Zap,
-  'Neutral Analyst': Shield,
-  'Safe Analyst': Shield,
-  'Portfolio Manager': Target
 }
 
 // Analysis stages based on typical workflow

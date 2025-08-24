@@ -115,7 +115,9 @@ export function getAnalystDisplayName(analyst: AnalystType): string {
     [AnalystType.MARKET]: '📈 Market Analyst',
     [AnalystType.SOCIAL]: '💬 Social Media Analyst',
     [AnalystType.NEWS]: '📰 News Analyst',
-    [AnalystType.FUNDAMENTALS]: '📊 Fundamentals Analyst'
+    [AnalystType.FUNDAMENTALS]: '📊 Fundamentals Analyst',
+    [AnalystType.BEN_GRAHAM]: '📚 Ben Graham Analyst',
+    [AnalystType.WARREN_BUFFETT]: '🦉 Warren Buffett Analyst'
   }
   return names[analyst] || analyst
 }
