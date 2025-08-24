@@ -28,7 +28,7 @@ class NewsArticle(BaseModel):
     sentiment: str = Field(..., pattern="^(positive|negative|neutral)$")
     source: str
     published_at: str  # ISO format datetime
-    compound_score: float = Field(..., ge=0.0, le=1.0)
+    compound_score: float = Field(..., ge=-1.0, le=1.0)
     tags: List[str] = []
     url: Optional[str] = None
     ticker_sentiment: Optional[Dict[str, Any]] = None
@@ -125,10 +125,6 @@ def _determine_sentiment_vader(text: str) -> tuple[str, float]:
     
     # VADER returns a compound score between -1 (most negative) and 1 (most positive)
     compound_score = scores['compound']
-    
-    # Convert compound score (-1 to 1) to relevance score (0 to 1)
-    # Use absolute value to get intensity regardless of sentiment direction
-    compound_score = abs(compound_score)
     
     if compound_score >= 0.05:
         sentiment = 'positive'
@@ -243,7 +239,7 @@ async def search_news(
                 article.ticker_sentiment = ticker_sentiment_data
         
         # Sort by relevance and limit
-        filtered_news.sort(key=lambda x: x.compound_score, reverse=True)
+        filtered_news.sort(key=lambda x: x.published_at, reverse=True)
         total_count = len(filtered_news)
         filtered_news = filtered_news[:limit]
         
