@@ -4,6 +4,7 @@ import logging
 from typing import Dict, List, Optional, Any
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from src.core.security import get_current_user
 from src.models.user import User
@@ -14,6 +15,7 @@ from src.services.finnhub_service import get_finnhub_service
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+analyzer = SentimentIntensityAnalyzer()
 
 router = APIRouter()
 
@@ -26,7 +28,7 @@ class NewsArticle(BaseModel):
     sentiment: str = Field(..., pattern="^(positive|negative|neutral)$")
     source: str
     published_at: str  # ISO format datetime
-    relevance_score: float = Field(..., ge=0.0, le=1.0)
+    compound_score: float = Field(..., ge=0.0, le=1.0)
     tags: List[str] = []
     url: Optional[str] = None
     ticker_sentiment: Optional[Dict[str, Any]] = None
@@ -57,14 +59,15 @@ async def _fetch_news_from_api(limit=20) -> List[NewsArticle]:
         # Convert to NewsArticle format (핀허브 포맷에 맞게)
         for i, article in enumerate(raw_articles):
             # Finnhub NewsArticle 객체를 그대로 사용
+            sentiment, compound_score = _determine_sentiment_vader(article.title)
             news_article = NewsArticle(
                 id=article.id if hasattr(article, "id") else f"finnhub-news-{i}",
                 title=article.title,
                 summary=getattr(article, "description", None),
-                sentiment=_determine_sentiment_simple(article.title),
+                sentiment=sentiment,
                 source=getattr(article, "source", "Finnhub"),
                 published_at=kst_to_naive(article.published_at).isoformat() if hasattr(article, "published_at") and article.published_at else "",
-                relevance_score=0.8,
+                compound_score=compound_score,
                 tags=[article.category] if hasattr(article, "category") else ["economic"],
                 url=getattr(article, "url", None),
                 ticker_sentiment=None
@@ -94,14 +97,15 @@ async def _fetch_company_news_from_api(query:str) -> List[NewsArticle]:
         # Convert to NewsArticle format (핀허브 포맷에 맞게)
         for i, article in enumerate(raw_articles):
             # Finnhub NewsArticle 객체를 그대로 사용
+            sentiment, compound_score = _determine_sentiment_vader(article.title)
             news_article = NewsArticle(
                 id=article.id if hasattr(article, "id") else f"finnhub-news-{i}",
                 title=article.title,
                 summary=getattr(article, "description", None),
-                sentiment=_determine_sentiment_simple(article.title),
+                sentiment=sentiment,
                 source=getattr(article, "source", "Finnhub"),
                 published_at=kst_to_naive(article.published_at).isoformat() if hasattr(article, "published_at") and article.published_at else "",
-                relevance_score=0.8,
+                compound_score=compound_score,
                 tags=[article.category] if hasattr(article, "category") else ["economic"],
                 url=getattr(article, "url", None),
                 ticker_sentiment=None
@@ -115,22 +119,25 @@ async def _fetch_company_news_from_api(query:str) -> List[NewsArticle]:
         logger.error(f"Error fetching news: {e}")
         return []
 
-def _determine_sentiment_simple(title: str) -> str:
-    """Simple sentiment analysis based on keywords."""
-    title_lower = title.lower()
+def _determine_sentiment_vader(text: str) -> tuple[str, float]:
+    """Advanced sentiment analysis using VADER (Valence Aware Dictionary and sEntiment Reasoner)."""
+    scores = analyzer.polarity_scores(text)
     
-    positive_words = ['up', 'rise', 'gain', 'surge', 'rally', 'boost', 'growth', 'profit', 'bull']
-    negative_words = ['down', 'fall', 'drop', 'crash', 'decline', 'loss', 'bear', 'recession']
+    # VADER returns a compound score between -1 (most negative) and 1 (most positive)
+    compound_score = scores['compound']
     
-    positive_count = sum(1 for word in positive_words if word in title_lower)
-    negative_count = sum(1 for word in negative_words if word in title_lower)
+    # Convert compound score (-1 to 1) to relevance score (0 to 1)
+    # Use absolute value to get intensity regardless of sentiment direction
+    compound_score = abs(compound_score)
     
-    if positive_count > negative_count:
-        return 'positive'
-    elif negative_count > positive_count:
-        return 'negative'
+    if compound_score >= 0.05:
+        sentiment = 'positive'
+    elif compound_score <= -0.05:
+        sentiment = 'negative'
     else:
-        return 'neutral'
+        sentiment = 'neutral'
+    
+    return sentiment, compound_score
 
 
 
@@ -236,7 +243,7 @@ async def search_news(
                 article.ticker_sentiment = ticker_sentiment_data
         
         # Sort by relevance and limit
-        filtered_news.sort(key=lambda x: x.relevance_score, reverse=True)
+        filtered_news.sort(key=lambda x: x.compound_score, reverse=True)
         total_count = len(filtered_news)
         filtered_news = filtered_news[:limit]
         

@@ -377,7 +377,7 @@ export interface NewsArticle {
   sentiment: 'positive' | 'negative' | 'neutral'
   source: string
   published_at: string
-  relevance_score: number
+  compound_score: number
   tags: string[]
   url?: string
   ticker_sentiment?: Record<string, any>

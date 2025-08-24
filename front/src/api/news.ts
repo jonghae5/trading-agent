@@ -143,7 +143,7 @@ export const mockNewsData = {
       published_at: new Date(
         getKSTDate().getTime() - 30 * 60 * 1000
       ).toISOString(), // 30 minutes ago
-      relevance_score: 0.95,
+      compound_score: 0.95,
       tags: ['central bank', 'interest rates', 'monetary policy']
     },
     {
@@ -156,7 +156,7 @@ export const mockNewsData = {
       published_at: new Date(
         getKSTDate().getTime() - 1 * 60 * 60 * 1000
       ).toISOString(), // 1 hour ago
-      relevance_score: 0.87,
+      compound_score: 0.87,
       tags: ['earnings', 'quarterly results', 'companies']
     }
   ]
