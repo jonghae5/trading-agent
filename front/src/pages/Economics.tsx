@@ -40,53 +40,113 @@ type TimeRange = keyof typeof TIME_RANGES
 
 // Indicator categories for better organization
 const INDICATOR_CATEGORIES = {
-  core: {
-    title: '핵심 경제지표',
-    indicators: ['GDP', 'UNRATE', 'CPIAUCSL', 'FEDFUNDS']
+  growth: {
+    title: '성장 & 생산성',
+    description: 'GDP, 산업생산, 생산성 지표',
+    indicators: ['GDP', 'INDPRO', 'TCU', 'NAPM']
+  },
+  employment: {
+    title: '고용 & 노동시장',
+    description: '실업률, 고용지표, 임금',
+    indicators: ['UNRATE', 'PAYEMS', 'ICSA', 'NAPMEI']
+  },
+  inflation: {
+    title: '물가 & 인플레이션',
+    description: 'CPI, PCE, 인플레이션 동향',
+    indicators: ['CPIAUCSL', 'PCEPI', 'PCEPILFE', 'CPILFESL']
+  },
+  monetary: {
+    title: '통화정책 & 금리',
+    description: '연방기준금리, 수익률곡선',
+    indicators: ['FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y']
+  },
+  fiscal: {
+    title: '재정정책 & 부채',
+    description: 'GDP 대비 부채, 재정수지',
+    indicators: ['GFDEGDQ188S', 'FYFSGDA188S', 'GFDEBTN']
   },
   market: {
-    title: '시장 지표',
-    indicators: ['VIXCLS', 'DGS10', 'DGS2', 'T10Y2Y']
-  },
-  housing: {
-    title: '주택 시장',
-    indicators: ['HOUST', 'MORTGAGE30US', 'CSUSHPISA']
-  },
-  commodities: {
-    title: '원자재',
-    indicators: ['DCOILWTICO', 'GOLDAMGBD228NLBM']
+    title: '금융시장 & 위험',
+    description: '변동성 지수, 시장 심리',
+    indicators: ['VIXCLS', 'DGS30', 'MORTGAGE30US', 'UMCSENT']
   }
 } as const
 
 // Indicator display information
 const INDICATOR_INFO = {
-  GDP: { name: 'GDP', unit: '조달러', color: '#10b981', icon: '📈' },
+  // 성장 & 생산성
+  GDP: { name: 'GDP (총생산)', unit: '조달러', color: '#10b981', icon: '📈' },
+  INDPRO: { name: '산업생산지수', unit: '', color: '#2563eb', icon: '🏭' },
+  TCU: { name: '설비가동률', unit: '%', color: '#0891b2', icon: '⚙️' },
+  NAPM: { name: 'ISM 제조업 PMI', unit: '', color: '#7c3aed', icon: '📋' },
+
+  // 고용 & 노동시장
   UNRATE: { name: '실업률', unit: '%', color: '#ef4444', icon: '👥' },
-  CPIAUCSL: { name: 'CPI 인플레이션', unit: '%', color: '#f59e0b', icon: '📊' },
+  PAYEMS: { name: '비농업 일자리', unit: '천명', color: '#059669', icon: '👨‍💼' },
+  ICSA: { name: '실업수당 신청', unit: '천건', color: '#dc2626', icon: '📄' },
+  NAPMEI: {
+    name: 'ISM 제조업 고용지수',
+    unit: '',
+    color: '#ea580c',
+    icon: '👷'
+  },
+
+  // 물가 & 인플레이션
+  CPIAUCSL: {
+    name: 'CPI (소비자물가지수)',
+    unit: '%',
+    color: '#f59e0b',
+    icon: '📊'
+  },
+  PCEPI: { name: 'PCE 물가지수', unit: '%', color: '#f97316', icon: '💵' },
+  PCEPILFE: { name: '코어 PCE', unit: '%', color: '#ea580c', icon: '🎯' },
+  CPILFESL: { name: '코어 CPI', unit: '%', color: '#dc2626', icon: '🎯' },
+
+  // 통화정책 & 금리
   FEDFUNDS: { name: '연방기준금리', unit: '%', color: '#6366f1', icon: '🏦' },
-  VIXCLS: { name: 'VIX 지수', unit: '', color: '#ef4444', icon: '⚡' },
   DGS10: { name: '10년 국채수익률', unit: '%', color: '#3b82f6', icon: '📈' },
   DGS2: { name: '2년 국채수익률', unit: '%', color: '#06b6d4', icon: '📈' },
-  T10Y2Y: { name: '수익률곡선', unit: '%', color: '#8b5cf6', icon: '📊' },
-  HOUST: { name: '주택 착공', unit: '천호', color: '#10b981', icon: '🏠' },
+  T10Y2Y: {
+    name: '수익률곡선 (10년-2년)',
+    unit: '%',
+    color: '#8b5cf6',
+    icon: '📊'
+  },
+
+  // 재정정책 & 부채
+  GFDEGDQ188S: {
+    name: 'GDP 대비 연방부채비율',
+    unit: '%',
+    color: '#dc2626',
+    icon: '💳'
+  },
+  FYFSGDA188S: {
+    name: '연방정부 재정수지',
+    unit: '%',
+    color: '#059669',
+    icon: '💰'
+  },
+  GFDEBTN: {
+    name: '연방정부 총부채',
+    unit: '조달러',
+    color: '#dc2626',
+    icon: '💸'
+  },
+
+  // 금융시장 & 위험
+  VIXCLS: { name: 'VIX 변동성 지수', unit: '', color: '#ef4444', icon: '⚡' },
+  DGS30: { name: '30년 국채수익률', unit: '%', color: '#1f2937', icon: '📈' },
   MORTGAGE30US: {
     name: '30년 모기지금리',
     unit: '%',
     color: '#f59e0b',
     icon: '🏘️'
   },
-  CSUSHPISA: { name: '주택가격지수', unit: '', color: '#3b82f6', icon: '🏡' },
-  DCOILWTICO: {
-    name: '원유가격',
-    unit: '$/배럴',
-    color: '#000000',
-    icon: '🛢️'
-  },
-  GOLDAMGBD228NLBM: {
-    name: '금가격',
-    unit: '$/온스',
-    color: '#fbbf24',
-    icon: '🥇'
+  UMCSENT: {
+    name: '미시간대 소비자심리',
+    unit: '',
+    color: '#16a34a',
+    icon: '💭'
   }
 } as const
 
@@ -103,6 +163,10 @@ const formatValue = (value: number, unit: string): string => {
   }
   if (unit === '$/배럴' || unit === '$/온스') {
     return `$${value.toFixed(2)}`
+  }
+  // Manufacturing and production indices (typically around 100)
+  if (unit === '' && value > 30 && value < 200) {
+    return value.toFixed(1)
   }
   return value.toFixed(2)
 }
@@ -124,7 +188,7 @@ export const Economics: React.FC = () => {
   // State management
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('10Y')
   const [selectedCategory, setSelectedCategory] =
-    useState<keyof typeof INDICATOR_CATEGORIES>('core')
+    useState<keyof typeof INDICATOR_CATEGORIES>('growth')
   const [historicalData, setHistoricalData] =
     useState<HistoricalDataResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -187,81 +251,143 @@ export const Economics: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+      <div className="space-y-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
             📊 거시경제 지표
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             FRED API를 통한 실제 경제지표와 주요 경제사건 분석
           </p>
+          <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+            <h4 className="font-semibold text-sm mb-2 text-blue-800">
+              💡 분석 순서 가이드
+            </h4>
+            <div className="text-xs sm:text-sm text-blue-800">
+              <p>
+                <strong>1. 성장성:</strong> GDP, 산업생산으로 경제 전반적 성장
+                확인
+              </p>
+              <p>
+                <strong>2. 고용:</strong> 실업률, 일자리 증가로 노동시장 건전성
+                파악
+              </p>
+              <p>
+                <strong>3. 물가:</strong> CPI, PCE로 인플레이션 압력 측정
+              </p>
+              <p>
+                <strong>4. 통화정책:</strong> 연준 금리와 수익률곡선으로 정책
+                방향 예측
+              </p>
+              <p>
+                <strong>5. 재정상태:</strong> 정부 부채와 재정수지로 지속가능성
+                판단
+              </p>
+              <p>
+                <strong>6. 시장위험:</strong> VIX, 금리로 시장 불안정성 체크
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Controls - Mobile Optimized */}
+        <div className="space-y-3">
           {/* Time Range Selector */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            {Object.entries(TIME_RANGES).map(([key, range]) => (
-              <button
-                key={key}
-                onClick={() => setSelectedTimeRange(key as TimeRange)}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  selectedTimeRange === key
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {range.label}
-              </button>
-            ))}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 sm:hidden">
+              기간 선택
+            </label>
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-1 bg-gray-100 rounded-lg p-1">
+              {Object.entries(TIME_RANGES).map(([key, range]) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedTimeRange(key as TimeRange)}
+                  className={`px-2 sm:px-3 py-2 sm:py-1 text-xs sm:text-sm rounded-md transition-colors font-medium ${
+                    selectedTimeRange === key
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Category Selector */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            {Object.entries(INDICATOR_CATEGORIES).map(([key, category]) => (
-              <button
-                key={key}
-                onClick={() =>
-                  setSelectedCategory(key as keyof typeof INDICATOR_CATEGORIES)
-                }
-                className={`px-3 py-1 text-sm rounded-md transition-colors whitespace-nowrap ${
-                  selectedCategory === key
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {category.title}
-              </button>
-            ))}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 sm:hidden">
+              지표 카테고리
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:items-center gap-1 bg-gray-100 rounded-lg p-1">
+              {Object.entries(INDICATOR_CATEGORIES).map(([key, category]) => (
+                <button
+                  key={key}
+                  onClick={() =>
+                    setSelectedCategory(
+                      key as keyof typeof INDICATOR_CATEGORIES
+                    )
+                  }
+                  className={`px-2 sm:px-3 py-2 sm:py-1 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap font-medium ${
+                    selectedCategory === key
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title={category.description}
+                >
+                  {category.title}
+                </button>
+              ))}
+            </div>
+            {/* Category Description */}
+            <div className="mt-2 text-xs text-gray-600 sm:hidden">
+              {INDICATOR_CATEGORIES[selectedCategory]?.description ||
+                '지표 설명을 불러오는 중...'}
+            </div>
           </div>
 
-          {/* Events Toggle */}
-          <Button
-            variant={showEvents ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setShowEvents(!showEvents)}
-          >
-            <AlertTriangle className="size-4 mr-2" />
-            경제사건
-          </Button>
-
-          {/* Refresh Button */}
-          <div className="flex items-center gap-2">
-            <div className="text-sm text-gray-500">
-              <Calendar className="inline size-4 mr-1" />
-              {lastUpdate.toLocaleString('ko-KR')}
-            </div>
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            {/* Events Toggle */}
             <Button
-              variant="outline"
+              variant={showEvents ? 'default' : 'outline'}
               size="sm"
-              onClick={handleRefresh}
-              disabled={isLoading}
+              onClick={() => setShowEvents(!showEvents)}
+              className="w-full sm:w-auto"
             >
-              <RefreshCw
-                className={`size-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
-              />
-              새로고침
+              <AlertTriangle className="size-4 mr-2" />
+              경제사건 {showEvents ? '켜짐' : '꺼짐'}
             </Button>
+
+            {/* Refresh Section */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
+                <Calendar className="inline size-4 mr-1" />
+                <span className="hidden sm:inline">
+                  {lastUpdate.toLocaleString('ko-KR')}
+                </span>
+                <span className="sm:hidden">
+                  {lastUpdate.toLocaleString('ko-KR', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="w-full sm:w-auto"
+              >
+                <RefreshCw
+                  className={`size-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+                />
+                새로고침
+              </Button>
+            </div>
           </div>
         </div>
       </div>

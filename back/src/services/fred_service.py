@@ -266,10 +266,20 @@ class FredService:
     ) -> Dict[str, List[FredObservation]]:
         """Get multiple economic indicators at once."""
         if indicators is None:
-            # Get key indicators by default
+            # Get key indicators by default - representative from each category
             indicators = [
-                "GDP", "UNRATE", "CPIAUCSL", "FEDFUNDS", "DGS10",
-                "UMCSENT", "PAYEMS", "INDPRO", "HOUST", "VIXCLS"
+                # Growth & Productivity
+                "GDP", "INDPRO", 
+                # Employment & Labor
+                "UNRATE", "PAYEMS",
+                # Inflation & Prices  
+                "CPIAUCSL", "PCEPI",
+                # Monetary Policy & Interest Rates
+                "FEDFUNDS", "DGS10",
+                # Fiscal Policy & Debt
+                "GFDEGDQ188S",
+                # Financial Markets & Risk
+                "VIXCLS", "UMCSENT"
             ]
         
         # Set a high limit to avoid 429 errors from FRED API

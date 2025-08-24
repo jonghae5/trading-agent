@@ -280,11 +280,15 @@ export const economicUtils = {
   }
 }
 
-// Common indicator groups
+// Common indicator groups - aligned with frontend categories
 export const IndicatorGroups = {
+  GROWTH_PRODUCTIVITY: ['GDP', 'INDPRO', 'TCU', 'NAPM'],
+  EMPLOYMENT_LABOR: ['UNRATE', 'PAYEMS', 'ICSA', 'NAPMEI'],
+  INFLATION_PRICES: ['CPIAUCSL', 'PCEPI', 'PCEPILFE', 'CPILFESL'],
+  MONETARY_POLICY: ['FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y'],
+  FISCAL_DEBT: ['GFDEGDQ188S', 'FYFSGDA188S', 'GFDEBTN'],
+  MARKET_RISK: ['VIXCLS', 'DGS30', 'MORTGAGE30US', 'UMCSENT'],
+  // Legacy groups for compatibility
   CORE_ECONOMIC: ['GDP', 'UNRATE', 'CPIAUCSL', 'FEDFUNDS'],
-  MARKET_INDICATORS: ['VIXCLS', 'DGS10', 'DGS2', 'T10Y2Y'],
-  HOUSING_MARKET: ['HOUST', 'MORTGAGE30US', 'CSUSHPISA'],
-  COMMODITIES: ['DCOILWTICO', 'GOLDAMGBD228NLBM'],
-  MONETARY_POLICY: ['FEDFUNDS', 'M1SL', 'M2SL', 'BOGMBASE']
+  MANUFACTURING: ['INDPRO', 'NAPM', 'TCU', 'NAPMEI']
 } as const

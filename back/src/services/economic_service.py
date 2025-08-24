@@ -99,7 +99,7 @@ class EconomicService:
             color="#B22222",
             icon="📉",
             impact_duration_months=24,
-            related_indicators=["GDP", "UNRATE", "INDPRO"]
+            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS", "NAPM", "TCU"]
         ),
         
         # 1987년 - 블랙 먼데이
@@ -112,7 +112,7 @@ class EconomicService:
             color="#000000",
             icon="💥",
             impact_duration_months=6,
-            related_indicators=["VIXCLS"]
+            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "UNRATE"]
         ),
         
         # 1990년대 - 걸프전 & 경기침체
@@ -138,7 +138,7 @@ class EconomicService:
             color="#DC143C",
             icon="🌏",
             impact_duration_months=18,
-            related_indicators=["VIXCLS"]
+            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "DEXUSEU"]
         ),
         
         # 2000년 - 닷컴 버블 붕괴
@@ -151,7 +151,7 @@ class EconomicService:
             color="#4B0082",
             icon="💻",
             impact_duration_months=24,
-            related_indicators=["VIXCLS", "UNRATE"]
+            related_indicators=["VIXCLS", "UNRATE", "FEDFUNDS", "NAPM", "INDPRO"]
         ),
         
         # 2001년 - 9/11 테러
@@ -215,7 +215,7 @@ class EconomicService:
             color="#4682B4",
             icon="🇪🇺",
             impact_duration_months=36,
-            related_indicators=["VIXCLS"]
+            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "GFDEGDQ188S", "DEXUSEU"]
         ),
         
         # 2015년 - 중국 증시 폭락
@@ -228,7 +228,7 @@ class EconomicService:
             color="#DC143C",
             icon="🇨🇳",
             impact_duration_months=6,
-            related_indicators=["VIXCLS"]
+            related_indicators=["VIXCLS", "DCOILWTICO", "DEXCHUS", "NAPM"]
         ),
         
         # 2018년 - 미중 무역전쟁
@@ -241,7 +241,7 @@ class EconomicService:
             color="#FFA500",
             icon="🛡️",
             impact_duration_months=24,
-            related_indicators=["VIXCLS", "BOPGSTB"]
+            related_indicators=["VIXCLS", "BOPGSTB", "NAPM", "INDPRO", "DEXCHUS"]
         ),
         
         # 2020년 - 코로나19 팬데믹
@@ -280,7 +280,7 @@ class EconomicService:
             color="#FF6347",
             icon="📈",
             impact_duration_months=24,
-            related_indicators=["CPIAUCSL", "FEDFUNDS", "M2SL"]
+            related_indicators=["CPIAUCSL", "FEDFUNDS", "M2SL", "DCOILWTICO", "NAPM", "TCU"]
         ),
         
         # 2022년 - 우크라이나 전쟁
@@ -319,7 +319,7 @@ class EconomicService:
             color="#8B4513",
             icon="🏦",
             impact_duration_months=6,
-            related_indicators=["VIXCLS", "FEDFUNDS"]
+            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "DGS2", "MORTGAGE30US"]
         ),
         # 2023년 - 미국 부채한도 협상 교착
         EconomicEvent(
@@ -331,7 +331,7 @@ class EconomicService:
             color="#FFD700",
             icon="💰",
             impact_duration_months=2,
-            related_indicators=["VIXCLS", "FEDFUNDS"]
+            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "GFDEGDQ188S", "GFDEBTN"]
         ),
         # 2023년 - AI 주식 랠리
         EconomicEvent(
@@ -343,7 +343,7 @@ class EconomicService:
             color="#00BFFF",
             icon="🤖",
             impact_duration_months=12,
-            related_indicators=["VIXCLS"]
+            related_indicators=["VIXCLS", "NAPM", "INDPRO", "TCU"]
         ),
         # 2023년 - 글로벌 인플레이션 완화
         EconomicEvent(
@@ -379,7 +379,7 @@ class EconomicService:
             color="#00008B",
             icon="🇺🇸",
             impact_duration_months=2,
-            related_indicators=["VIXCLS"]
+            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "GFDEGDQ188S"]
         ),
         # 2024년 - 고금리 장기화
         EconomicEvent(
@@ -403,7 +403,7 @@ class EconomicService:
             color="#FF1493",
             icon="📉",
             impact_duration_months=3,
-            related_indicators=["VIXCLS", "SP500", "GDAXI", "N225"]
+            related_indicators=["VIXCLS", "NAPM", "INDPRO", "BOPGSTB"]
         ),
         # 2025년 - 연준의 금리 딜레마
         EconomicEvent(
