@@ -47,5 +47,18 @@ export const authApi = {
 
   async logout(): Promise<void> {
     await apiClient.post('/api/v1/auth/logout')
+  },
+
+  async refreshToken(): Promise<LoginResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+
+    if (!response.ok) {
+      throw new Error('Token refresh failed')
+    }
+
+    return await response.json()
   }
 }

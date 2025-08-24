@@ -25,25 +25,42 @@ export const NewsItem: React.FC<NewsItemProps> = ({
   compact = false,
   className
 }) => {
-  const getSentimentIcon = (sentiment: string) => {
-    switch (sentiment) {
-      case 'positive':
-        return <TrendingUp className="h-4 w-4 text-emerald-600" />
-      case 'negative':
-        return <TrendingDown className="h-4 w-4 text-red-600" />
-      default:
-        return <Minus className="h-4 w-4 text-gray-500" />
+  const getSentimentIcon = (compoundScore: number) => {
+    if (compoundScore >= 0.05) {
+      return <TrendingUp className="h-4 w-4 text-emerald-600" />
+    } else if (compoundScore <= -0.05) {
+      return <TrendingDown className="h-4 w-4 text-red-600" />
+    } else {
+      return <Minus className="h-4 w-4 text-gray-500" />
     }
   }
 
-  const getSentimentColor = (sentiment: string) => {
-    switch (sentiment) {
-      case 'positive':
-        return 'border-l-emerald-500 bg-emerald-50/30'
-      case 'negative':
-        return 'border-l-red-500 bg-red-50/30'
-      default:
-        return 'border-l-gray-400 bg-gray-50/30'
+  const getSentimentColor = (compoundScore: number) => {
+    if (compoundScore >= 0.05) {
+      return 'border-l-emerald-500 bg-emerald-50/30'
+    } else if (compoundScore <= -0.05) {
+      return 'border-l-red-500 bg-red-50/30'
+    } else {
+      return 'border-l-gray-400 bg-gray-50/30'
+    }
+  }
+
+  const getCompoundScorePercentage = (compoundScore: number): number => {
+    // compound_score는 -1부터 1까지, 이를 0%부터 100%로 변환
+    return Math.round(((compoundScore + 1) / 2) * 100)
+  }
+
+  const getCompoundScoreColor = (compoundScore: number): string => {
+    if (compoundScore >= 0.5) {
+      return 'bg-emerald-500'
+    } else if (compoundScore >= 0.05) {
+      return 'bg-green-500'
+    } else if (compoundScore >= -0.05) {
+      return 'bg-gray-500'
+    } else if (compoundScore >= -0.5) {
+      return 'bg-orange-500'
+    } else {
+      return 'bg-red-500'
     }
   }
 
@@ -68,7 +85,7 @@ export const NewsItem: React.FC<NewsItemProps> = ({
       transition={{ duration: 0.2 }}
       className={cn(
         'group relative cursor-pointer rounded-lg border-l-4 bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md',
-        getSentimentColor(article.sentiment),
+        getSentimentColor(article.compound_score),
         compact ? 'p-2' : 'p-3',
         className
       )}
@@ -77,7 +94,7 @@ export const NewsItem: React.FC<NewsItemProps> = ({
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 text-xs text-gray-500">
-          {getSentimentIcon(article.sentiment)}
+          {getSentimentIcon(article.compound_score)}
           <span className="font-medium">{article.source}</span>
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
@@ -128,17 +145,17 @@ export const NewsItem: React.FC<NewsItemProps> = ({
           </div>
         )}
 
-        {/* Relevance Score */}
-        {article.compound_score && (
+        {/* Sentiment Score */}
+        {typeof article.compound_score === 'number' && (
           <div className="flex items-center gap-1">
-            <div className="h-1 w-8 rounded-full bg-gray-200">
+            <div className="h-2 w-10 rounded-full bg-gray-200">
               <div
-                className="h-1 rounded-full bg-blue-500"
-                style={{ width: `${article.compound_score * 100}%` }}
+                className={`h-2 rounded-full transition-all duration-300 ${getCompoundScoreColor(article.compound_score)}`}
+                style={{ width: `${getCompoundScorePercentage(article.compound_score)}%` }}
               />
             </div>
-            <span className="text-xs text-gray-400">
-              {Math.round(article.compound_score * 100)}%
+            <span className="text-xs font-medium text-gray-600">
+              {getCompoundScorePercentage(article.compound_score)}%
             </span>
           </div>
         )}

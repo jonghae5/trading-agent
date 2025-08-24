@@ -26,6 +26,8 @@ export class ApiError extends Error {
 
 class ApiClient {
   private baseURL: string
+  private isRefreshing: boolean = false
+  private refreshPromise: Promise<boolean> | null = null
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL.replace(/\/$/, '') // Remove trailing slash
@@ -40,9 +42,52 @@ class ApiClient {
     // No-op for cookie-based auth
   }
 
+  // 토큰 갱신 함수
+  private async refreshToken(): Promise<boolean> {
+    if (this.isRefreshing) {
+      return this.refreshPromise || Promise.resolve(false)
+    }
+
+    this.isRefreshing = true
+    this.refreshPromise = this.performTokenRefresh()
+
+    try {
+      const result = await this.refreshPromise
+      return result
+    } finally {
+      this.isRefreshing = false
+      this.refreshPromise = null
+    }
+  }
+
+  private async performTokenRefresh(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseURL}/api/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        return true
+      } else {
+        // 리프레시 토큰도 만료된 경우 로그인 페이지로 리다이렉트
+        window.location.href = '/login'
+        return false
+      }
+    } catch (error) {
+      console.error('Token refresh failed:', error)
+      window.location.href = '/login'
+      return false
+    }
+  }
+
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isRetry: boolean = false
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`
 
@@ -58,6 +103,15 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config)
+
+      // 401 에러이고 재시도가 아닌 경우 토큰 갱신 시도
+      if (response.status === 401 && !isRetry && !endpoint.includes('/auth/')) {
+        const refreshSuccess = await this.refreshToken()
+        if (refreshSuccess) {
+          // 토큰 갱신 성공 시 원래 요청 재시도
+          return this.request<T>(endpoint, options, true)
+        }
+      }
 
       if (!response.ok) {
         let errorData: ErrorData
