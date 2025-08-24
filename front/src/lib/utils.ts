@@ -145,6 +145,8 @@ export function getReportSectionName(section: ReportSectionType): string {
     [ReportSectionType.SENTIMENT_REPORT]: 'Sentiment Analysis',
     [ReportSectionType.NEWS_REPORT]: 'News Analysis',
     [ReportSectionType.FUNDAMENTALS_REPORT]: 'Fundamentals Analysis',
+    [ReportSectionType.BEN_GRAHAM_REPORT]: 'Ben Graham Analysis',
+    [ReportSectionType.WARREN_BUFFETT_REPORT]: 'Warren Buffett Analysis',
     [ReportSectionType.INVESTMENT_PLAN]: 'Investment Plan',
     [ReportSectionType.TRADER_INVESTMENT_PLAN]: 'Trading Strategy',
     [ReportSectionType.FINAL_TRADE_DECISION]: 'Final Decision'
