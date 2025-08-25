@@ -67,8 +67,14 @@ const INDICATOR_CATEGORIES = {
   },
   market: {
     title: '금융시장 & 위험',
-    description: '변동성 지수, 시장 심리',
-    indicators: ['VIXCLS', 'DGS30', 'MORTGAGE30US', 'UMCSENT']
+    description: '변동성 지수, 시장 심리, 주택지수',
+    indicators: [
+      'VIXCLS',
+      'DGS30',
+      'MORTGAGE30US',
+      'UMCSENT',
+      'NYUCSFRCONDOSMSAMID'
+    ]
   }
 } as const
 
@@ -147,6 +153,12 @@ const INDICATOR_INFO = {
     unit: '',
     color: '#16a34a',
     icon: '💭'
+  },
+  NYUCSFRCONDOSMSAMID: {
+    name: 'NYU 콘도/코압 가격지수 (맨해튼)',
+    unit: '',
+    color: '#0ea5e9',
+    icon: '🏢'
   }
 } as const
 
@@ -284,7 +296,8 @@ export const Economics: React.FC = () => {
                 판단
               </p>
               <p>
-                <strong>6. 시장위험:</strong> VIX, 금리로 시장 불안정성 체크
+                <strong>6. 시장위험:</strong> VIX, 금리, 콘도/코압 가격지수로
+                시장 불안정성 체크
               </p>
             </div>
           </div>

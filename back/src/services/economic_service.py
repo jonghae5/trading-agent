@@ -51,7 +51,6 @@ class EconomicEvent:
 
 class EconomicService:
     """Service for providing major economic events and crisis markers."""
-    
     # Major economic events and crises
     MAJOR_EVENTS = [
         # 1970s - Oil Crisis
@@ -64,7 +63,7 @@ class EconomicService:
             color="#8B4513",
             icon="⛽",
             impact_duration_months=24,
-            related_indicators=["DCOILWTICO", "CPIAUCSL", "UNRATE"]
+            related_indicators=["DCOILWTICO", "CPIAUCSL", "UNRATE", "NYUCSFRCONDOSMSAMID"]
         ),
         EconomicEvent(
             date=datetime(1979, 6, 1),
@@ -75,7 +74,7 @@ class EconomicService:
             color="#8B4513",
             icon="⛽",
             impact_duration_months=18,
-            related_indicators=["DCOILWTICO", "CPIAUCSL"]
+            related_indicators=["DCOILWTICO", "CPIAUCSL", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 1980년대 - 볼커 쇼크 & 경기침체
@@ -88,7 +87,7 @@ class EconomicService:
             color="#FF4500",
             icon="📈",
             impact_duration_months=36,
-            related_indicators=["FEDFUNDS", "CPIAUCSL", "UNRATE"]
+            related_indicators=["FEDFUNDS", "CPIAUCSL", "UNRATE", "NYUCSFRCONDOSMSAMID"]
         ),
         EconomicEvent(
             date=datetime(1981, 7, 1),
@@ -99,7 +98,7 @@ class EconomicService:
             color="#B22222",
             icon="📉",
             impact_duration_months=24,
-            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS", "NAPM", "TCU"]
+            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS", "NAPM", "TCU", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 1987년 - 블랙 먼데이
@@ -112,7 +111,7 @@ class EconomicService:
             color="#000000",
             icon="💥",
             impact_duration_months=6,
-            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "UNRATE"]
+            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "UNRATE", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 1990년대 - 걸프전 & 경기침체
@@ -125,7 +124,7 @@ class EconomicService:
             color="#8B0000",
             icon="⚔️",
             impact_duration_months=12,
-            related_indicators=["GDP", "UNRATE", "DCOILWTICO"]
+            related_indicators=["GDP", "UNRATE", "DCOILWTICO", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 1997-1998년 - 아시아 외환위기
@@ -138,7 +137,7 @@ class EconomicService:
             color="#DC143C",
             icon="🌏",
             impact_duration_months=18,
-            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "DEXUSEU"]
+            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "DEXUSEU", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2000년 - 닷컴 버블 붕괴
@@ -151,7 +150,7 @@ class EconomicService:
             color="#4B0082",
             icon="💻",
             impact_duration_months=24,
-            related_indicators=["VIXCLS", "UNRATE", "FEDFUNDS", "NAPM", "INDPRO"]
+            related_indicators=["VIXCLS", "UNRATE", "FEDFUNDS", "NAPM", "INDPRO", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2001년 - 9/11 테러
@@ -164,7 +163,7 @@ class EconomicService:
             color="#000000",
             icon="🏢",
             impact_duration_months=12,
-            related_indicators=["VIXCLS", "UNRATE", "GDP"]
+            related_indicators=["VIXCLS", "UNRATE", "GDP", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2007-2009년 - 글로벌 금융위기
@@ -177,7 +176,7 @@ class EconomicService:
             color="#8B0000",
             icon="🏠",
             impact_duration_months=6,
-            related_indicators=["CSUSHPISA", "MORTGAGE30US", "VIXCLS"],
+            related_indicators=["CSUSHPISA", "MORTGAGE30US", "VIXCLS", "NYUCSFRCONDOSMSAMID"],
             priority=9
         ),
         EconomicEvent(
@@ -189,7 +188,7 @@ class EconomicService:
             color="#8B0000",
             icon="🏦",
             impact_duration_months=36,
-            related_indicators=["VIXCLS", "UNRATE", "GDP", "FEDFUNDS"],
+            related_indicators=["VIXCLS", "UNRATE", "GDP", "FEDFUNDS", "NYUCSFRCONDOSMSAMID"],
             priority=10  # 최고 우선순위
         ),
         EconomicEvent(
@@ -201,7 +200,7 @@ class EconomicService:
             color="#8B0000",
             icon="📉",
             impact_duration_months=30,
-            related_indicators=["GDP", "UNRATE", "PAYEMS", "INDPRO"],
+            related_indicators=["GDP", "UNRATE", "PAYEMS", "INDPRO", "NYUCSFRCONDOSMSAMID"],
             priority=9
         ),
         
@@ -215,7 +214,7 @@ class EconomicService:
             color="#4682B4",
             icon="🇪🇺",
             impact_duration_months=36,
-            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "GFDEGDQ188S", "DEXUSEU"]
+            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "GFDEGDQ188S", "DEXUSEU", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2015년 - 중국 증시 폭락
@@ -228,7 +227,7 @@ class EconomicService:
             color="#DC143C",
             icon="🇨🇳",
             impact_duration_months=6,
-            related_indicators=["VIXCLS", "DCOILWTICO", "DEXCHUS", "NAPM"]
+            related_indicators=["VIXCLS", "DCOILWTICO", "DEXCHUS", "NAPM", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2018년 - 미중 무역전쟁
@@ -241,7 +240,7 @@ class EconomicService:
             color="#FFA500",
             icon="🛡️",
             impact_duration_months=24,
-            related_indicators=["VIXCLS", "BOPGSTB", "NAPM", "INDPRO", "DEXCHUS"]
+            related_indicators=["VIXCLS", "BOPGSTB", "NAPM", "INDPRO", "DEXCHUS", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2020년 - 코로나19 팬데믹
@@ -254,7 +253,7 @@ class EconomicService:
             color="#8B0000",
             icon="🦠",
             impact_duration_months=36,
-            related_indicators=["UNRATE", "GDP", "FEDFUNDS", "VIXCLS", "M2SL"],
+            related_indicators=["UNRATE", "GDP", "FEDFUNDS", "VIXCLS", "M2SL", "NYUCSFRCONDOSMSAMID"],
             priority=10  # 최고 우선순위
         ),
         EconomicEvent(
@@ -266,7 +265,7 @@ class EconomicService:
             color="#8B0000",
             icon="💥",
             impact_duration_months=12,
-            related_indicators=["VIXCLS"],
+            related_indicators=["VIXCLS", "NYUCSFRCONDOSMSAMID"],
             priority=9
         ),
         
@@ -280,7 +279,7 @@ class EconomicService:
             color="#FF6347",
             icon="📈",
             impact_duration_months=24,
-            related_indicators=["CPIAUCSL", "FEDFUNDS", "M2SL", "DCOILWTICO", "NAPM", "TCU"]
+            related_indicators=["CPIAUCSL", "FEDFUNDS", "M2SL", "DCOILWTICO", "NAPM", "TCU", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2022년 - 우크라이나 전쟁
@@ -293,7 +292,7 @@ class EconomicService:
             color="#8B0000",
             icon="⚔️",
             impact_duration_months=24,
-            related_indicators=["DCOILWTICO", "CPIAUCSL", "VIXCLS"]
+            related_indicators=["DCOILWTICO", "CPIAUCSL", "VIXCLS", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2022년 - 연준 금리 인상
@@ -306,7 +305,7 @@ class EconomicService:
             color="#FF4500",
             icon="📈",
             impact_duration_months=18,
-            related_indicators=["FEDFUNDS", "DGS10", "DGS2", "MORTGAGE30US"]
+            related_indicators=["FEDFUNDS", "DGS10", "DGS2", "MORTGAGE30US", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2023년 - 지역 은행 위기
@@ -319,7 +318,7 @@ class EconomicService:
             color="#8B4513",
             icon="🏦",
             impact_duration_months=6,
-            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "DGS2", "MORTGAGE30US"]
+            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "DGS2", "MORTGAGE30US", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2023년 - 미국 부채한도 협상 교착
         EconomicEvent(
@@ -331,7 +330,7 @@ class EconomicService:
             color="#FFD700",
             icon="💰",
             impact_duration_months=2,
-            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "GFDEGDQ188S", "GFDEBTN"]
+            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "GFDEGDQ188S", "GFDEBTN", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2023년 - AI 주식 랠리
         EconomicEvent(
@@ -343,7 +342,7 @@ class EconomicService:
             color="#00BFFF",
             icon="🤖",
             impact_duration_months=12,
-            related_indicators=["VIXCLS", "NAPM", "INDPRO", "TCU"]
+            related_indicators=["VIXCLS", "NAPM", "INDPRO", "TCU", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2023년 - 글로벌 인플레이션 완화
         EconomicEvent(
@@ -355,7 +354,7 @@ class EconomicService:
             color="#32CD32",
             icon="🟢",
             impact_duration_months=6,
-            related_indicators=["CPIAUCSL", "FEDFUNDS"]
+            related_indicators=["CPIAUCSL", "FEDFUNDS", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2024년 - 홍해 해상운송 위기
         EconomicEvent(
@@ -367,7 +366,7 @@ class EconomicService:
             color="#FF0000",
             icon="🚢",
             impact_duration_months=4,
-            related_indicators=["DCOILWTICO", "CPIAUCSL"]
+            related_indicators=["DCOILWTICO", "CPIAUCSL", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2024년 - 미국 대선 불확실성
         EconomicEvent(
@@ -379,7 +378,7 @@ class EconomicService:
             color="#00008B",
             icon="🇺🇸",
             impact_duration_months=2,
-            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "GFDEGDQ188S"]
+            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "GFDEGDQ188S", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2024년 - 고금리 장기화
         EconomicEvent(
@@ -391,7 +390,7 @@ class EconomicService:
             color="#FF4500",
             icon="📈",
             impact_duration_months=12,
-            related_indicators=["FEDFUNDS", "DGS10", "DGS2", "MORTGAGE30US"]
+            related_indicators=["FEDFUNDS", "DGS10", "DGS2", "MORTGAGE30US", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2025년 - 세계 증시 급락 (주식 쇼크)
         EconomicEvent(
@@ -403,7 +402,7 @@ class EconomicService:
             color="#FF1493",
             icon="📉",
             impact_duration_months=3,
-            related_indicators=["VIXCLS", "NAPM", "INDPRO", "BOPGSTB"]
+            related_indicators=["VIXCLS", "NAPM", "INDPRO", "BOPGSTB", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2025년 - 연준의 금리 딜레마
         EconomicEvent(
@@ -415,7 +414,7 @@ class EconomicService:
             color="#FFD700",
             icon="🏦",
             impact_duration_months=6,
-            related_indicators=["FEDFUNDS", "MORTGAGE30US", "CSUSHPINSA"]
+            related_indicators=["FEDFUNDS", "MORTGAGE30US", "NYUCSFRCONDOSMSAMID"]
         ),
     ]
     

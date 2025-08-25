@@ -58,6 +58,9 @@ class FredService:
         "GDPC1": "GDPC1",  # Real GDP
         "GDPDEF": "GDPDEF",  # GDP Deflator
         "NYGDPMKTPCDWLD": "NYGDPMKTPCDWLD",  # World GDP per capita
+
+        # NYU Manhattan Condo/Co-op Price Index (추가됨)
+        "NYUCSFRCONDOSMSAMID": "NYUCSFRCONDOSMSAMID",  # NYU 콘도/코압 가격지수 (맨해튼)
         
         # Employment & Labor
         "UNRATE": "UNRATE",  # Unemployment Rate
