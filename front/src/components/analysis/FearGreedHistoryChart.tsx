@@ -27,6 +27,8 @@ interface FearGreedHistoryChartProps {
   economicEvents: EconomicEvent[]
   fearGreedLoading: boolean
   fearGreedError: string | null
+  selectedPeriod: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+  onPeriodChange: (period: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y') => void
 }
 
 const getFearGreedColor = (value: number): string => {
@@ -38,7 +40,7 @@ const getFearGreedColor = (value: number): string => {
 }
 
 const FearGreedHistoryChart = memo<FearGreedHistoryChartProps>(
-  ({ fearGreedHistory, economicEvents, fearGreedLoading, fearGreedError }) => {
+  ({ fearGreedHistory, economicEvents, fearGreedLoading, fearGreedError, selectedPeriod, onPeriodChange }) => {
     // Memoize chart data
     const chartData = useMemo(() => {
       if (!fearGreedHistory?.data) return []
@@ -225,10 +227,29 @@ const FearGreedHistoryChart = memo<FearGreedHistoryChartProps>(
       >
         <Card>
           <CardHeader>
-            <CardTitle>Fear & Greed Index History</CardTitle>
-            <CardDescription>
-              CNN Fear & Greed Index - 5년간 시장 심리 변화 추이
-            </CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle>Fear & Greed Index History</CardTitle>
+                <CardDescription>
+                  CNN Fear & Greed Index - 시장 심리 변화 추이
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(['1M', '3M', '6M', '1Y', '2Y', '5Y'] as const).map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => onPeriodChange(period)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      selectedPeriod === period
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={400}>
@@ -265,11 +286,6 @@ const FearGreedHistoryChart = memo<FearGreedHistoryChartProps>(
                   <YAxis
                     domain={[0, 100]}
                     fontSize={12}
-                    label={{
-                      value: 'Fear & Greed Index',
-                      angle: -90,
-                      position: 'insideLeft'
-                    }}
                     tickFormatter={(value) => `${value}`}
                   />
                   <Tooltip content={tooltipContent} />

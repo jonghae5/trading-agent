@@ -100,6 +100,9 @@ export const Analysis: React.FC = () => {
     useState<FearGreedHistoricalData | null>(null)
   const [fearGreedLoading, setFearGreedLoading] = useState(false)
   const [fearGreedError, setFearGreedError] = useState<string | null>(null)
+  const [selectedPeriod, setSelectedPeriod] = useState<
+    '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+  >('1M')
 
   // Economic events state
   const [economicEvents, setEconomicEvents] = useState<EconomicEvent[]>([])
@@ -139,13 +142,18 @@ export const Analysis: React.FC = () => {
   }
 
   // Load Fear & Greed Index data
-  const loadFearGreedData = async () => {
+  const loadFearGreedData = async (
+    period?: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+  ) => {
     setFearGreedLoading(true)
     setFearGreedError(null)
 
     try {
       const [history, summary] = await Promise.all([
-        fearGreedApi.getHistory(1825, 'daily'), // Last 5 years, daily data
+        fearGreedApi.getHistory({
+          period: period || selectedPeriod,
+          aggregation: 'daily'
+        }),
         fearGreedApi.getSummary()
       ])
 
@@ -213,6 +221,13 @@ export const Analysis: React.FC = () => {
 
   const handleStockSelect = (stock: StockSearchResult) => {
     updateConfig({ ticker: stock.symbol })
+  }
+
+  const handlePeriodChange = async (
+    period: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+  ) => {
+    setSelectedPeriod(period)
+    await loadFearGreedData(period)
   }
 
   return (
@@ -489,6 +504,8 @@ export const Analysis: React.FC = () => {
         economicEvents={economicEvents}
         fearGreedLoading={fearGreedLoading}
         fearGreedError={fearGreedError}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={handlePeriodChange}
       />
 
       {/* Analysis History */}

@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
     
 @router.get("/history", response_model=ApiResponse)
 async def get_fear_greed_history(
-    days: int = Query(30, description="Number of days of historical data", ge=1, le=2000),
+    days: int = Query(None, description="Number of days of historical data", ge=1, le=2000),
+    period: str = Query(None, description="Preset period: '1M', '3M', '6M', '1Y', '2Y', '5Y'"),
     aggregation: str = Query("daily", description="Data aggregation: 'daily' or 'monthly'"),
     # Market endpoints are public - no auth required,
     fear_greed_service: FearGreedService = Depends(get_fear_greed_service)
@@ -31,6 +32,26 @@ async def get_fear_greed_history(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Aggregation must be 'daily' or 'monthly'"
             )
+        
+        # Convert period to days if period is provided
+        if period and days is None:
+            period_mapping = {
+                "1M": 30,
+                "3M": 90,
+                "6M": 180,
+                "1Y": 365,
+                "2Y": 730,
+                "5Y": 1825
+            }
+            if period not in period_mapping:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Period must be one of: '1M', '3M', '6M', '1Y', '2Y', '5Y'"
+                )
+            days = period_mapping[period]
+        elif days is None:
+            # Default to 1 year if neither days nor period is provided
+            days = 365
         
         historical_data = await fear_greed_service.get_fear_greed_history(days, aggregation=aggregation)
         
