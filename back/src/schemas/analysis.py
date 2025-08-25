@@ -77,8 +77,8 @@ class AnalysisConfigRequest(BaseModel):
     analysts: List[AnalystType] = Field(..., min_items=1, description="Selected analysts")
     research_depth: int = Field(3, ge=1, le=10, description="Research depth (1-10)")
     llm_provider: LLMProvider = Field(LLMProvider.OPENAI, description="LLM provider")
-    shallow_thinker: str = Field("gpt-5", description="Model for quick analysis")
-    deep_thinker: str = Field("gpt-5", description="Model for deep analysis")
+    shallow_thinker: str = Field("gpt-4o", description="Model for quick analysis")
+    deep_thinker: str = Field("gpt-4o", description="Model for deep analysis")
     backend_url: Optional[str] = Field(None, description="Custom backend URL")
     
     @validator('ticker')
