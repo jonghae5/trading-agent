@@ -53,9 +53,6 @@ class FearGreedService:
     CNN_FEAR_GREED_URL = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
     CNN_FEAR_GREED_CURRENT = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
     
-    # Alternative APIs for Fear & Greed Index
-    ALTERNATIVE_API_URL = "https://api.alternative.me/fng/"
-    
     def __init__(self):
         self.session: Optional[aiohttp.ClientSession] = None
         # Simple in-memory cache
@@ -114,40 +111,77 @@ class FearGreedService:
             return "Extreme Greed"
     
     async def get_current_fear_greed_index(self) -> Optional[FearGreedData]:
-        """Get current CNN Fear & Greed Index with caching."""
+        """Get current CNN Fear & Greed Index."""
 
         try:
             session = await self._get_session()
             
-            # Try CNN API first
-            try:
-                async with session.get(self.CNN_FEAR_GREED_URL) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        result = self._parse_cnn_fear_greed_data(data)
-                        logger.info("Fetched fresh Fear & Greed Index data from CNN")
-                        return result
-            except Exception as e:
-                logger.warning(f"CNN API failed, trying alternative: {e}")
-            
-            # Try alternative API
-            try:
-                async with session.get(self.ALTERNATIVE_API_URL + "?limit=1") as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        result = self._parse_alternative_fear_greed_data(data)
-                        logger.info("Fetched fresh Fear & Greed Index data from alternative API")
-                        return result
-            except Exception as e:
-                logger.warning(f"Alternative API also failed: {e}")
-            
-            # If both APIs fail, raise error
-            raise FearGreedServiceError("Failed to fetch Fear & Greed Index from all sources")
+            # Use CNN API only
+            async with session.get(self.CNN_FEAR_GREED_URL) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    result = self._parse_cnn_fear_greed_data(data)
+                    logger.info("Fetched fresh Fear & Greed Index data from CNN")
+                    return result
+                else:
+                    raise FearGreedServiceError(f"CNN API returned status {response.status}")
             
         except Exception as e:
             logger.error(f"Error fetching Fear & Greed Index: {e}")
             raise FearGreedServiceError(f"Failed to fetch Fear & Greed Index: {str(e)}")
     
+    def _parse_cnn_historical_data(self, data: Dict[str, Any], days: int) -> List[FearGreedHistorical]:
+        """Parse CNN Fear & Greed Index historical data."""
+        try:
+            historical_data = []
+            
+            # Parse the actual CNN API structure
+            if 'fear_and_greed_historical' in data:
+                history_section = data['fear_and_greed_historical']
+                
+                # Get the data array from the historical section
+                if 'data' in history_section:
+                    data_points = history_section['data']
+                    
+                    # Take only the requested number of days, most recent first
+                    for point in data_points[-days:]:
+                        timestamp = datetime.fromtimestamp(point.get('x', 0) / 1000)
+                        value = int(round(point.get('y', 50)))
+                        rating = point.get('rating', self._classify_fear_greed_value(value))
+                        
+                        historical_data.append(FearGreedHistorical(
+                            date=timestamp,
+                            value=value,
+                            classification=rating.title() if rating else self._classify_fear_greed_value(value)
+                        ))
+                
+            # Fallback to current data if no historical data available
+            if not historical_data and 'fear_and_greed' in data:
+                current_fg = self._parse_cnn_fear_greed_data(data)
+                historical_data.append(FearGreedHistorical(
+                    date=current_fg.timestamp,
+                    value=current_fg.value,
+                    classification=current_fg.classification
+                ))
+            
+            # Sort by date (newest first)
+            historical_data.sort(key=lambda x: x.date, reverse=True)
+            return historical_data
+            
+        except Exception as e:
+            logger.error(f"Error parsing CNN historical data: {e}")
+            # Fallback to current data point if parsing fails
+            try:
+                current_fg = self._parse_cnn_fear_greed_data(data)
+                return [FearGreedHistorical(
+                    date=current_fg.timestamp,
+                    value=current_fg.value,
+                    classification=current_fg.classification
+                )]
+            except:
+                logger.error("Failed to parse any Fear & Greed data")
+                return []
+
     def _parse_cnn_fear_greed_data(self, data: Dict[str, Any]) -> FearGreedData:
         """Parse CNN Fear & Greed Index API response."""
         try:
@@ -175,84 +209,37 @@ class FearGreedService:
             logger.error(f"Error parsing CNN Fear & Greed data: {e}")
             raise FearGreedServiceError(f"Failed to parse CNN data: {str(e)}")
     
-    def _parse_alternative_fear_greed_data(self, data: Dict[str, Any]) -> FearGreedData:
-        """Parse alternative Fear & Greed Index API response."""
-        try:
-            # Alternative.me API structure
-            if 'data' in data and len(data['data']) > 0:
-                latest = data['data'][0]
-                current_value = int(latest.get('value', 50))
-                
-                return FearGreedData(
-                    timestamp=datetime.fromtimestamp(int(latest.get('timestamp', 0))),
-                    value=current_value,
-                    classification=latest.get('value_classification', self._classify_fear_greed_value(current_value))
-                )
-            
-            raise ValueError("No data found in alternative API response")
-            
-        except Exception as e:
-            logger.error(f"Error parsing alternative Fear & Greed data: {e}")
-            raise FearGreedServiceError(f"Failed to parse alternative data: {str(e)}")
     
     
     async def get_fear_greed_history(self, days: int = 30, aggregation: str = "daily") -> List[FearGreedHistorical]:
-        """Get historical Fear & Greed Index data."""
+        """Get historical Fear & Greed Index data from CNN."""
+        cache_key = f"history_{days}_{aggregation}"
+        cached_data = self._get_cache(cache_key)
+        if cached_data:
+            return cached_data
+            
         try:
             session = await self._get_session()
             
-            # Try to get historical data from alternative API
-            try:
-                # Alternative.me API: limit=0 means get all available data (usually 2-3 years)
-                # For more than available data, we still get the maximum available
-                url = f"{self.ALTERNATIVE_API_URL}?limit=0" if days > 1000 else f"{self.ALTERNATIVE_API_URL}?limit={days}"
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        historical_data = self._parse_historical_data(data)
-                        
-                        all_data = historical_data
-                        
-                        # Apply aggregation if requested
-                        if aggregation == "monthly":
-                            return self._aggregate_monthly(all_data)
-                        else:
-                            return all_data
-                            
-            except Exception as e:
-                logger.warning(f"Failed to get historical data: {e}")
-            
-            # If API fails, raise error
-            raise FearGreedServiceError("Failed to fetch historical Fear & Greed Index data")
-            
+            # Use CNN's historical data endpoint
+            async with session.get(self.CNN_FEAR_GREED_URL) as response:
+                if response.status != 200:
+                    raise FearGreedServiceError(f"CNN API returned status {response.status}")
+                
+                data = await response.json()
+                historical_data = self._parse_cnn_historical_data(data, days)
+                
+                # Apply aggregation if requested
+                if aggregation == "monthly":
+                    historical_data = self._aggregate_monthly(historical_data)
+                
+                self._set_cache(cache_key, historical_data)
+                return historical_data
+                
         except Exception as e:
             logger.error(f"Error fetching historical Fear & Greed data: {e}")
             raise FearGreedServiceError(f"Failed to fetch historical Fear & Greed data: {str(e)}")
     
-    def _parse_historical_data(self, data: Dict[str, Any]) -> List[FearGreedHistorical]:
-        """Parse historical Fear & Greed Index API response."""
-        try:
-            historical_data = []
-            
-            if 'data' in data:
-                for item in data['data']:
-                    timestamp = datetime.fromtimestamp(int(item.get('timestamp', 0)))
-                    value = int(item.get('value', 50))
-                    classification = item.get('value_classification', self._classify_fear_greed_value(value))
-                    
-                    historical_data.append(FearGreedHistorical(
-                        date=timestamp,
-                        value=value,
-                        classification=classification
-                    ))
-            
-            # Sort by date (newest first)
-            historical_data.sort(key=lambda x: x.date, reverse=True)
-            return historical_data
-            
-        except Exception as e:
-            logger.error(f"Error parsing historical data: {e}")
-            return []
     
     
     def _aggregate_monthly(self, daily_data: List[FearGreedHistorical]) -> List[FearGreedHistorical]:
@@ -332,8 +319,8 @@ class FearGreedService:
                 "trend": trend,
                 "volatility": volatility,
                 "historical_comparison": {
-                    "previous_close": history[1],
-                    "one_week_ago": history[6],
+                    "previous_close": history[1].value if len(history) > 1 else None,
+                    "one_week_ago": history[6].value if len(history) > 6 else None,
                     "one_month_ago": current_fg.one_month_ago,
                     "one_year_ago": current_fg.one_year_ago
                 },

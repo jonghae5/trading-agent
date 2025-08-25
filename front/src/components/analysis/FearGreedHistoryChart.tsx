@@ -27,8 +27,8 @@ interface FearGreedHistoryChartProps {
   economicEvents: EconomicEvent[]
   fearGreedLoading: boolean
   fearGreedError: string | null
-  selectedPeriod: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
-  onPeriodChange: (period: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y') => void
+  selectedPeriod: '1M' | '3M' | '6M' | '1Y'
+  onPeriodChange: (period: '1M' | '3M' | '6M' | '1Y') => void
 }
 
 const getFearGreedColor = (value: number): string => {
@@ -235,7 +235,7 @@ const FearGreedHistoryChart = memo<FearGreedHistoryChartProps>(
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
-                {(['1M', '3M', '6M', '1Y', '2Y', '5Y'] as const).map((period) => (
+                {(['1M', '3M', '6M', '1Y'] as const).map((period) => (
                   <button
                     key={period}
                     onClick={() => onPeriodChange(period)}

@@ -300,7 +300,7 @@ export const fearGreedApi = {
   async getHistory(
     options: {
       days?: number
-      period?: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+      period?: '1M' | '3M' | '6M' | '1Y'
       aggregation?: string
     } = {}
   ): Promise<FearGreedHistoricalData> {

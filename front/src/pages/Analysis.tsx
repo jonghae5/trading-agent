@@ -101,7 +101,7 @@ export const Analysis: React.FC = () => {
   const [fearGreedLoading, setFearGreedLoading] = useState(false)
   const [fearGreedError, setFearGreedError] = useState<string | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<
-    '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+    '1M' | '3M' | '6M' | '1Y'
   >('1M')
 
   // Economic events state
@@ -159,7 +159,7 @@ export const Analysis: React.FC = () => {
 
   // Load historical Fear & Greed Index data only
   const loadFearGreedHistory = async (
-    period?: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+    period?: '1M' | '3M' | '6M' | '1Y'
   ) => {
     setFearGreedLoading(true)
     setFearGreedError(null)
@@ -246,7 +246,7 @@ export const Analysis: React.FC = () => {
   }
 
   const handlePeriodChange = async (
-    period: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+    period: '1M' | '3M' | '6M' | '1Y'
   ) => {
     setSelectedPeriod(period)
     // Only reload history, not current data
