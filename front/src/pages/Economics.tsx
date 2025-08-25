@@ -48,7 +48,7 @@ const INDICATOR_CATEGORIES = {
   employment: {
     title: '고용 & 노동시장',
     description: '실업률, 고용지표, 임금',
-    indicators: ['UNRATE', 'PAYEMS', 'ICSA', 'NAPMEI']
+    indicators: ['UNRATE', 'PAYEMS', 'ICSA']
   },
   inflation: {
     title: '물가 & 인플레이션',
@@ -89,12 +89,6 @@ const INDICATOR_INFO = {
   UNRATE: { name: '실업률', unit: '%', color: '#ef4444', icon: '👥' },
   PAYEMS: { name: '비농업 일자리', unit: '천명', color: '#059669', icon: '👨‍💼' },
   ICSA: { name: '실업수당 신청', unit: '천건', color: '#dc2626', icon: '📄' },
-  NAPMEI: {
-    name: 'ISM 제조업 고용지수',
-    unit: '',
-    color: '#ea580c',
-    icon: '👷'
-  },
 
   // 물가 & 인플레이션
   CPIAUCSL: {
@@ -496,7 +490,7 @@ export const Economics: React.FC = () => {
           {/* Main Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {INDICATOR_CATEGORIES[selectedCategory].indicators
-              .slice(0, 4)
+              .slice(0, 5)
               .map((indicator, index) => {
                 const data = historicalData.indicators[indicator] || []
                 const info =
