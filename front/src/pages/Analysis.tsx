@@ -141,35 +141,41 @@ export const Analysis: React.FC = () => {
     }
   }
 
-  // Load Fear & Greed Index data
-  const loadFearGreedData = async (
-    period?: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
-  ) => {
-    setFearGreedLoading(true)
-    setFearGreedError(null)
-
+  // Load current Fear & Greed Index (separate from history)
+  const loadCurrentFearGreedData = async () => {
     try {
-      const [history, summary] = await Promise.all([
-        fearGreedApi.getHistory({
-          period: period || selectedPeriod,
-          aggregation: 'daily'
-        }),
-        fearGreedApi.getSummary()
-      ])
-
+      const summary = await fearGreedApi.getSummary()
       const current = {
         ...summary.current,
         previous_close: summary.historical_comparison?.previous_close || 0,
         one_week_ago: summary.historical_comparison?.one_week_ago || 0
       }
       setFearGreedData(current)
+    } catch (error) {
+      console.error('Failed to load current Fear & Greed Index:', error)
+      // Don't set error for current data to avoid affecting UI
+    }
+  }
+
+  // Load historical Fear & Greed Index data only
+  const loadFearGreedHistory = async (
+    period?: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+  ) => {
+    setFearGreedLoading(true)
+    setFearGreedError(null)
+
+    try {
+      const history = await fearGreedApi.getHistory({
+        period: period || selectedPeriod,
+        aggregation: 'daily'
+      })
       setFearGreedHistory(history)
     } catch (error) {
-      console.error('Failed to load Fear & Greed Index data:', error)
+      console.error('Failed to load Fear & Greed Index history:', error)
       setFearGreedError(
         error instanceof Error
           ? error.message
-          : 'Failed to load Fear & Greed data'
+          : 'Failed to load Fear & Greed history'
       )
     } finally {
       setFearGreedLoading(false)
@@ -183,18 +189,34 @@ export const Analysis: React.FC = () => {
     }
   }, [isAuthenticated, loadAnalysisHistory])
 
-  // Load Fear & Greed Index data on mount and periodically
+  // Load initial data on mount and set up periodic refresh
   useEffect(() => {
-    const loadAllData = async () => {
-      await Promise.all([loadFearGreedData(), loadEconomicEvents()])
+    const loadInitialData = async () => {
+      await Promise.all([
+        loadCurrentFearGreedData(),
+        loadFearGreedHistory(),
+        loadEconomicEvents()
+      ])
     }
 
-    loadAllData()
+    loadInitialData()
 
-    // Refresh every 15 minutes
-    const interval = setInterval(loadAllData, 15 * 60 * 1000)
+    // Refresh current Fear & Greed data every 10 minutes (matching backend cache)
+    const currentDataInterval = setInterval(
+      loadCurrentFearGreedData,
+      10 * 60 * 1000
+    )
 
-    return () => clearInterval(interval)
+    // Refresh economic events every 30 minutes (less frequent)
+    const economicEventsInterval = setInterval(
+      loadEconomicEvents,
+      30 * 60 * 1000
+    )
+
+    return () => {
+      clearInterval(currentDataInterval)
+      clearInterval(economicEventsInterval)
+    }
   }, [])
 
   // Update progress every minute when analysis is running
@@ -227,7 +249,8 @@ export const Analysis: React.FC = () => {
     period: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
   ) => {
     setSelectedPeriod(period)
-    await loadFearGreedData(period)
+    // Only reload history, not current data
+    await loadFearGreedHistory(period)
   }
 
   return (

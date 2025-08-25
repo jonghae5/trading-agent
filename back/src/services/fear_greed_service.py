@@ -325,9 +325,9 @@ class FearGreedService:
             
             return {
                 "current": {
-                    "value": history[0].value, 
-                    "classification": history[0].classification,
-                    "timestamp": history[0].date.isoformat()
+                    "value": current_fg.value, 
+                    "classification": current_fg.classification,
+                    "timestamp": current_fg.timestamp.isoformat()
                 },
                 "trend": trend,
                 "volatility": volatility,
