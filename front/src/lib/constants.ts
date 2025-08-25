@@ -35,12 +35,14 @@ export const PROVIDER_URLS: Record<LLMProvider, string> = {
 export const LLM_OPTIONS = {
   [LLMProvider.OPENAI]: {
     shallow: [
+      { name: 'GPT-5 - Latest model', value: 'gpt-5' },
       { name: 'GPT-4o-mini - Fast and efficient', value: 'gpt-4o-mini' },
       { name: 'GPT-4.1-nano - Ultra-lightweight', value: 'gpt-4.1-nano' },
       { name: 'GPT-4.1-mini - Compact model', value: 'gpt-4.1-mini' },
       { name: 'GPT-4o - Standard model', value: 'gpt-4o' }
     ],
     deep: [
+      { name: 'GPT-5 - Latest model', value: 'gpt-5' },
       { name: 'GPT-4.1-nano - Ultra-lightweight', value: 'gpt-4.1-nano' },
       { name: 'GPT-4.1-mini - Compact model', value: 'gpt-4.1-mini' },
       { name: 'GPT-4o - Standard model', value: 'gpt-4o' },

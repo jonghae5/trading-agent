@@ -90,8 +90,8 @@ const initialConfig: AnalysisConfig = {
   analysts: DEFAULT_ANALYSTS,
   researchDepth: DEFAULT_RESEARCH_DEPTH,
   llmProvider: LLMProvider.OPENAI,
-  shallowThinker: 'gpt-4o-mini',
-  deepThinker: 'gpt-4o',
+  shallowThinker: 'gpt-5',
+  deepThinker: 'gpt-5',
   backendUrl: 'https://api.openai.com/v1'
 }
 
