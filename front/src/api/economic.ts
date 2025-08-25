@@ -293,8 +293,5 @@ export const IndicatorGroups = {
     'MORTGAGE30US',
     'UMCSENT',
     'NYUCSFRCONDOSMSAMID'
-  ],
-  // Legacy groups for compatibility
-  CORE_ECONOMIC: ['GDP', 'UNRATE', 'CPIAUCSL', 'FEDFUNDS'],
-  MANUFACTURING: ['INDPRO', 'NAPM', 'TCU', 'NAPMEI']
+  ]
 } as const
