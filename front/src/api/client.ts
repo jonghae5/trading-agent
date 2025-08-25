@@ -299,21 +299,21 @@ export const fearGreedApi = {
   // Get historical Fear & Greed Index data
   async getHistory(
     options: {
-      days?: number;
-      period?: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y';
-      aggregation?: string;
+      days?: number
+      period?: '1M' | '3M' | '6M' | '1Y' | '2Y' | '5Y'
+      aggregation?: string
     } = {}
   ): Promise<FearGreedHistoricalData> {
     const params: any = {
       aggregation: options.aggregation || 'daily'
-    };
-    
-    if (options.period) {
-      params.period = options.period;
-    } else if (options.days) {
-      params.days = options.days;
     }
-    
+
+    if (options.period) {
+      params.period = options.period
+    } else if (options.days) {
+      params.days = options.days
+    }
+
     const response = await apiClient.get<ApiResponse<FearGreedHistoricalData>>(
       '/api/v1/fear-greed/history',
       params
@@ -327,7 +327,6 @@ export const fearGreedApi = {
       '/api/v1/fear-greed/summary'
     )
 
-    console.log('response', response)
     return handleApiResponse(response)
   }
 }
