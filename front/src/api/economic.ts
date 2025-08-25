@@ -282,7 +282,7 @@ export const economicUtils = {
 
 // Common indicator groups - aligned with frontend categories
 export const IndicatorGroups = {
-  GROWTH_PRODUCTIVITY: ['GDP', 'INDPRO', 'TCU', 'NAPM'],
+  GROWTH_PRODUCTIVITY: ['GDP', 'INDPRO', 'TCU'],
   EMPLOYMENT_LABOR: ['UNRATE', 'PAYEMS', 'ICSA', 'NAPMEI'],
   INFLATION_PRICES: ['CPIAUCSL', 'PCEPI', 'PCEPILFE', 'CPILFESL'],
   MONETARY_POLICY: ['FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y'],

@@ -105,7 +105,6 @@ class FredService:
         # Industrial Production & Manufacturing
         "INDPRO": "INDPRO",  # Industrial Production Index
         "TCU": "TCU",  # Capacity Utilization
-        "NAPM": "NAPM",  # ISM Manufacturing PMI
         "NAPMEI": "NAPMEI",  # ISM Manufacturing Employment Index
         
         # Retail & Consumer Spending

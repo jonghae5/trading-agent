@@ -43,7 +43,7 @@ const INDICATOR_CATEGORIES = {
   growth: {
     title: '성장 & 생산성',
     description: 'GDP, 산업생산, 생산성 지표',
-    indicators: ['GDP', 'INDPRO', 'TCU', 'NAPM']
+    indicators: ['GDP', 'INDPRO', 'TCU']
   },
   employment: {
     title: '고용 & 노동시장',
@@ -84,7 +84,6 @@ const INDICATOR_INFO = {
   GDP: { name: 'GDP (총생산)', unit: '조달러', color: '#10b981', icon: '📈' },
   INDPRO: { name: '산업생산지수', unit: '', color: '#2563eb', icon: '🏭' },
   TCU: { name: '설비가동률', unit: '%', color: '#0891b2', icon: '⚙️' },
-  NAPM: { name: 'ISM 제조업 PMI', unit: '', color: '#7c3aed', icon: '📋' },
 
   // 고용 & 노동시장
   UNRATE: { name: '실업률', unit: '%', color: '#ef4444', icon: '👥' },

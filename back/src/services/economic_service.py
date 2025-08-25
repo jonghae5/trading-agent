@@ -98,7 +98,7 @@ class EconomicService:
             color="#B22222",
             icon="📉",
             impact_duration_months=24,
-            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS", "NAPM", "TCU", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS",  "TCU", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 1987년 - 블랙 먼데이
@@ -150,7 +150,7 @@ class EconomicService:
             color="#4B0082",
             icon="💻",
             impact_duration_months=24,
-            related_indicators=["VIXCLS", "UNRATE", "FEDFUNDS", "NAPM", "INDPRO", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["VIXCLS", "UNRATE", "FEDFUNDS",  "INDPRO", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2001년 - 9/11 테러
@@ -227,7 +227,7 @@ class EconomicService:
             color="#DC143C",
             icon="🇨🇳",
             impact_duration_months=6,
-            related_indicators=["VIXCLS", "DCOILWTICO", "DEXCHUS", "NAPM", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["VIXCLS", "DCOILWTICO", "DEXCHUS",  "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2018년 - 미중 무역전쟁
@@ -240,7 +240,7 @@ class EconomicService:
             color="#FFA500",
             icon="🛡️",
             impact_duration_months=24,
-            related_indicators=["VIXCLS", "BOPGSTB", "NAPM", "INDPRO", "DEXCHUS", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["VIXCLS", "BOPGSTB",  "INDPRO", "DEXCHUS", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2020년 - 코로나19 팬데믹
@@ -279,7 +279,7 @@ class EconomicService:
             color="#FF6347",
             icon="📈",
             impact_duration_months=24,
-            related_indicators=["CPIAUCSL", "FEDFUNDS", "M2SL", "DCOILWTICO", "NAPM", "TCU", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["CPIAUCSL", "FEDFUNDS", "M2SL", "DCOILWTICO",  "TCU", "NYUCSFRCONDOSMSAMID"]
         ),
         
         # 2022년 - 우크라이나 전쟁
@@ -342,7 +342,7 @@ class EconomicService:
             color="#00BFFF",
             icon="🤖",
             impact_duration_months=12,
-            related_indicators=["VIXCLS", "NAPM", "INDPRO", "TCU", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["VIXCLS",  "INDPRO", "TCU", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2023년 - 글로벌 인플레이션 완화
         EconomicEvent(
@@ -402,7 +402,7 @@ class EconomicService:
             color="#FF1493",
             icon="📉",
             impact_duration_months=3,
-            related_indicators=["VIXCLS", "NAPM", "INDPRO", "BOPGSTB", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["VIXCLS",  "INDPRO", "BOPGSTB", "NYUCSFRCONDOSMSAMID"]
         ),
         # 2025년 - 연준의 금리 딜레마
         EconomicEvent(
