@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from src.core.security import User
 from src.core.security import get_current_user
 from back.src.services.stock_service import get_stock_service
+from src.services.finnhub_service import get_finnhub_service
 from src.schemas.common import ApiResponse
 
 router = APIRouter()
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 # Service instances
 stocks_service = get_stock_service()
+finnhub_service = get_finnhub_service()
 
 
 @router.get("/search/stocks")
@@ -61,4 +63,61 @@ async def search_stocks(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Stock search failed"
+        )
+
+
+@router.get("/recommendation-trends/{symbol}")
+async def get_recommendation_trends(
+    symbol: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Get analyst recommendation trends for a company."""
+    try:
+        trends = await finnhub_service.get_recommendation_trends(symbol)
+        
+        logger.info(f"Recommendation trends fetched for {symbol}")
+        
+        return ApiResponse(
+            success=True,
+            message="Recommendation trends fetched successfully",
+            data={
+                "symbol": symbol.upper(),
+                "trends": trends
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch recommendation trends for {symbol}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch recommendation trends"
+        )
+
+
+@router.get("/earnings-surprises/{symbol}")
+async def get_earnings_surprises(
+    symbol: str,
+    limit: int = Query(None, description="Limit number of periods returned", ge=1, le=20),
+    current_user: User = Depends(get_current_user),
+):
+    """Get company historical quarterly earnings surprise."""
+    try:
+        surprises = await finnhub_service.get_earnings_surprises(symbol, limit)
+        
+        logger.info(f"Earnings surprises fetched for {symbol}")
+        
+        return ApiResponse(
+            success=True,
+            message="Earnings surprises fetched successfully",
+            data={
+                "symbol": symbol.upper(),
+                "surprises": surprises
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch earnings surprises for {symbol}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch earnings surprises"
         )

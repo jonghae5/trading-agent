@@ -40,7 +40,14 @@ import {
   AnalysisSession,
   HistoryReportSection
 } from '../../api/history'
+import {
+  stocksApi,
+  RecommendationTrend,
+  EarningSurprise
+} from '../../api/stocks'
 import { newKSTDate } from '../../lib/utils'
+import RecommendationTrendsChart from './RecommendationTrendsChart'
+import EarningSurprisesChart from './EarningSurprisesChart'
 
 interface ReportDetailViewProps {
   sessionId: string
@@ -145,6 +152,13 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [recommendationTrends, setRecommendationTrends] = useState<
+    RecommendationTrend[]
+  >([])
+  const [earningSurprises, setEarningSurprises] = useState<EarningSurprise[]>(
+    []
+  )
+  const [chartsLoading, setChartsLoading] = useState(false)
 
   useEffect(() => {
     loadReportDetail()
@@ -157,6 +171,10 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
       setError(null)
       const sessionData = await historyApi.getAnalysisReport(sessionId)
       setSession(sessionData)
+
+      if (sessionData && sessionData.ticker) {
+        loadChartData(sessionData.ticker)
+      }
     } catch (err) {
       console.error('Failed to load report detail:', err)
       setError(
@@ -164,6 +182,22 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
       )
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadChartData = async (symbol: string) => {
+    try {
+      setChartsLoading(true)
+      const [trends, surprises] = await Promise.all([
+        stocksApi.getRecommendationTrends(symbol),
+        stocksApi.getEarningSurprises(symbol, 4)
+      ])
+      setRecommendationTrends(trends)
+      setEarningSurprises(surprises)
+    } catch (err) {
+      console.error('Failed to load chart data:', err)
+    } finally {
+      setChartsLoading(false)
     }
   }
 
@@ -811,6 +845,95 @@ export const ReportDetailView: React.FC<ReportDetailViewProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Chart Analytics Section */}
+      {session && session.ticker && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Recommendation Trends Chart */}
+            <div>
+              {chartsLoading ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="size-5 text-green-600" />
+                      분석가 추천 트렌드 로딩 중...
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-center h-80">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : recommendationTrends.length > 0 ? (
+                <RecommendationTrendsChart
+                  data={recommendationTrends}
+                  symbol={session.ticker}
+                />
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="size-5 text-green-600" />
+                      분석가 추천 트렌드 - {session.ticker}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-center h-80 text-gray-500">
+                      <div className="text-center">
+                        <TrendingUp className="size-12 text-gray-300 mx-auto mb-4" />
+                        <p>추천 트렌드 데이터를 사용할 수 없습니다</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Earnings Surprises Chart */}
+            <div>
+              {chartsLoading ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="size-5 text-blue-600" />
+                      실적 서프라이즈 로딩 중...
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-center h-80">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : earningSurprises.length > 0 ? (
+                <EarningSurprisesChart
+                  data={earningSurprises}
+                  symbol={session.ticker}
+                />
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="size-5 text-blue-600" />
+                      실적 서프라이즈 - {session.ticker}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-center h-80 text-gray-500">
+                      <div className="text-center">
+                        <BarChart3 className="size-12 text-gray-300 mx-auto mb-4" />
+                        <p>실적 서프라이즈 데이터를 사용할 수 없습니다</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Agent Execution Timeline */}
       {session.agent_executions && session.agent_executions.length > 0 && (

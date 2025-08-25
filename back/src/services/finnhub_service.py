@@ -221,6 +221,27 @@ class FinnhubService:
         """Get merger and acquisition news."""
         return await self.get_market_news("merger", limit)
     
+    async def get_recommendation_trends(self, symbol: str) -> List[Dict[str, Any]]:
+        """Get analyst recommendation trends for a company."""
+        try:
+            params = {"symbol": symbol.upper()}
+            data = await self._make_request("stock/recommendation", params)
+            return data
+        except Exception as e:
+            logger.error(f"Error fetching recommendation trends for {symbol}: {e}")
+            return self._get_sample_recommendation_trends(symbol)
+    
+    async def get_earnings_surprises(self, symbol: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get company historical quarterly earnings surprise."""
+        try:
+            params = {"symbol": symbol.upper()}
+            if limit:
+                params["limit"] = limit
+            data = await self._make_request("stock/earnings", params)
+            return data
+        except Exception as e:
+            logger.error(f"Error fetching earnings surprises for {symbol}: {e}")
+            return self._get_sample_earnings_surprises(symbol, limit)
  
     def _get_sample_news(self, limit: int = 20) -> List[NewsArticle]:
         """Get sample news when API is unavailable."""
@@ -290,6 +311,75 @@ class FinnhubService:
             negative_score=0.38,
             compound_score=0.24
         )
+    
+    def _get_sample_recommendation_trends(self, symbol: str) -> List[Dict[str, Any]]:
+        """Get sample recommendation trends when API is unavailable."""
+        return [
+            {
+                "buy": 24,
+                "hold": 7,
+                "period": "2025-03-01",
+                "sell": 0,
+                "strongBuy": 13,
+                "strongSell": 0,
+                "symbol": symbol.upper()
+            },
+            {
+                "buy": 17,
+                "hold": 13,
+                "period": "2025-02-01", 
+                "sell": 5,
+                "strongBuy": 13,
+                "strongSell": 0,
+                "symbol": symbol.upper()
+            },
+            {
+                "buy": 15,
+                "hold": 15,
+                "period": "2025-01-01",
+                "sell": 3,
+                "strongBuy": 11,
+                "strongSell": 1,
+                "symbol": symbol.upper()
+            }
+        ]
+    
+    def _get_sample_earnings_surprises(self, symbol: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get sample earnings surprises when API is unavailable."""
+        sample_data = [
+            {
+                "actual": 1.88,
+                "estimate": 1.9744,
+                "period": "2023-03-31",
+                "quarter": 1,
+                "surprise": -0.0944,
+                "surprisePercent": -4.7812,
+                "symbol": symbol.upper(),
+                "year": 2023
+            },
+            {
+                "actual": 1.29,
+                "estimate": 1.2957,
+                "period": "2022-12-31",
+                "quarter": 4,
+                "surprise": -0.0057,
+                "surprisePercent": -0.4399,
+                "symbol": symbol.upper(),
+                "year": 2022
+            },
+            {
+                "actual": 1.2,
+                "estimate": 1.1855,
+                "period": "2022-09-30",
+                "quarter": 3,
+                "surprise": 0.0145,
+                "surprisePercent": 1.2231,
+                "symbol": symbol.upper(),
+                "year": 2022
+            }
+        ]
+        
+        return sample_data[:limit] if limit else sample_data
     
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache performance statistics."""
