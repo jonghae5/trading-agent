@@ -98,7 +98,7 @@ class EconomicService:
             color="#B22222",
             icon="📉",
             impact_duration_months=24,
-            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS", "PAYEMS", "JTSJOL", "JTSQUR", "VIXCLS", "NFCI", "USREC"]
+            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS", "PAYEMS", "JTSJOL", "JTSQUR", "VIXCLS", "NFCI"]
         ),
         
         # 1987년 - 블랙 먼데이

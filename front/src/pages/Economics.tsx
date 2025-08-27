@@ -80,8 +80,8 @@ const INDICATOR_CATEGORIES = {
   },
   marketSentiment: {
     title: '시장심리 & 변동성',
-    description: 'VIX, 소비자심리, 경기침체지표',
-    indicators: ['VIXCLS', 'UMCSENT', 'USREC', 'DPHILBSRMQ']
+    description: 'VIX, 소비자심리, 제조업지수',
+    indicators: ['VIXCLS', 'UMCSENT', 'DPHILBSRMQ']
   },
   fiscal: {
     title: '재정정책 & 글로벌',
@@ -220,7 +220,6 @@ const INDICATOR_INFO = {
     color: '#059669',
     icon: '🏭'
   },
-  USREC: { name: 'NBER 경기침체지표', unit: '', color: '#dc2626', icon: '📉' },
 
   // 신용 & 은행 스트레스 (연준)
   DRSFRMACBS: {

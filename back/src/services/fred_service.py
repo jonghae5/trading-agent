@@ -145,7 +145,6 @@ class FredService:
         # Regional Economic Activity
         "DPHILBSRMQ": "DPHILBSRMQ",  # Philadelphia Fed Business Conditions Index
         "NYFEDBSRMQ": "NYFEDBSRMQ",  # NY Fed Empire State Manufacturing Index
-        "USREC": "USREC",  # NBER Recession Indicators
         
         # Commodities
         "DCOILWTICO": "DCOILWTICO",  # WTI Crude Oil Price
