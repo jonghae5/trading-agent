@@ -172,10 +172,10 @@ class FredService:
         if not self.api_key:
             logger.warning("FRED_API_KEY not set. Economic data will not be available.")
         
-        # TTL 캐시 설정 (5분 TTL, 최대 500개 항목)
+        # TTL 캐시 설정 (1시간 TTL, 최대 500개 항목)
         self._cache_lock = threading.RLock()
-        self._cache = TTLCache(maxsize=500, ttl=300)  # 5분 = 300초
-        logger.info("FRED service initialized with 5-minute TTL cache (max 500 items)")
+        self._cache = TTLCache(maxsize=500, ttl=3600)  # 1시간 = 3600초
+        logger.info("FRED service initialized with 1-hour TTL cache (max 500 items)")
     
     def _generate_cache_key(self, endpoint: str, params: Dict[str, Any]) -> str:
         """Generate cache key from endpoint and parameters."""
