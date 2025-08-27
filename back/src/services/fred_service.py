@@ -70,6 +70,12 @@ class FredService:
         "AHETPI": "AHETPI",  # Average Hourly Earnings
         "ICSA": "ICSA",  # Initial Claims
         
+        # Labor Market Tightness
+        "JTSJOL": "JTSJOL",  # Job Openings: Total Nonfarm
+        "JTSQUR": "JTSQUR",  # Quits: Total Nonfarm
+        "JTSHIR": "JTSHIR",  # Hires: Total Nonfarm
+        "JTSTSL": "JTSTSL",  # Total Separations: Total Nonfarm
+        
         # Inflation & Prices
         "CPIAUCSL": "CPIAUCSL",  # Consumer Price Index
         "CPILFESL": "CPILFESL",  # Core CPI
@@ -77,6 +83,11 @@ class FredService:
         "PCEPILFE": "PCEPILFE",  # Core PCE Price Index
         "DFEDTARU": "DFEDTARU",  # Federal Funds Target Rate Upper Limit
         "DFEDTARL": "DFEDTARL",  # Federal Funds Target Rate Lower Limit
+        
+        # Real-Time Inflation Expectations
+        "T5YIE": "T5YIE",  # 5-Year Breakeven Inflation Rate
+        "T10YIE": "T10YIE",  # 10-Year Breakeven Inflation Rate
+        "DFII10": "DFII10",  # 10-Year TIPS-Treasury Spread
         
         # Interest Rates & Monetary Policy
         "FEDFUNDS": "FEDFUNDS",  # Federal Funds Rate
@@ -123,6 +134,19 @@ class FredService:
         "DEXJPUS": "DEXJPUS",  # JPY/USD Exchange Rate
         "DEXCHUS": "DEXCHUS",  # CNY/USD Exchange Rate
         
+        # Financial Conditions Index
+        "NFCI": "NFCI",  # Chicago Fed National Financial Conditions Index
+        "ANFCI": "ANFCI",  # Adjusted National Financial Conditions Index
+        "STLFSI": "STLFSI",  # St. Louis Fed Financial Stress Index
+        
+        # Global Economic Linkages
+        "DTWEXBGS": "DTWEXBGS",  # Trade Weighted U.S. Dollar Index: Broad, Goods
+        
+        # Regional Economic Activity
+        "DPHILBSRMQ": "DPHILBSRMQ",  # Philadelphia Fed Business Conditions Index
+        "NYFEDBSRMQ": "NYFEDBSRMQ",  # NY Fed Empire State Manufacturing Index
+        "USREC": "USREC",  # NBER Recession Indicators
+        
         # Commodities
         "DCOILWTICO": "DCOILWTICO",  # WTI Crude Oil Price
         "DHHNGSP": "DHHNGSP",  # Natural Gas Price
@@ -131,6 +155,17 @@ class FredService:
         "FYFSGDA188S": "FYFSGDA188S",  # Federal Surplus or Deficit
         "GFDEBTN": "GFDEBTN",  # Federal Debt Total Public Debt
         "GFDEGDQ188S": "GFDEGDQ188S",  # Federal Debt as % of GDP
+        
+        # Credit & Banking Stress
+        "DRSFRMACBS": "DRSFRMACBS",  # Delinquency Rate on Credit Card Loans
+        "DRBLACBS": "DRBLACBS",  # Delinquency Rate on Business Loans
+        "TOTCI": "TOTCI",  # Total Credit to Private Non-Financial Sector
+        
+        # Financial Stability Metrics
+        "MORTGAGE15US": "MORTGAGE15US",  # 15-Year Fixed Mortgage Rate
+        "AAA": "AAA",  # Moody's Seasoned Aaa Corporate Bond Yield
+        "BAA": "BAA",  # Moody's Seasoned Baa Corporate Bond Yield
+        "BAMLH0A0HYM2": "BAMLH0A0HYM2",  # ICE BofA High Yield Index Option-Adjusted Spread
     }
     
     def __init__(self):

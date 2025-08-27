@@ -63,7 +63,7 @@ class EconomicService:
             color="#8B4513",
             icon="⛽",
             impact_duration_months=24,
-            related_indicators=["DCOILWTICO", "CPIAUCSL", "UNRATE", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["DCOILWTICO", "CPIAUCSL", "UNRATE", "NYUCSFRCONDOSMSAMID", "VIXCLS", "FEDFUNDS", "GDP", "INDPRO", "PAYEMS", "T5YIE", "T10YIE", "NFCI", "STLFSI"]
         ),
         EconomicEvent(
             date=datetime(1979, 6, 1),
@@ -74,7 +74,7 @@ class EconomicService:
             color="#8B4513",
             icon="⛽",
             impact_duration_months=18,
-            related_indicators=["DCOILWTICO", "CPIAUCSL", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["DCOILWTICO", "CPIAUCSL", "NYUCSFRCONDOSMSAMID", "VIXCLS", "FEDFUNDS", "GDP", "INDPRO", "T5YIE", "T10YIE", "NFCI", "STLFSI"]
         ),
         
         # 1980년대 - 볼커 쇼크 & 경기침체
@@ -87,7 +87,7 @@ class EconomicService:
             color="#FF4500",
             icon="📈",
             impact_duration_months=36,
-            related_indicators=["FEDFUNDS", "CPIAUCSL", "UNRATE", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["FEDFUNDS", "CPIAUCSL", "UNRATE", "DGS10", "T5YIE", "T10YIE", "NFCI", "STLFSI", "AAA", "BAA"]
         ),
         EconomicEvent(
             date=datetime(1981, 7, 1),
@@ -98,7 +98,7 @@ class EconomicService:
             color="#B22222",
             icon="📉",
             impact_duration_months=24,
-            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS",  "TCU", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS", "PAYEMS", "JTSJOL", "JTSQUR", "VIXCLS", "NFCI", "USREC"]
         ),
         
         # 1987년 - 블랙 먼데이
@@ -111,7 +111,7 @@ class EconomicService:
             color="#000000",
             icon="💥",
             impact_duration_months=6,
-            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "UNRATE", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["VIXCLS", "FEDFUNDS", "DGS10", "T10Y2Y", "NFCI", "STLFSI", "AAA", "BAA"]
         ),
         
         # 1990년대 - 걸프전 & 경기침체
@@ -124,7 +124,7 @@ class EconomicService:
             color="#8B0000",
             icon="⚔️",
             impact_duration_months=12,
-            related_indicators=["GDP", "UNRATE", "DCOILWTICO", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["GDP", "UNRATE", "DCOILWTICO", "VIXCLS", "FEDFUNDS", "INDPRO", "NFCI"]
         ),
         
         # 1997-1998년 - 아시아 외환위기
@@ -137,7 +137,7 @@ class EconomicService:
             color="#DC143C",
             icon="🌏",
             impact_duration_months=18,
-            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "DEXUSEU", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "DEXUSEU", "T10Y2Y", "GDP", "UNRATE", "NFCI", "STLFSI"]
         ),
         
         # 2000년 - 닷컴 버블 붕괴
@@ -150,7 +150,7 @@ class EconomicService:
             color="#4B0082",
             icon="💻",
             impact_duration_months=24,
-            related_indicators=["VIXCLS", "UNRATE", "FEDFUNDS",  "INDPRO", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["VIXCLS", "UNRATE", "FEDFUNDS", "INDPRO", "GDP", "PAYEMS", "NFCI", "STLFSI"]
         ),
         
         # 2001년 - 9/11 테러
@@ -163,7 +163,7 @@ class EconomicService:
             color="#000000",
             icon="🏢",
             impact_duration_months=12,
-            related_indicators=["VIXCLS", "UNRATE", "GDP", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["VIXCLS", "UNRATE", "GDP", "FEDFUNDS", "DGS10", "INDPRO", "NFCI", "STLFSI"]
         ),
         
         # 2007-2009년 - 글로벌 금융위기
@@ -292,7 +292,7 @@ class EconomicService:
             color="#8B0000",
             icon="⚔️",
             impact_duration_months=24,
-            related_indicators=["DCOILWTICO", "CPIAUCSL", "VIXCLS", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["DCOILWTICO", "CPIAUCSL", "VIXCLS", "NYUCSFRCONDOSMSAMID", "FEDFUNDS", "DGS10", "GDP", "UNRATE", "INDPRO", "T5YIE", "T10YIE", "NFCI", "STLFSI", "DTWEXBGS"]
         ),
         
         # 2022년 - 연준 금리 인상
@@ -366,7 +366,7 @@ class EconomicService:
             color="#FF0000",
             icon="🚢",
             impact_duration_months=4,
-            related_indicators=["DCOILWTICO", "CPIAUCSL", "NYUCSFRCONDOSMSAMID"]
+            related_indicators=["DCOILWTICO", "CPIAUCSL", "NYUCSFRCONDOSMSAMID", "FEDFUNDS", "DGS10", "VIXCLS", "GDP", "UNRATE", "NFCI", "STLFSI", "T5YIE", "T10YIE", "DTWEXBGS"]
         ),
         # 2024년 - 미국 대선 불확실성
         EconomicEvent(

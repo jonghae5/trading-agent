@@ -42,39 +42,51 @@ type TimeRange = keyof typeof TIME_RANGES
 const INDICATOR_CATEGORIES = {
   growth: {
     title: '성장 & 생산성',
-    description: 'GDP, 산업생산, 생산성 지표',
+    description: 'GDP, 산업생산, 설비가동률',
     indicators: ['GDP', 'INDPRO', 'TCU']
   },
   employment: {
-    title: '고용 & 노동시장',
-    description: '실업률, 고용지표, 임금',
-    indicators: ['UNRATE', 'PAYEMS', 'ICSA']
+    title: '노동시장',
+    description: '실업률, 일자리, 이직률, 채용률',
+    indicators: ['UNRATE', 'PAYEMS', 'ICSA', 'JTSJOL', 'JTSQUR', 'JTSHIR']
   },
   inflation: {
-    title: '물가 & 인플레이션',
-    description: 'CPI, PCE, 인플레이션 동향',
-    indicators: ['CPIAUCSL', 'PCEPI', 'PCEPILFE', 'CPILFESL']
+    title: '인플레이션',
+    description: 'CPI, PCE, 인플레이션 기대치',
+    indicators: ['CPIAUCSL', 'PCEPI', 'PCEPILFE', 'T5YIE', 'T10YIE', 'DFII10']
   },
   monetary: {
     title: '통화정책 & 금리',
     description: '연방기준금리, 수익률곡선',
     indicators: ['FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y']
   },
-  fiscal: {
-    title: '재정정책 & 부채',
-    description: 'GDP 대비 부채, 재정수지',
-    indicators: ['GFDEGDQ188S', 'FYFSGDA188S', 'GFDEBTN']
-  },
-  market: {
-    title: '금융시장 & 위험',
-    description: '변동성 지수, 시장 심리, 주택지수',
+  financialRisk: {
+    title: '금융위험 & 안정성',
+    description: '금융상황지수, 연체율, 회사채 스프레드',
     indicators: [
-      'VIXCLS',
-      'DGS30',
-      'MORTGAGE30US',
-      'UMCSENT',
-      'NYUCSFRCONDOSMSAMID'
+      'NFCI',
+      'STLFSI',
+      'DRSFRMACBS',
+      'DRBLACBS',
+      'AAA',
+      'BAA',
+      'BAMLH0A0HYM2'
     ]
+  },
+  realEstate: {
+    title: '부동산 & 주택시장',
+    description: '모기지금리, 주택가격지수',
+    indicators: ['MORTGAGE30US', 'MORTGAGE15US', 'NYUCSFRCONDOSMSAMID']
+  },
+  marketSentiment: {
+    title: '시장심리 & 변동성',
+    description: 'VIX, 소비자심리, 경기침체지표',
+    indicators: ['VIXCLS', 'UMCSENT', 'USREC', 'DPHILBSRMQ']
+  },
+  fiscal: {
+    title: '재정정책 & 글로벌',
+    description: '정부부채, 달러지수, 30년 국채',
+    indicators: ['GFDEGDQ188S', 'GFDEBTN', 'DTWEXBGS', 'DGS30']
   }
 } as const
 
@@ -152,6 +164,116 @@ const INDICATOR_INFO = {
     unit: '',
     color: '#0ea5e9',
     icon: '🏢'
+  },
+
+  // 노동시장 긴축도 (연준)
+  JTSJOL: { name: '일자리 공고', unit: '천건', color: '#16a34a', icon: '💼' },
+  JTSQUR: { name: '자발적 이직률', unit: '%', color: '#dc2626', icon: '🚪' },
+  JTSHIR: { name: '채용률', unit: '%', color: '#059669', icon: '🤝' },
+  JTSTSL: { name: '전체 이직', unit: '천명', color: '#f59e0b', icon: '🔄' },
+
+  // 인플레이션 기대치 (연준)
+  T5YIE: {
+    name: '5년 인플레이션 기대치',
+    unit: '%',
+    color: '#f97316',
+    icon: '🔥'
+  },
+  T10YIE: {
+    name: '10년 인플레이션 기대치',
+    unit: '%',
+    color: '#ea580c',
+    icon: '🔥'
+  },
+  DFII10: {
+    name: '10년 TIPS-수익률 스프레드',
+    unit: '%',
+    color: '#dc2626',
+    icon: '📊'
+  },
+
+  // 금융상황지수 (연준)
+  NFCI: {
+    name: '시카고연은 금융상황지수',
+    unit: '',
+    color: '#8b5cf6',
+    icon: '📊'
+  },
+  ANFCI: { name: '수정 금융상황지수', unit: '', color: '#a855f7', icon: '📊' },
+  STLFSI: {
+    name: '세인트루이스연은 금융스트레스지수',
+    unit: '',
+    color: '#c084fc',
+    icon: '⚡'
+  },
+
+  // 지역별 경제활동 (연준)
+  DPHILBSRMQ: {
+    name: '필라델피아연은 제조업지수',
+    unit: '',
+    color: '#10b981',
+    icon: '🏭'
+  },
+  NYFEDBSRMQ: {
+    name: '뉴욕연은 제조업지수',
+    unit: '',
+    color: '#059669',
+    icon: '🏭'
+  },
+  USREC: { name: 'NBER 경기침체지표', unit: '', color: '#dc2626', icon: '📉' },
+
+  // 신용 & 은행 스트레스 (연준)
+  DRSFRMACBS: {
+    name: '신용카드 연체율',
+    unit: '%',
+    color: '#dc2626',
+    icon: '💳'
+  },
+  DRBLACBS: {
+    name: '사업대출 연체율',
+    unit: '%',
+    color: '#b91c1c',
+    icon: '🏢'
+  },
+  TOTCI: {
+    name: '민간 비금융부문 신용',
+    unit: '조달러',
+    color: '#7c2d12',
+    icon: '💰'
+  },
+
+  // 금융안정성 (연준)
+  MORTGAGE15US: {
+    name: '15년 모기지금리',
+    unit: '%',
+    color: '#f59e0b',
+    icon: '🏠'
+  },
+  AAA: {
+    name: '무디스 AAA 회사채 수익률',
+    unit: '%',
+    color: '#10b981',
+    icon: '📈'
+  },
+  BAA: {
+    name: '무디스 BAA 회사채 수익률',
+    unit: '%',
+    color: '#f59e0b',
+    icon: '📈'
+  },
+  BAMLH0A0HYM2: {
+    name: '고수익 회사채 스프레드',
+    unit: '%',
+    color: '#dc2626',
+    icon: '⚠️'
+  },
+
+  // 글로벌 연결성 (연준)
+  DTWEXBGS: {
+    name: '무역가중 달러지수',
+    unit: '',
+    color: '#8b5cf6',
+    icon: '🌍'
   }
 } as const
 
@@ -274,23 +396,32 @@ export const Economics: React.FC = () => {
                 확인
               </p>
               <p>
-                <strong>2. 고용:</strong> 실업률, 일자리 증가로 노동시장 건전성
-                파악
+                <strong>2. 노동시장:</strong> 실업률, 일자리, 이직률로 고용상황
+                종합 분석
               </p>
               <p>
-                <strong>3. 물가:</strong> CPI, PCE로 인플레이션 압력 측정
+                <strong>3. 인플레이션:</strong> CPI, PCE, 기대치로 물가 압력
+                종합 평가
               </p>
               <p>
-                <strong>4. 통화정책:</strong> 연준 금리와 수익률곡선으로 정책
-                방향 예측
+                <strong>4. 통화정책:</strong> 연준금리, 수익률곡선으로 정책방향
+                예측
               </p>
               <p>
-                <strong>5. 재정상태:</strong> 정부 부채와 재정수지로 지속가능성
-                판단
+                <strong>5. 금융위험:</strong> 금융지수, 연체율, 스프레드로
+                시스템 안정성 체크
               </p>
               <p>
-                <strong>6. 시장위험:</strong> VIX, 금리, 콘도/코압 가격지수로
-                시장 불안정성 체크
+                <strong>6. 부동산:</strong> 모기지금리, 주택가격으로 부동산시장
+                모니터링
+              </p>
+              <p>
+                <strong>7. 시장심리:</strong> VIX, 소비자심리로 시장 불안심리
+                측정
+              </p>
+              <p>
+                <strong>8. 재정&글로벌:</strong> 정부부채, 달러지수로 거시경제
+                리스크 평가
               </p>
             </div>
           </div>
@@ -490,16 +621,12 @@ export const Economics: React.FC = () => {
           {/* Main Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {INDICATOR_CATEGORIES[selectedCategory].indicators
-              .slice(0, 5)
+              .slice(0, 10)
               .map((indicator, index) => {
                 const data = historicalData.indicators[indicator] || []
                 const info =
                   INDICATOR_INFO[indicator as keyof typeof INDICATOR_INFO]
-                const events = showEvents
-                  ? historicalData.events.filter((event) =>
-                      event.related_indicators.includes(indicator)
-                    )
-                  : []
+                const events = showEvents ? historicalData.events : []
 
                 if (!data.length || !info) return null
 
