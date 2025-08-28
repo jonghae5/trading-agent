@@ -283,8 +283,22 @@ export const economicUtils = {
 // Common indicator groups - aligned with frontend categories (merged)
 export const IndicatorGroups = {
   GROWTH_EMPLOYMENT: ['GDP', 'INDPRO', 'TCU', 'UNRATE', 'PAYEMS', 'ICSA'],
-  INFLATION_MONETARY: ['CPIAUCSL', 'PCEPILFE', 'T5YIE', 'FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y'],
-  FINANCIAL_RISK: ['NFCI', 'BAMLH0A0HYM2', 'BAA', 'VIXCLS', 'UMCSENT', 'DPHILBSRMQ'],
-  REALESTATE_DEBT: ['MORTGAGE30US', 'NYUCSFRCONDOSMSAMID', 'GFDEBTN', 'GFDEGDQ188S', 'NCBDBIQ027S'],
+  INFLATION_MONETARY: [
+    'CPIAUCSL',
+    'PCEPILFE',
+    'T5YIE',
+    'FEDFUNDS',
+    'DGS10',
+    'DGS2',
+    'T10Y2Y'
+  ],
+  FINANCIAL_RISK: ['NFCI', 'BAMLH0A0HYM2', 'BAA', 'VIXCLS', 'UMCSENT'],
+  REALESTATE_DEBT: [
+    'MORTGAGE30US',
+    'NYUCSFRCONDOSMSAMID',
+    'GFDEBTN',
+    'GFDEGDQ188S',
+    'NCBDBIQ027S'
+  ],
   FISCAL_GLOBAL: ['FYFSGDA188S', 'DTWEXBGS', 'DGS30']
 } as const

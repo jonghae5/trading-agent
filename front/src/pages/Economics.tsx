@@ -61,14 +61,7 @@ const INDICATOR_CATEGORIES = {
   financialRisk: {
     title: '금융 & 시장위험',
     description: '금융상황지수, 회사채 스프레드, VIX, 소비자심리',
-    indicators: [
-      'NFCI',
-      'BAMLH0A0HYM2',
-      'BAA',
-      'VIXCLS',
-      'UMCSENT',
-      'DPHILBSRMQ'
-    ]
+    indicators: ['NFCI', 'BAMLH0A0HYM2', 'BAA', 'VIXCLS', 'UMCSENT']
   },
   realEstateDebt: {
     title: '부동산 & 부채',
@@ -185,12 +178,7 @@ const INDICATOR_INFO = {
   },
 
   // 지역 제조업지수
-  DPHILBSRMQ: {
-    name: '필라델피아연은 제조업지수',
-    unit: '',
-    color: '#10b981',
-    icon: '🏭'
-  },
+
   BAA: {
     name: '무디스 BAA 회사채 수익률',
     unit: '%',

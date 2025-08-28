@@ -126,9 +126,6 @@ class FredService:
         # Global Economic Linkages
         "DTWEXBGS": "DTWEXBGS",  # Trade Weighted U.S. Dollar Index: Broad, Goods
         
-        # Regional Economic Activity
-        "DPHILBSRMQ": "DPHILBSRMQ",  # Philadelphia Fed Business Conditions Index
-        
         # Commodities
         "DCOILWTICO": "DCOILWTICO",  # WTI Crude Oil Price
         "DHHNGSP": "DHHNGSP",  # Natural Gas Price
