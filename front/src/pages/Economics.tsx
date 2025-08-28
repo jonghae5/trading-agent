@@ -253,7 +253,7 @@ const calculateChange = (data: EconomicObservation[]): number => {
 
 export const Economics: React.FC = () => {
   // State management
-  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('10Y')
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('1Y')
   const [selectedCategory, setSelectedCategory] =
     useState<keyof typeof INDICATOR_CATEGORIES>('growthEmployment')
   const [historicalData, setHistoricalData] =
