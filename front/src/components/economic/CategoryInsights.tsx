@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Brain,
@@ -23,8 +23,7 @@ import { Button } from '../ui/button'
 import { economicApi } from '../../api'
 import type {
   EconomicAnalysisRequest,
-  EconomicAnalysisResponse,
-  HistoricalDataResponse
+  EconomicAnalysisResponse
 } from '../../api/economic'
 
 interface CategoryInsightsProps {
@@ -33,7 +32,7 @@ interface CategoryInsightsProps {
   startDate: string
   endDate?: string
   isVisible: boolean
-  historicalData?: HistoricalDataResponse | null
+  hasData: boolean
   onRetry?: () => void
 }
 
@@ -50,7 +49,7 @@ export const CategoryInsights: React.FC<CategoryInsightsProps> = ({
   startDate,
   endDate,
   isVisible,
-  historicalData,
+  hasData,
   onRetry
 }) => {
   const [analysisState, setAnalysisState] = useState<AnalysisState>({
@@ -64,62 +63,76 @@ export const CategoryInsights: React.FC<CategoryInsightsProps> = ({
   const currentParams = `${category}-${timeRange}-${startDate}-${endDate || ''}`
 
   useEffect(() => {
-    if (
-      isVisible &&
-      historicalData &&
-      currentParams !== analysisState.lastAnalyzedParams
-    ) {
-      performAnalysis()
-    }
-  }, [category, timeRange, startDate, endDate])
-
-  const performAnalysis = async () => {
-    if (!category || !timeRange || !startDate || !historicalData) {
-      return
-    }
-
-    setAnalysisState((prev) => ({
-      ...prev,
-      isAnalyzing: true,
-      analysisResult: null,
-      analysisError: null
-    }))
-
-    try {
-      const request: EconomicAnalysisRequest = {
-        category,
-        time_range: timeRange,
-        start_date: startDate,
-        end_date: endDate
+    const performAnalysis = async () => {
+      if (!category || !timeRange || !startDate || !hasData) {
+        return
       }
 
-      const result = await economicApi.analyzeCategory(request)
+      // 이미 같은 파라미터로 분석 중이거나 완료된 경우 skip
+      if (
+        currentParams === analysisState.lastAnalyzedParams ||
+        analysisState.isAnalyzing
+      ) {
+        return
+      }
 
-      setAnalysisState({
-        isAnalyzing: false,
-        analysisResult: result,
-        analysisError: null,
-        lastAnalyzedParams: currentParams
-      })
-    } catch (error) {
-      console.error('Analysis failed:', error)
       setAnalysisState((prev) => ({
         ...prev,
-        isAnalyzing: false,
-        analysisError:
-          error instanceof Error
-            ? error.message
-            : '분석 중 오류가 발생했습니다.'
+        isAnalyzing: true,
+        analysisResult: null,
+        analysisError: null
       }))
+
+      try {
+        const request: EconomicAnalysisRequest = {
+          category,
+          time_range: timeRange,
+          start_date: startDate,
+          end_date: endDate
+        }
+
+        const result = await economicApi.analyzeCategory(request)
+
+        setAnalysisState({
+          isAnalyzing: false,
+          analysisResult: result,
+          analysisError: null,
+          lastAnalyzedParams: currentParams
+        })
+      } catch (error) {
+        console.error('Analysis failed:', error)
+        setAnalysisState((prev) => ({
+          ...prev,
+          isAnalyzing: false,
+          analysisError:
+            error instanceof Error
+              ? error.message
+              : '분석 중 오류가 발생했습니다.'
+        }))
+      }
     }
-  }
+
+    if (isVisible && hasData) {
+      performAnalysis()
+    }
+  }, [
+    category,
+    timeRange,
+    startDate,
+    endDate,
+    isVisible,
+    hasData,
+    currentParams,
+    analysisState.lastAnalyzedParams,
+    analysisState.isAnalyzing
+  ])
 
   const handleRetry = () => {
     setAnalysisState((prev) => ({
       ...prev,
-      lastAnalyzedParams: null
+      lastAnalyzedParams: null,
+      analysisError: null
     }))
-    performAnalysis()
     onRetry?.()
   }
 
@@ -183,7 +196,7 @@ export const CategoryInsights: React.FC<CategoryInsightsProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!historicalData && isVisible && (
+            {!hasData && isVisible && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -201,7 +214,7 @@ export const CategoryInsights: React.FC<CategoryInsightsProps> = ({
               </motion.div>
             )}
 
-            {analysisState.isAnalyzing && historicalData && (
+            {analysisState.isAnalyzing && hasData && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

@@ -508,7 +508,7 @@ export const Economics: React.FC = () => {
           )}
           endDate={getKSTDate().toISOString().split('T')[0]}
           isVisible={showInsights && !isLoading && !error}
-          historicalData={historicalData}
+          hasData={!!historicalData && !isLoading}
           onRetry={handleRefresh}
         />
       )}
