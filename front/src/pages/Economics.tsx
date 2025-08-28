@@ -38,55 +38,32 @@ const TIME_RANGES = {
 
 type TimeRange = keyof typeof TIME_RANGES
 
-// Indicator categories for better organization
+// Indicator categories for better organization - Merged for simplicity
 const INDICATOR_CATEGORIES = {
-  growth: {
-    title: '성장 & 생산성',
-    description: 'GDP, 산업생산, 설비가동률',
-    indicators: ['GDP', 'INDPRO', 'TCU']
+  growthEmployment: {
+    title: '성장 & 고용',
+    description: 'GDP, 산업생산, 실업률, 일자리',
+    indicators: ['GDP', 'INDPRO', 'TCU', 'UNRATE', 'PAYEMS', 'ICSA']
   },
-  employment: {
-    title: '노동시장',
-    description: '실업률, 일자리, 이직률, 채용률',
-    indicators: ['UNRATE', 'PAYEMS', 'ICSA', 'JTSJOL', 'JTSQUR', 'JTSHIR']
-  },
-  inflation: {
-    title: '인플레이션',
-    description: 'CPI, PCE, 인플레이션 기대치',
-    indicators: ['CPIAUCSL', 'PCEPI', 'PCEPILFE', 'T5YIE', 'T10YIE', 'DFII10']
-  },
-  monetary: {
-    title: '통화정책 & 금리',
-    description: '연방기준금리, 수익률곡선',
-    indicators: ['FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y']
+  inflationMonetary: {
+    title: '인플레이션 & 통화정책',
+    description: 'CPI, 인플레이션 기대, 연방기준금리, 수익률곡선',
+    indicators: ['CPIAUCSL', 'PCEPILFE', 'T5YIE', 'FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y']
   },
   financialRisk: {
-    title: '금융위험 & 안정성',
-    description: '금융상황지수, 연체율, 회사채 스프레드',
-    indicators: [
-      'NFCI',
-      'STLFSI',
-      'DRSFRMACBS',
-      'DRBLACBS',
-      'AAA',
-      'BAA',
-      'BAMLH0A0HYM2'
-    ]
+    title: '금융 & 시장위험',
+    description: '금융상황지수, 회사채 스프레드, VIX, 소비자심리',
+    indicators: ['NFCI', 'BAMLH0A0HYM2', 'BAA', 'VIXCLS', 'UMCSENT', 'DPHILBSRMQ']
   },
-  realEstate: {
-    title: '부동산 & 주택시장',
-    description: '모기지금리, 주택가격지수',
-    indicators: ['MORTGAGE30US', 'MORTGAGE15US', 'NYUCSFRCONDOSMSAMID']
-  },
-  marketSentiment: {
-    title: '시장심리 & 변동성',
-    description: 'VIX, 소비자심리, 제조업지수',
-    indicators: ['VIXCLS', 'UMCSENT', 'DPHILBSRMQ']
+  realEstateDebt: {
+    title: '부동산 & 부채',
+    description: '모기지금리, 주택가격, 정부부채, GDP 대비 부채, 기업부채',
+    indicators: ['MORTGAGE30US', 'NYUCSFRCONDOSMSAMID', 'GFDEBTN', 'GFDEGDQ188S', 'NCBDBIQ027S']
   },
   fiscal: {
-    title: '재정정책 & 글로벌',
-    description: '정부부채, 달러지수, 30년 국채',
-    indicators: ['GFDEGDQ188S', 'GFDEBTN', 'DTWEXBGS', 'DGS30']
+    title: '재정 & 글로벌',
+    description: '재정수지, 달러지수, 30년 국채',
+    indicators: ['FYFSGDA188S', 'DTWEXBGS', 'DGS30']
   }
 } as const
 
@@ -109,9 +86,7 @@ const INDICATOR_INFO = {
     color: '#f59e0b',
     icon: '📊'
   },
-  PCEPI: { name: 'PCE 물가지수', unit: '%', color: '#f97316', icon: '💵' },
   PCEPILFE: { name: '코어 PCE', unit: '%', color: '#ea580c', icon: '🎯' },
-  CPILFESL: { name: '코어 CPI', unit: '%', color: '#dc2626', icon: '🎯' },
 
   // 통화정책 & 금리
   FEDFUNDS: { name: '연방기준금리', unit: '%', color: '#6366f1', icon: '🏦' },
@@ -143,6 +118,12 @@ const INDICATOR_INFO = {
     color: '#dc2626',
     icon: '💸'
   },
+  NCBDBIQ027S: {
+    name: '기업 총부채',
+    unit: '조달러',
+    color: '#0ea5e9',
+    icon: '🏢'
+  },
 
   // 금융시장 & 위험
   VIXCLS: { name: 'VIX 변동성 지수', unit: '', color: '#ef4444', icon: '⚡' },
@@ -166,93 +147,28 @@ const INDICATOR_INFO = {
     icon: '🏢'
   },
 
-  // 노동시장 긴축도 (연준)
-  JTSJOL: { name: '일자리 공고', unit: '천건', color: '#16a34a', icon: '💼' },
-  JTSQUR: { name: '자발적 이직률', unit: '%', color: '#dc2626', icon: '🚪' },
-  JTSHIR: { name: '채용률', unit: '%', color: '#059669', icon: '🤝' },
-  JTSTSL: { name: '전체 이직', unit: '천명', color: '#f59e0b', icon: '🔄' },
-
-  // 인플레이션 기대치 (연준)
+  // 인플레이션 기대치
   T5YIE: {
     name: '5년 인플레이션 기대치',
     unit: '%',
     color: '#f97316',
     icon: '🔥'
   },
-  T10YIE: {
-    name: '10년 인플레이션 기대치',
-    unit: '%',
-    color: '#ea580c',
-    icon: '🔥'
-  },
-  DFII10: {
-    name: '10년 TIPS-수익률 스프레드',
-    unit: '%',
-    color: '#dc2626',
-    icon: '📊'
-  },
 
-  // 금융상황지수 (연준)
+  // 금융상황지수
   NFCI: {
     name: '시카고연은 금융상황지수',
     unit: '',
     color: '#8b5cf6',
     icon: '📊'
   },
-  ANFCI: { name: '수정 금융상황지수', unit: '', color: '#a855f7', icon: '📊' },
-  STLFSI: {
-    name: '세인트루이스연은 금융스트레스지수',
-    unit: '',
-    color: '#c084fc',
-    icon: '⚡'
-  },
 
-  // 지역별 경제활동 (연준)
+  // 지역 제조업지수
   DPHILBSRMQ: {
     name: '필라델피아연은 제조업지수',
     unit: '',
     color: '#10b981',
     icon: '🏭'
-  },
-  NYFEDBSRMQ: {
-    name: '뉴욕연은 제조업지수',
-    unit: '',
-    color: '#059669',
-    icon: '🏭'
-  },
-
-  // 신용 & 은행 스트레스 (연준)
-  DRSFRMACBS: {
-    name: '신용카드 연체율',
-    unit: '%',
-    color: '#dc2626',
-    icon: '💳'
-  },
-  DRBLACBS: {
-    name: '사업대출 연체율',
-    unit: '%',
-    color: '#b91c1c',
-    icon: '🏢'
-  },
-  TOTCI: {
-    name: '민간 비금융부문 신용',
-    unit: '조달러',
-    color: '#7c2d12',
-    icon: '💰'
-  },
-
-  // 금융안정성 (연준)
-  MORTGAGE15US: {
-    name: '15년 모기지금리',
-    unit: '%',
-    color: '#f59e0b',
-    icon: '🏠'
-  },
-  AAA: {
-    name: '무디스 AAA 회사채 수익률',
-    unit: '%',
-    color: '#10b981',
-    icon: '📈'
   },
   BAA: {
     name: '무디스 BAA 회사채 수익률',
@@ -391,36 +307,24 @@ export const Economics: React.FC = () => {
             </h4>
             <div className="text-xs sm:text-sm text-blue-800">
               <p>
-                <strong>1. 성장성:</strong> GDP, 산업생산으로 경제 전반적 성장
-                확인
+                <strong>1. 성장&고용:</strong> GDP, 산업생산, 실업률, 일자리로 
+                경제 성장과 고용상황 종합 분석
               </p>
               <p>
-                <strong>2. 노동시장:</strong> 실업률, 일자리, 이직률로 고용상황
-                종합 분석
+                <strong>2. 인플레이션&통화정책:</strong> CPI, 인플레이션 기대치, 
+                연준금리, 수익률곡선으로 물가와 통화정책 방향 예측
               </p>
               <p>
-                <strong>3. 인플레이션:</strong> CPI, PCE, 기대치로 물가 압력
-                종합 평가
+                <strong>3. 금융&시장위험:</strong> 금융상황지수, 회사채 스프레드, 
+                VIX, 소비자심리로 금융시스템 안정성과 시장 위험도 체크
               </p>
               <p>
-                <strong>4. 통화정책:</strong> 연준금리, 수익률곡선으로 정책방향
-                예측
+                <strong>4. 부동산&부채:</strong> 모기지금리, 주택가격, 정부부채, 
+                GDP 대비 부채비율로 부동산시장과 레버리지 위험 분석
               </p>
               <p>
-                <strong>5. 금융위험:</strong> 금융지수, 연체율, 스프레드로
-                시스템 안정성 체크
-              </p>
-              <p>
-                <strong>6. 부동산:</strong> 모기지금리, 주택가격으로 부동산시장
-                모니터링
-              </p>
-              <p>
-                <strong>7. 시장심리:</strong> VIX, 소비자심리로 시장 불안심리
-                측정
-              </p>
-              <p>
-                <strong>8. 재정&글로벌:</strong> 정부부채, 달러지수로 거시경제
-                리스크 평가
+                <strong>5. 재정&글로벌:</strong> 재정수지, 달러지수, 30년 국채로 
+                재정정책과 글로벌 거시경제 리스크 평가
               </p>
             </div>
           </div>

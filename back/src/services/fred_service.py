@@ -70,24 +70,13 @@ class FredService:
         "AHETPI": "AHETPI",  # Average Hourly Earnings
         "ICSA": "ICSA",  # Initial Claims
         
-        # Labor Market Tightness
-        "JTSJOL": "JTSJOL",  # Job Openings: Total Nonfarm
-        "JTSQUR": "JTSQUR",  # Quits: Total Nonfarm
-        "JTSHIR": "JTSHIR",  # Hires: Total Nonfarm
-        "JTSTSL": "JTSTSL",  # Total Separations: Total Nonfarm
         
         # Inflation & Prices
         "CPIAUCSL": "CPIAUCSL",  # Consumer Price Index
-        "CPILFESL": "CPILFESL",  # Core CPI
-        "PCEPI": "PCEPI",  # PCE Price Index
         "PCEPILFE": "PCEPILFE",  # Core PCE Price Index
-        "DFEDTARU": "DFEDTARU",  # Federal Funds Target Rate Upper Limit
-        "DFEDTARL": "DFEDTARL",  # Federal Funds Target Rate Lower Limit
         
         # Real-Time Inflation Expectations
         "T5YIE": "T5YIE",  # 5-Year Breakeven Inflation Rate
-        "T10YIE": "T10YIE",  # 10-Year Breakeven Inflation Rate
-        "DFII10": "DFII10",  # 10-Year TIPS-Treasury Spread
         
         # Interest Rates & Monetary Policy
         "FEDFUNDS": "FEDFUNDS",  # Federal Funds Rate
@@ -104,10 +93,7 @@ class FredService:
         "BOGMBASE": "BOGMBASE",  # Monetary Base
         
         # Housing
-        "HOUST": "HOUST",  # Housing Starts
-        "HOUSTNSA": "HOUSTNSA",  # Housing Starts (Not Seasonally Adjusted)
         "MORTGAGE30US": "MORTGAGE30US",  # 30-Year Fixed Mortgage Rate
-        "CSUSHPISA": "CSUSHPISA",  # Case-Shiller Home Price Index
         
         # Consumer Confidence & Sentiment
         "UMCSENT": "UMCSENT",  # University of Michigan Consumer Sentiment
@@ -136,33 +122,24 @@ class FredService:
         
         # Financial Conditions Index
         "NFCI": "NFCI",  # Chicago Fed National Financial Conditions Index
-        "ANFCI": "ANFCI",  # Adjusted National Financial Conditions Index
-        "STLFSI": "STLFSI",  # St. Louis Fed Financial Stress Index
         
         # Global Economic Linkages
         "DTWEXBGS": "DTWEXBGS",  # Trade Weighted U.S. Dollar Index: Broad, Goods
         
         # Regional Economic Activity
         "DPHILBSRMQ": "DPHILBSRMQ",  # Philadelphia Fed Business Conditions Index
-        "NYFEDBSRMQ": "NYFEDBSRMQ",  # NY Fed Empire State Manufacturing Index
         
         # Commodities
         "DCOILWTICO": "DCOILWTICO",  # WTI Crude Oil Price
         "DHHNGSP": "DHHNGSP",  # Natural Gas Price
         
-        # Government Finance
+        # Government Finance & Debt
         "FYFSGDA188S": "FYFSGDA188S",  # Federal Surplus or Deficit
         "GFDEBTN": "GFDEBTN",  # Federal Debt Total Public Debt
         "GFDEGDQ188S": "GFDEGDQ188S",  # Federal Debt as % of GDP
-        
-        # Credit & Banking Stress
-        "DRSFRMACBS": "DRSFRMACBS",  # Delinquency Rate on Credit Card Loans
-        "DRBLACBS": "DRBLACBS",  # Delinquency Rate on Business Loans
-        "TOTCI": "TOTCI",  # Total Credit to Private Non-Financial Sector
+        "NCBDBIQ027S": "NCBDBIQ027S",  # Nonfinancial Corporate Business; Total Debt Securities and Loans
         
         # Financial Stability Metrics
-        "MORTGAGE15US": "MORTGAGE15US",  # 15-Year Fixed Mortgage Rate
-        "AAA": "AAA",  # Moody's Seasoned Aaa Corporate Bond Yield
         "BAA": "BAA",  # Moody's Seasoned Baa Corporate Bond Yield
         "BAMLH0A0HYM2": "BAMLH0A0HYM2",  # ICE BofA High Yield Index Option-Adjusted Spread
     }
