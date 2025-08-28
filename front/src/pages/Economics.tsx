@@ -48,17 +48,38 @@ const INDICATOR_CATEGORIES = {
   inflationMonetary: {
     title: '인플레이션 & 통화정책',
     description: 'CPI, 인플레이션 기대, 연방기준금리, 수익률곡선',
-    indicators: ['CPIAUCSL', 'PCEPILFE', 'T5YIE', 'FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y']
+    indicators: [
+      'CPIAUCSL',
+      'PCEPILFE',
+      'T5YIE',
+      'FEDFUNDS',
+      'DGS10',
+      'DGS2',
+      'T10Y2Y'
+    ]
   },
   financialRisk: {
     title: '금융 & 시장위험',
     description: '금융상황지수, 회사채 스프레드, VIX, 소비자심리',
-    indicators: ['NFCI', 'BAMLH0A0HYM2', 'BAA', 'VIXCLS', 'UMCSENT', 'DPHILBSRMQ']
+    indicators: [
+      'NFCI',
+      'BAMLH0A0HYM2',
+      'BAA',
+      'VIXCLS',
+      'UMCSENT',
+      'DPHILBSRMQ'
+    ]
   },
   realEstateDebt: {
     title: '부동산 & 부채',
     description: '모기지금리, 주택가격, 정부부채, GDP 대비 부채, 기업부채',
-    indicators: ['MORTGAGE30US', 'NYUCSFRCONDOSMSAMID', 'GFDEBTN', 'GFDEGDQ188S', 'NCBDBIQ027S']
+    indicators: [
+      'MORTGAGE30US',
+      'NYUCSFRCONDOSMSAMID',
+      'GFDEBTN',
+      'GFDEGDQ188S',
+      'NCBDBIQ027S'
+    ]
   },
   fiscal: {
     title: '재정 & 글로벌',
@@ -230,7 +251,7 @@ export const Economics: React.FC = () => {
   // State management
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('10Y')
   const [selectedCategory, setSelectedCategory] =
-    useState<keyof typeof INDICATOR_CATEGORIES>('growth')
+    useState<keyof typeof INDICATOR_CATEGORIES>('growthEmployment')
   const [historicalData, setHistoricalData] =
     useState<HistoricalDataResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -307,23 +328,23 @@ export const Economics: React.FC = () => {
             </h4>
             <div className="text-xs sm:text-sm text-blue-800">
               <p>
-                <strong>1. 성장&고용:</strong> GDP, 산업생산, 실업률, 일자리로 
+                <strong>1. 성장&고용:</strong> GDP, 산업생산, 실업률, 일자리로
                 경제 성장과 고용상황 종합 분석
               </p>
               <p>
-                <strong>2. 인플레이션&통화정책:</strong> CPI, 인플레이션 기대치, 
+                <strong>2. 인플레이션&통화정책:</strong> CPI, 인플레이션 기대치,
                 연준금리, 수익률곡선으로 물가와 통화정책 방향 예측
               </p>
               <p>
-                <strong>3. 금융&시장위험:</strong> 금융상황지수, 회사채 스프레드, 
-                VIX, 소비자심리로 금융시스템 안정성과 시장 위험도 체크
+                <strong>3. 금융&시장위험:</strong> 금융상황지수, 회사채
+                스프레드, VIX, 소비자심리로 금융시스템 안정성과 시장 위험도 체크
               </p>
               <p>
-                <strong>4. 부동산&부채:</strong> 모기지금리, 주택가격, 정부부채, 
+                <strong>4. 부동산&부채:</strong> 모기지금리, 주택가격, 정부부채,
                 GDP 대비 부채비율로 부동산시장과 레버리지 위험 분석
               </p>
               <p>
-                <strong>5. 재정&글로벌:</strong> 재정수지, 달러지수, 30년 국채로 
+                <strong>5. 재정&글로벌:</strong> 재정수지, 달러지수, 30년 국채로
                 재정정책과 글로벌 거시경제 리스크 평가
               </p>
             </div>
