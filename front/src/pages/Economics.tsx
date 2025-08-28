@@ -21,6 +21,7 @@ import {
   CardTitle
 } from '../components/ui/card'
 import { Button } from '../components/ui/button'
+import { CategoryInsights } from '../components/economic/CategoryInsights'
 import { economicApi, economicUtils } from '../api'
 import { getKSTDate, newKSTDate } from '../lib/utils'
 import type {
@@ -261,6 +262,7 @@ export const Economics: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [showEvents, setShowEvents] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(getKSTDate())
+  const [showInsights, setShowInsights] = useState(true)
 
   // Load economic data
   const loadEconomicData = useCallback(async () => {
@@ -423,6 +425,17 @@ export const Economics: React.FC = () => {
               경제사건 {showEvents ? '켜짐' : '꺼짐'}
             </Button>
 
+            {/* AI Insights Toggle */}
+            <Button
+              variant={showInsights ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowInsights(!showInsights)}
+              className="w-full sm:w-auto"
+            >
+              <Info className="size-4 mr-2" />
+              AI 분석 {showInsights ? '켜짐' : '꺼짐'}
+            </Button>
+
             {/* Refresh Section */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
@@ -483,6 +496,21 @@ export const Economics: React.FC = () => {
             <p className="text-gray-600">경제 데이터를 불러오는 중...</p>
           </div>
         </motion.div>
+      )}
+
+      {/* AI Insights */}
+      {showInsights && (
+        <CategoryInsights
+          category={selectedCategory}
+          timeRange={selectedTimeRange}
+          startDate={economicUtils.getDateYearsAgo(
+            TIME_RANGES[selectedTimeRange].years
+          )}
+          endDate={getKSTDate().toISOString().split('T')[0]}
+          isVisible={showInsights && !isLoading && !error}
+          historicalData={historicalData}
+          onRetry={handleRefresh}
+        />
       )}
 
       {/* Data Display */}

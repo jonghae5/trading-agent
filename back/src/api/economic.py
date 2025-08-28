@@ -7,8 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 
 from src.core.security import User
 from src.schemas.common import ApiResponse
+from src.schemas.economic_analysis import EconomicAnalysisRequest, EconomicAnalysisResponse
 from src.services.fred_service import get_fred_service, FredService, FredAPIError
 from back.src.services.economic_service import get_economic_service, EconomicService, EventType, EventSeverity
+from src.services.economic_analysis_service import get_economic_analysis_service, EconomicAnalysisService, AnalysisCategory
 from src.models.base import get_kst_now
 
 router = APIRouter()
@@ -256,4 +258,107 @@ async def get_economic_events(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch economic events: {str(e)}"
+        )
+
+
+@router.post("/analyze", response_model=ApiResponse)
+async def analyze_economic_category(
+    request: EconomicAnalysisRequest,
+    # Public endpoint - no authentication required
+    analysis_service: EconomicAnalysisService = Depends(get_economic_analysis_service)
+):
+    """Analyze economic data for a specific category using LLM insights."""
+    try:
+        # Validate category
+        try:
+            category_enum = AnalysisCategory(request.category)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid category. Valid options: {[c.value for c in AnalysisCategory]}"
+            )
+        
+        # Parse dates
+        try:
+            parsed_start_date = datetime.fromisoformat(request.start_date)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid start_date format. Use YYYY-MM-DD"
+            )
+        
+        parsed_end_date = get_kst_now()
+        if request.end_date:
+            try:
+                parsed_end_date = datetime.fromisoformat(request.end_date)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid end_date format. Use YYYY-MM-DD"
+                )
+        
+        # Validate date range (max 50 years)
+        date_diff = parsed_end_date - parsed_start_date
+        if date_diff.days > 365 * 50:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Date range cannot exceed 50 years"
+            )
+        
+        if date_diff.days <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="End date must be after start date"
+            )
+        
+        # Perform analysis
+        logger.info(f"Starting analysis for category {request.category}, time range: {request.time_range}")
+        
+        analysis_result = await analysis_service.analyze_category_data(
+            category=category_enum,
+            time_range=request.time_range,
+            start_date=parsed_start_date,
+            end_date=parsed_end_date
+        )
+        
+        # Format response
+        response_data = EconomicAnalysisResponse(
+            category=analysis_result.category,
+            summary=analysis_result.summary,
+            key_insights=analysis_result.key_insights,
+            trend_analysis={
+                "direction": analysis_result.trend_analysis.direction,
+                "strength": analysis_result.trend_analysis.strength,
+                "confidence": analysis_result.trend_analysis.confidence,
+                "key_points": analysis_result.trend_analysis.key_points
+            },
+            risk_assessment={
+                "level": analysis_result.risk_assessment.level,
+                "factors": analysis_result.risk_assessment.factors,
+                "outlook": analysis_result.risk_assessment.outlook
+            },
+            recommendations=analysis_result.recommendations,
+            data_quality=analysis_result.data_quality,
+            analysis_timestamp=analysis_result.analysis_timestamp
+        )
+        
+        logger.info(f"Successfully completed analysis for category {request.category}")
+        
+        return ApiResponse(
+            success=True,
+            message=f"경제 데이터 분석이 완료되었습니다. 데이터 품질: {analysis_result.data_quality:.1%}",
+            data=response_data.model_dump()
+        )
+    
+    except FredAPIError as e:
+        logger.error(f"FRED API error during analysis: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Economic data service unavailable: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error analyzing economic category: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze economic data: {str(e)}"
         )

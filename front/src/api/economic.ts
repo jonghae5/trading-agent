@@ -89,6 +89,37 @@ export interface EconomicSummary {
   } | null
 }
 
+export interface TrendAnalysis {
+  direction: string
+  strength: string
+  confidence: number
+  key_points: string[]
+}
+
+export interface RiskAssessment {
+  level: string
+  factors: string[]
+  outlook: string
+}
+
+export interface EconomicAnalysisRequest {
+  category: string
+  time_range: string
+  start_date: string
+  end_date?: string
+}
+
+export interface EconomicAnalysisResponse {
+  category: string
+  summary: string
+  key_insights: string[]
+  trend_analysis: TrendAnalysis
+  risk_assessment: RiskAssessment
+  recommendations: string[]
+  data_quality: number
+  analysis_timestamp: string
+}
+
 // API endpoints
 export const economicApi = {
   /**
@@ -163,6 +194,19 @@ export const economicApi = {
       : '/api/v1/economic/events'
 
     const response = await apiClient.get<{ data: EconomicEventsResponse }>(url)
+    return response.data
+  },
+
+  /**
+   * Analyze economic data for a specific category using LLM
+   */
+  async analyzeCategory(
+    params: EconomicAnalysisRequest
+  ): Promise<EconomicAnalysisResponse> {
+    const response = await apiClient.post<{ data: EconomicAnalysisResponse }>(
+      '/api/v1/economic/analyze',
+      params
+    )
     return response.data
   }
 }
