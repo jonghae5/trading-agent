@@ -76,8 +76,8 @@ const INDICATOR_CATEGORIES = {
   },
   fiscal: {
     title: '재정 & 글로벌',
-    description: '재정수지, 달러지수, 30년 국채',
-    indicators: ['FYFSGDA188S', 'DTWEXBGS', 'DGS30']
+    description: '재정수지, 달러지수, 30년 국채, 유가, 무역수지',
+    indicators: ['FYFSGDA188S', 'DTWEXBGS', 'DGS30', 'DCOILWTICO', 'BOPGSTB']
   }
 } as const
 
@@ -192,12 +192,24 @@ const INDICATOR_INFO = {
     icon: '⚠️'
   },
 
-  // 글로벌 연결성 (연준)
+  // 글로벌 연결성 & 원자재
   DTWEXBGS: {
     name: '무역가중 달러지수',
     unit: '',
     color: '#8b5cf6',
     icon: '🌍'
+  },
+  DCOILWTICO: {
+    name: 'WTI 원유가격',
+    unit: '$/배럴',
+    color: '#dc2626',
+    icon: '🛢️'
+  },
+  BOPGSTB: {
+    name: '무역수지',
+    unit: '10억달러',
+    color: '#059669',
+    icon: '⚖️'
   }
 } as const
 
@@ -214,6 +226,9 @@ const formatValue = (value: number, unit: string): string => {
   }
   if (unit === '$/배럴' || unit === '$/온스') {
     return `$${value.toFixed(2)}`
+  }
+  if (unit === '10억달러') {
+    return `$${value.toFixed(1)}B`
   }
   // Manufacturing and production indices (typically around 100)
   if (unit === '' && value > 30 && value < 200) {
@@ -332,8 +347,8 @@ export const Economics: React.FC = () => {
                 GDP 대비 부채비율로 부동산시장과 레버리지 위험 분석
               </p>
               <p>
-                <strong>5. 재정&글로벌:</strong> 재정수지, 달러지수, 30년 국채로
-                재정정책과 글로벌 거시경제 리스크 평가
+                <strong>5. 재정&글로벌:</strong> 재정수지, 달러지수, 30년 국채,
+                유가, 무역수지로 재정정책과 글로벌 거시경제 리스크 평가
               </p>
             </div>
           </div>

@@ -300,5 +300,5 @@ export const IndicatorGroups = {
     'GFDEGDQ188S',
     'NCBDBIQ027S'
   ],
-  FISCAL_GLOBAL: ['FYFSGDA188S', 'DTWEXBGS', 'DGS30']
+  FISCAL_GLOBAL: ['FYFSGDA188S', 'DTWEXBGS', 'DGS30', 'DCOILWTICO', 'BOPGSTB']
 } as const

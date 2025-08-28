@@ -126,9 +126,9 @@ class FredService:
         # Global Economic Linkages
         "DTWEXBGS": "DTWEXBGS",  # Trade Weighted U.S. Dollar Index: Broad, Goods
         
-        # Commodities
+        # Commodities & Global Trade
         "DCOILWTICO": "DCOILWTICO",  # WTI Crude Oil Price
-        "DHHNGSP": "DHHNGSP",  # Natural Gas Price
+        "BOPGSTB": "BOPGSTB",  # Trade Balance: Goods and Services
         
         # Government Finance & Debt
         "FYFSGDA188S": "FYFSGDA188S",  # Federal Surplus or Deficit
