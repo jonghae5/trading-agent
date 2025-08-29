@@ -43,8 +43,8 @@ type TimeRange = keyof typeof TIME_RANGES
 const INDICATOR_CATEGORIES = {
   growthEmployment: {
     title: '성장 & 고용',
-    description: 'GDP, 산업생산, 실업률, 일자리',
-    indicators: ['GDP', 'INDPRO', 'TCU', 'UNRATE', 'PAYEMS', 'ICSA']
+    description: 'GDP, GDP 실질성장률, 산업생산, 실업률, 일자리',
+    indicators: ['GDP', 'A191RL1Q225SBEA', 'INDPRO', 'TCU', 'UNRATE', 'PAYEMS', 'ICSA']
   },
   inflationMonetary: {
     title: '인플레이션 & 통화정책',
@@ -86,6 +86,12 @@ const INDICATOR_CATEGORIES = {
 const INDICATOR_INFO = {
   // 성장 & 생산성
   GDP: { name: 'GDP (총생산)', unit: '조달러', color: '#10b981', icon: '📈' },
+  A191RL1Q225SBEA: {
+    name: 'GDP 실질성장률',
+    unit: '%',
+    color: '#059669',
+    icon: '📊'
+  },
   INDPRO: { name: '산업생산지수', unit: '', color: '#2563eb', icon: '🏭' },
   TCU: { name: '설비가동률', unit: '%', color: '#0891b2', icon: '⚙️' },
 

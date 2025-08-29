@@ -65,7 +65,7 @@ class EconomicAnalysisService:
     
     # Category-specific indicator mappings
     CATEGORY_INDICATORS = {
-        AnalysisCategory.GROWTH_EMPLOYMENT: ['GDP', 'INDPRO', 'TCU', 'UNRATE', 'PAYEMS', 'ICSA'],
+        AnalysisCategory.GROWTH_EMPLOYMENT: ['GDP', 'A191RL1Q225SBEA', 'INDPRO', 'TCU', 'UNRATE', 'PAYEMS', 'ICSA'],
         AnalysisCategory.INFLATION_MONETARY: ['CPIAUCSL', 'PCEPILFE', 'T5YIE', 'FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y'],
         AnalysisCategory.FINANCIAL_RISK: ['NFCI', 'BAMLH0A0HYM2', 'BAA', 'VIXCLS', 'UMCSENT'],
         AnalysisCategory.REALESTATE_DEBT: ['MORTGAGE30US', 'NYUCSFRCONDOSMSAMID', 'GFDEBTN', 'GFDEGDQ188S', 'NCBDBIQ027S'],
@@ -84,6 +84,7 @@ class EconomicAnalysisService:
         
         # 정방향 지표 (높을수록 좋음)
         'GDP': {'direction': 'normal', 'normal_range': (1.5, 4.0), 'alert_threshold': 0.5},
+        'A191RL1Q225SBEA': {'direction': 'normal', 'normal_range': (1.0, 4.0), 'alert_threshold': -1.0},
         'INDPRO': {'direction': 'normal', 'normal_range': (95, 110), 'alert_threshold': 85},
         'TCU': {'direction': 'normal', 'normal_range': (75, 85), 'alert_threshold': 70},
         'PAYEMS': {'direction': 'normal', 'normal_range': (100, 300), 'alert_threshold': 50},
@@ -118,6 +119,7 @@ class EconomicAnalysisService:
     # 지표명 한국어 매핑 (LLM 응답에서 사용)
     INDICATOR_KOREAN_NAMES = {
         'GDP': 'GDP(국내총생산)',
+        'A191RL1Q225SBEA': 'GDP 실질성장률',
         'INDPRO': '산업생산지수',
         'TCU': '설비가동률',
         'UNRATE': '실업률',
@@ -1006,7 +1008,7 @@ class EconomicAnalysisService:
     def _get_category_description(self, category: AnalysisCategory) -> str:
         """Get description for each category."""
         descriptions = {
-            AnalysisCategory.GROWTH_EMPLOYMENT: "성장 & 고용 지표 (GDP, 산업생산, 실업률, 일자리)",
+            AnalysisCategory.GROWTH_EMPLOYMENT: "성장 & 고용 지표 (GDP, GDP 실질성장률, 산업생산, 실업률, 일자리)",
             AnalysisCategory.INFLATION_MONETARY: "인플레이션 & 통화정책 지표 (CPI, 인플레이션 기대, 연방기준금리, 수익률곡선)",
             AnalysisCategory.FINANCIAL_RISK: "금융 & 시장위험 지표 (금융상황지수, 회사채 스프레드, VIX, 소비자심리)",
             AnalysisCategory.REALESTATE_DEBT: "부동산 & 부채 지표 (모기지금리, 주택가격, 정부부채, GDP 대비 부채비율)",
@@ -1087,10 +1089,12 @@ class EconomicAnalysisService:
         prompts = {
             AnalysisCategory.GROWTH_EMPLOYMENT: """
 특별 고려사항 - 최근 동향과 미래 영향 중심:
-- 최신 GDP 성장률 변화가 향후 고용시장에 미칠 파급효과 분석
+- 최신 GDP와 GDP 실질성장률 변화가 향후 고용시장에 미칠 파급효과 분석
+- GDP 실질성장률의 최근 추세가 경제 모멘텀과 향후 성장 지속성에 주는 신호 해석
 - 최근 실업률과 일자리 증가 트렌드가 소비와 경기회복에 미치는 영향
 - 산업생산지수 최신 변화가 향후 제조업과 실물경제에 주는 신호 해석
 - 최근 고용지표 개선/악화가 연준 정책과 인플레이션에 미칠 영향 예측
+- GDP 실질성장률과 고용지표 간의 상관관계를 통한 경제 전반적 건전성 평가
 """,
             AnalysisCategory.INFLATION_MONETARY: """
 특별 고려사항 - 최근 동향과 미래 영향 중심:
@@ -1435,6 +1439,12 @@ class EconomicAnalysisService:
             if unemployment:
                 trend_interp = unemployment.get('trend_interpretation', '')
                 insights.append(f"실업률 동향: {trend_interp}")
+            
+            gdp_growth = next((stats for ind, stats in data.items() if ind == 'A191RL1Q225SBEA' and isinstance(stats, dict)), None)
+            if gdp_growth:
+                trend_interp = gdp_growth.get('trend_interpretation', '')
+                latest_value = gdp_growth.get('latest_value', 0)
+                insights.append(f"GDP 실질성장률: {latest_value:.1f}%, {trend_interp}")
         
         elif category == AnalysisCategory.FINANCIAL_RISK:
             vix = next((stats for ind, stats in data.items() if ind == 'VIXCLS' and isinstance(stats, dict)), None)
@@ -1457,7 +1467,8 @@ class EconomicAnalysisService:
         # 카테고리별 맞춤 권고사항
         if category == AnalysisCategory.GROWTH_EMPLOYMENT:
             recommendations.extend([
-                "고용시장 동향과 GDP 성장률 변화를 주시하세요",
+                "고용시장 동향과 GDP 성장률 변화를 주시하세요", 
+                "GDP 실질성장률의 분기별 변화와 지속성을 면밀히 모니터링하세요",
                 "경기 선행지표들의 변화 패턴을 분석하세요"
             ])
         elif category == AnalysisCategory.INFLATION_MONETARY:

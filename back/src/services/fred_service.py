@@ -56,6 +56,7 @@ class FredService:
         # GDP & Growth
         "GDP": "GDP",  # Gross Domestic Product
         "GDPC1": "GDPC1",  # Real GDP
+        "A191RL1Q225SBEA": "A191RL1Q225SBEA",  # Real GDP Growth Rate (Quarter-over-Quarter, Annual Rate)
         "GDPDEF": "GDPDEF",  # GDP Deflator
         "NYGDPMKTPCDWLD": "NYGDPMKTPCDWLD",  # World GDP per capita
 

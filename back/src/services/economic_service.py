@@ -63,7 +63,7 @@ class EconomicService:
             color="#8B4513",
             icon="⛽",
             impact_duration_months=24,
-            related_indicators=["DCOILWTICO", "CPIAUCSL", "UNRATE", "NYUCSFRCONDOSMSAMID", "VIXCLS", "FEDFUNDS", "GDP", "INDPRO", "PAYEMS", "T5YIE", "T10YIE", "NFCI", "STLFSI"]
+            related_indicators=["DCOILWTICO", "CPIAUCSL", "UNRATE", "NYUCSFRCONDOSMSAMID", "VIXCLS", "FEDFUNDS", "GDP", "A191RL1Q225SBEA", "INDPRO", "PAYEMS", "T5YIE", "T10YIE", "NFCI", "STLFSI"]
         ),
         EconomicEvent(
             date=datetime(1979, 6, 1),
@@ -98,7 +98,7 @@ class EconomicService:
             color="#B22222",
             icon="📉",
             impact_duration_months=24,
-            related_indicators=["GDP", "UNRATE", "INDPRO", "FEDFUNDS", "PAYEMS", "JTSJOL", "JTSQUR", "VIXCLS", "NFCI"]
+            related_indicators=["GDP", "A191RL1Q225SBEA", "UNRATE", "INDPRO", "FEDFUNDS", "PAYEMS", "JTSJOL", "JTSQUR", "VIXCLS", "NFCI"]
         ),
         
         # 1987년 - 블랙 먼데이
@@ -124,7 +124,7 @@ class EconomicService:
             color="#8B0000",
             icon="⚔️",
             impact_duration_months=12,
-            related_indicators=["GDP", "UNRATE", "DCOILWTICO", "VIXCLS", "FEDFUNDS", "INDPRO", "NFCI"]
+            related_indicators=["GDP", "A191RL1Q225SBEA", "UNRATE", "DCOILWTICO", "VIXCLS", "FEDFUNDS", "INDPRO", "NFCI"]
         ),
         
         # 1997-1998년 - 아시아 외환위기
@@ -137,7 +137,7 @@ class EconomicService:
             color="#DC143C",
             icon="🌏",
             impact_duration_months=18,
-            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "DEXUSEU", "T10Y2Y", "GDP", "UNRATE", "NFCI", "STLFSI"]
+            related_indicators=["VIXCLS", "DGS10", "FEDFUNDS", "DEXUSEU", "T10Y2Y", "GDP", "A191RL1Q225SBEA", "UNRATE", "NFCI", "STLFSI"]
         ),
         
         # 2000년 - 닷컴 버블 붕괴
@@ -150,7 +150,7 @@ class EconomicService:
             color="#4B0082",
             icon="💻",
             impact_duration_months=24,
-            related_indicators=["VIXCLS", "UNRATE", "FEDFUNDS", "INDPRO", "GDP", "PAYEMS", "NFCI", "STLFSI"]
+            related_indicators=["VIXCLS", "UNRATE", "FEDFUNDS", "INDPRO", "GDP", "A191RL1Q225SBEA", "PAYEMS", "NFCI", "STLFSI"]
         ),
         
         # 2001년 - 9/11 테러
@@ -163,7 +163,7 @@ class EconomicService:
             color="#000000",
             icon="🏢",
             impact_duration_months=12,
-            related_indicators=["VIXCLS", "UNRATE", "GDP", "FEDFUNDS", "DGS10", "INDPRO", "NFCI", "STLFSI"]
+            related_indicators=["VIXCLS", "UNRATE", "GDP", "A191RL1Q225SBEA", "FEDFUNDS", "DGS10", "INDPRO", "NFCI", "STLFSI"]
         ),
         
         # 2007-2009년 - 글로벌 금융위기
@@ -188,7 +188,7 @@ class EconomicService:
             color="#8B0000",
             icon="🏦",
             impact_duration_months=36,
-            related_indicators=["VIXCLS", "UNRATE", "GDP", "FEDFUNDS", "NYUCSFRCONDOSMSAMID"],
+            related_indicators=["VIXCLS", "UNRATE", "GDP", "A191RL1Q225SBEA", "FEDFUNDS", "NYUCSFRCONDOSMSAMID"],
             priority=10  # 최고 우선순위
         ),
         EconomicEvent(
@@ -200,7 +200,7 @@ class EconomicService:
             color="#8B0000",
             icon="📉",
             impact_duration_months=30,
-            related_indicators=["GDP", "UNRATE", "PAYEMS", "INDPRO", "NYUCSFRCONDOSMSAMID"],
+            related_indicators=["GDP", "A191RL1Q225SBEA", "UNRATE", "PAYEMS", "INDPRO", "NYUCSFRCONDOSMSAMID"],
             priority=9
         ),
         
@@ -253,7 +253,7 @@ class EconomicService:
             color="#8B0000",
             icon="🦠",
             impact_duration_months=36,
-            related_indicators=["UNRATE", "GDP", "FEDFUNDS", "VIXCLS", "M2SL", "NYUCSFRCONDOSMSAMID"],
+            related_indicators=["UNRATE", "GDP", "A191RL1Q225SBEA", "FEDFUNDS", "VIXCLS", "M2SL", "NYUCSFRCONDOSMSAMID"],
             priority=10  # 최고 우선순위
         ),
         EconomicEvent(
