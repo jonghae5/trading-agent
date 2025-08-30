@@ -379,20 +379,6 @@ class PortfolioOptimizationService:
             
             efficient_portfolios = []
             
-               # 안전한 목표 수익률 설정 (최대값의 80% 또는 평균과 최대값의 중간값 중 작은 값)
-                    max_possible_return = float(mu.max()) * 0.8
-                    avg_return = float(mu.mean())
-                    conservative_target = min(avg_return * 1.05, max_possible_return, mu.quantile(0.7))
-                    
-                    try:
-                        weights = ef_frontier.efficient_return(conservative_target, market_neutral=False)
-                    except (OptimizationError, cp.error.SolverError):
-                        # 목표 수익률이 여전히 너무 높으면 더 보수적으로 설정
-                        fallback_target = min(avg_return, mu.quantile(0.5))
-                        weights = ef_frontier.efficient_return(fallback_target, market_neutral=False)
-                    
-                    optimization_ef = ef_frontier
-            
             for target_return in target_returns:
                 try:
                     # 새로운 EfficientFrontier 인스턴스 생성
