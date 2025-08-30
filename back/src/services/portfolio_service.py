@@ -331,9 +331,13 @@ class PortfolioOptimizationService:
             
             # 모든 방법에서 CAPM-EWMA 하이브리드 기대 수익률 사용 (CAPM 60% + EWMA 40%)
             try:
-                # 시장 벤치마크 데이터 가져오기 (SPY 사용)
+                # 시장 벤치마크 데이터 가져오기 (SPY 사용, 캐시 적용)
                 # price_data와 동일한 기간으로 SPY 벤치마크 데이터를 가져옴
-                market_data = yf.download("SPY", start=price_data.index.min(), end=price_data.index.max(), progress=False)['Close']
+                start_date = price_data.index.min().strftime('%Y-%m-%d')
+                end_date = price_data.index.max().strftime('%Y-%m-%d')
+                market_data = PortfolioOptimizationService._cached_spy_data(start_date, end_date)
+                if market_data is None:
+                    raise Exception("Failed to get SPY data")
                 market_data = market_data.reindex(price_data.index, method='ffill').dropna()
                 
                 # CAPM 기대수익률 계산
