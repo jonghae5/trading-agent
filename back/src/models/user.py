@@ -7,6 +7,7 @@ from .base import Base
 
 if TYPE_CHECKING:
     from .analysis import AnalysisSession
+    from .portfolio import Portfolio
 
 
 class User(Base):
@@ -24,6 +25,9 @@ class User(Base):
     
     analysis_sessions: Mapped[List["AnalysisSession"]] = relationship(
         "AnalysisSession", back_populates="user"
+    )
+    portfolios: Mapped[List["Portfolio"]] = relationship(
+        "Portfolio", back_populates="user"
     )
 
 

@@ -11,4 +11,5 @@ __all__ = [
     "AnalysisSession",
     "ReportSection",
     "AgentExecution",
+    "Portfolio",
 ]

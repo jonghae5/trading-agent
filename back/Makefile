@@ -22,7 +22,9 @@ clean:
 
 # Kill all python processes using lsof and kill
 killpy:
-	@echo "Killing all python and python3 processes using lsof and kill..."
-	- for pid in $(lsof -t -c python -c python3); do kill -9 $$pid; done
-	@echo "Killing all processes using port 8000..."
-	- for pid in $(lsof -t -i:8000); do kill -9 $$pid; done
+	@echo "모든 python, python3 프로세스를 ps aux로 찾아서 kill -9로 종료합니다..."
+	- ps aux | grep '[p]ython' | awk '{print $$2}' | xargs -r kill -9
+	@echo "8000번 포트를 사용 중인 프로세스를 ps aux로 찾아서 종료합니다..."
+	- ps aux | grep '8000' | grep -v grep | awk '{print $$2}' | xargs -r kill -9
+	@echo "uvicorn 프로세스도 ps aux로 찾아서 종료합니다..."
+	- ps aux | grep '[u]vicorn' | awk '{print $$2}' | xargs -r kill -9

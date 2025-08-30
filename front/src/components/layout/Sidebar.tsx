@@ -10,7 +10,8 @@ import {
   Shield,
   Activity,
   LogOut,
-  Newspaper
+  Newspaper,
+  PieChart
 } from 'lucide-react'
 
 import { useUIStore } from '../../stores/uiStore'
@@ -30,6 +31,12 @@ const navigation: NavigationItem[] = [
     href: '/analysis',
     icon: Brain,
     description: 'Run AI trading analysis'
+  },
+  {
+    name: '📊 포트폴리오',
+    href: '/portfolio',
+    icon: PieChart,
+    description: 'Portfolio optimization'
   },
   {
     name: '📚 히스토리',

@@ -1,0 +1,167 @@
+import { apiClient } from './client'
+
+export interface PortfolioOptimizeRequest {
+  tickers: string[]
+  optimization_method: 'max_sharpe' | 'min_volatility' | 'efficient_frontier'
+  risk_aversion?: number
+  investment_amount?: number
+}
+
+export interface EfficientFrontierPoint {
+  expected_return: number
+  volatility: number
+  sharpe_ratio: number
+}
+
+export interface IndividualAsset {
+  ticker: string
+  expected_return: number
+  volatility: number
+}
+
+export interface EfficientFrontierData {
+  frontier_points: EfficientFrontierPoint[]
+  max_sharpe_point: EfficientFrontierPoint | null
+  individual_assets: IndividualAsset[]
+  risk_free_rate: number
+}
+
+export interface OptimizationResult {
+  weights: Record<string, number>
+  expected_annual_return: number
+  annual_volatility: number
+  sharpe_ratio: number
+  discrete_allocation?: Record<string, number>
+  leftover_cash?: number
+  correlation_matrix?: Record<string, Record<string, number>>
+  efficient_frontier?: EfficientFrontierData
+}
+
+export interface SimulationDataPoint {
+  date: string
+  portfolio_value: number
+  daily_return: number
+  cumulative_return: number
+}
+
+export interface PortfolioOptimizeResponse {
+  optimization: OptimizationResult
+  simulation: SimulationDataPoint[]
+  tickers: string[]
+}
+
+export interface PortfolioResponse {
+  id: number
+  name: string
+  description?: string
+  tickers: string[]
+  weights: number[]
+  expected_return?: number
+  volatility?: number
+  sharpe_ratio?: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface PortfolioCreateRequest {
+  name: string
+  description?: string
+  tickers: string[]
+  optimization_method: string
+}
+
+export interface PortfolioSimulationResponse {
+  simulation: SimulationDataPoint[]
+  metrics: {
+    max_drawdown?: number
+    win_rate?: number
+    total_return?: number
+    annualized_return?: number
+  }
+  portfolio: PortfolioResponse
+}
+
+export interface DiscreteAllocationRequest {
+  tickers: string[]
+  weights: Record<string, number>
+  investment_amount: number
+}
+
+export interface DiscreteAllocationResponse {
+  allocation: Record<string, number>
+  leftover_cash: number
+  invested_amount: number
+  total_portfolio_value: number
+  latest_prices: Record<string, number>
+}
+
+// Generic API response wrapper
+type ApiResponse<T> = {
+  success: boolean
+  data: T
+  message?: string
+}
+
+export const portfolioApi = {
+  /**
+   * 포트폴리오 최적화 수행
+   */
+  async optimize(
+    request: PortfolioOptimizeRequest
+  ): Promise<PortfolioOptimizeResponse> {
+    const response: ApiResponse<PortfolioOptimizeResponse> =
+      await apiClient.post('/api/v1/portfolio/optimize', request)
+    if (!response.success)
+      throw new Error(response.message || '포트폴리오 최적화 실패')
+    return response.data
+  },
+
+  /**
+   * 포트폴리오 생성 및 저장
+   */
+  async create(portfolio: PortfolioCreateRequest): Promise<PortfolioResponse> {
+    const response: ApiResponse<PortfolioResponse> = await apiClient.post(
+      '/api/v1/portfolio',
+      portfolio
+    )
+    if (!response.success)
+      throw new Error(response.message || '포트폴리오 생성 실패')
+    return response.data
+  },
+
+  /**
+   * 사용자 포트폴리오 목록 조회
+   */
+  async getUserPortfolios(): Promise<PortfolioResponse[]> {
+    const response: ApiResponse<PortfolioResponse[]> =
+      await apiClient.get('/api/v1/portfolio')
+    if (!response.success)
+      throw new Error(response.message || '포트폴리오 목록 조회 실패')
+    return response.data
+  },
+
+  /**
+   * 특정 포트폴리오 조회
+   */
+  async getPortfolio(portfolioId: number): Promise<PortfolioResponse> {
+    const response: ApiResponse<PortfolioResponse> = await apiClient.get(
+      `/api/v1/portfolio/${portfolioId}`
+    )
+    if (!response.success)
+      throw new Error(response.message || '포트폴리오 조회 실패')
+    return response.data
+  },
+
+  /**
+   * 포트폴리오 삭제
+   */
+  async deletePortfolio(portfolioId: number): Promise<{ message: string }> {
+    const response: ApiResponse<{ message: string }> = await apiClient.delete(
+      `/api/v1/portfolio/${portfolioId}`
+    )
+    if (!response.success)
+      throw new Error(response.message || '포트폴리오 삭제 실패')
+    return response.data
+  }
+}

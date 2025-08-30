@@ -119,7 +119,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
     // if (!value.trim() && showPopularStocks && popularStocks.length > 0) {
     //   setResults(popularStocks.slice(0, 8))
     // }
-    if (!value.trim()) {
+    if (!value || !value.trim()) {
       setResults([])
     }
   }, [value])
@@ -359,7 +359,7 @@ export const StockAutocomplete: React.FC<StockAutocompleteProps> = ({
                   ))}
                 </div>
               </>
-            ) : value.trim() && !loading ? (
+            ) : value && value.trim() && !loading ? (
               <div className="px-4 py-8 text-center text-gray-500">
                 <Search className="size-8 text-gray-300 mx-auto mb-2" />
                 <p className="text-sm">No stocks found for "{value}"</p>

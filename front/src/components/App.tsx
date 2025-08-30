@@ -4,8 +4,8 @@ import { DashboardLayout } from './layout/DashboardLayout'
 import { ProtectedRoute } from './ProtectedRoute'
 import { Login } from '../pages/Login'
 import { Analysis } from '../pages/Analysis'
+import { Portfolio } from '../pages/Portfolio'
 import { History } from '../pages/History'
-
 import { Economics } from '../pages/Economics'
 import { News } from '../pages/News'
 import { useAuthStore } from '../stores/authStore'
@@ -46,12 +46,20 @@ function App() {
           {/* Default route redirects to AI Analysis */}
           <Route index element={<Navigate to="/analysis" replace />} />
 
-          {/* Main 4 tabs matching streamlit structure */}
+          {/* Main tabs */}
           <Route
             path="analysis"
             element={
               <ProtectedRoute>
                 <Analysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="portfolio"
+            element={
+              <ProtectedRoute>
+                <Portfolio />
               </ProtectedRoute>
             }
           />
