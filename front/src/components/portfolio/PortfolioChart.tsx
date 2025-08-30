@@ -1,31 +1,34 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Area,
-  AreaChart
+  ReferenceLine,
+  ComposedChart,
+  Legend
 } from 'recharts'
-import { TrendingUp, TrendingDown, Calendar } from 'lucide-react'
+import { TrendingUp, Calendar } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
-import { SimulationDataPoint } from '../../api/portfolio'
+import { SimulationDataPoint, EconomicEvent } from '../../api/portfolio'
 
 interface PortfolioChartProps {
   simulation: SimulationDataPoint[]
+  economicEvents?: EconomicEvent[]
 }
 
 export const PortfolioChart: React.FC<PortfolioChartProps> = ({
-  simulation
+  simulation,
+  economicEvents = []
 }) => {
-  // 차트 데이터 준비
+  // 차트 데이터 준비 - 경제 이벤트 포인트 추가
   const chartData = simulation.map((point) => ({
     ...point,
-    date: new Date(point.date).toLocaleDateString('ko-KR', {
+    date: point.date, // YYYY-MM-DD 형식 그대로 사용
+    displayDate: new Date(point.date).toLocaleDateString('ko-KR', {
       year: '2-digit',
       month: 'short'
     }),
@@ -56,43 +59,108 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
     dailyReturns.length
   const annualVolatility = Math.sqrt(variance * 252) * 100
 
+  // 시뮬레이션 기간 내의 경제 이벤트 필터링
+  const relevantEvents = economicEvents.filter((event) => {
+    const eventDate = new Date(event.date)
+    const startDate = new Date(simulation[0]?.date)
+    const endDate = new Date(simulation[simulation.length - 1]?.date)
+    return eventDate >= startDate && eventDate <= endDate
+  })
+
+  // 차트에 표시할 이벤트 (최대 5개, 우선순위 높은 순)
+  const displayEvents = relevantEvents
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 5)
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
+
+      // 경제 이벤트 포인트인 경우
+      if (data.isEvent && data.event) {
+        const event = data.event
+        return (
+          <div className="bg-white p-4 border rounded-lg shadow-lg max-w-xs">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">{event.icon}</span>
+              <div className="font-semibold text-gray-900">{event.title}</div>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="text-gray-600 leading-relaxed">
+                {event.description}
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <span
+                  className={`text-xs px-2 py-1 rounded ${
+                    event.severity === 'critical'
+                      ? 'bg-red-100 text-red-700'
+                      : event.severity === 'high'
+                        ? 'bg-orange-100 text-orange-700'
+                        : event.severity === 'medium'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {event.severity === 'critical'
+                    ? '매우 중요'
+                    : event.severity === 'high'
+                      ? '중요'
+                      : event.severity === 'medium'
+                        ? '보통'
+                        : '낮음'}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {new Date(event.detail_date).toLocaleDateString('ko-KR')}
+                </span>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      // 일반 포트폴리오 데이터 포인트인 경우
       return (
         <div className="bg-white p-3 border rounded-lg shadow-lg">
           <div className="font-semibold text-gray-900 mb-2">
-            {data.fullDate}
+            {data.fullDate || data.date}
           </div>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between gap-4">
               <span className="text-gray-600">포트폴리오 가치:</span>
               <span className="font-semibold">
-                ${data.portfolioValueFormatted}
+                $
+                {data.portfolioValueFormatted ||
+                  data.portfolio_value?.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-gray-600">누적 수익률:</span>
               <span
                 className={`font-semibold ${
-                  data.cumulative_return >= 0
+                  (data.cumulative_return || 0) >= 0
                     ? 'text-green-600'
                     : 'text-red-600'
                 }`}
               >
-                {data.cumulativeReturnPercent.toFixed(2)}%
+                {(
+                  data.cumulativeReturnPercent ||
+                  (data.cumulative_return || 0) * 100
+                ).toFixed(2)}
+                %
               </span>
             </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-600">일일 수익률:</span>
-              <span
-                className={`font-semibold ${
-                  data.daily_return >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}
-              >
-                {(data.daily_return * 100).toFixed(2)}%
-              </span>
-            </div>
+            {data.daily_return && (
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-600">일일 수익률:</span>
+                <span
+                  className={`font-semibold ${
+                    data.daily_return >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}
+                >
+                  {(data.daily_return * 100).toFixed(2)}%
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )
@@ -170,15 +238,61 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
           <CardContent>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
+                <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="date" fontSize={12} tick={{ fontSize: 11 }} />
+                  <XAxis
+                    dataKey="date"
+                    fontSize={12}
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(value) => {
+                      const date = new Date(value)
+                      return date.toLocaleDateString('ko-KR', {
+                        year: '2-digit',
+                        month: 'short'
+                      })
+                    }}
+                  />
                   <YAxis
                     fontSize={12}
                     tickFormatter={(value) => `${value.toFixed(0)}%`}
                     tick={{ fontSize: 11 }}
                   />
                   <Tooltip content={<CustomTooltip />} />
+
+                  <Legend
+                    content={() => {
+                      return (
+                        <div className="flex flex-wrap items-center justify-center gap-2 mt-2 sm:gap-1 sm:mt-1">
+                          <div className="flex items-center gap-1 sm:gap-0.5">
+                            <div className="w-3 h-0.5 bg-emerald-500 sm:w-2 sm:h-0.5"></div>
+                            <span className="text-xs text-gray-600 sm:text-[10px]">
+                              포트폴리오 수익률
+                            </span>
+                          </div>
+                          {displayEvents.map((event, index) => (
+                            <div
+                              key={`legend-${event.title}-${index}`}
+                              className="flex items-center gap-1 sm:gap-0.5"
+                            >
+                              <div
+                                className="w-3 h-0.5 sm:w-2 sm:h-0.5"
+                                style={{
+                                  backgroundColor: event.color,
+                                  borderStyle: 'dashed',
+                                  borderWidth: '1px 0',
+                                  borderColor: event.color,
+                                  height: '2px'
+                                }}
+                              ></div>
+                              <span className="text-xs text-gray-600 sm:text-[10px]">
+                                {event.icon} {event.title}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="cumulativeReturnPercent"
@@ -195,7 +309,22 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                     strokeDasharray="5 5"
                     dot={false}
                   />
-                </LineChart>
+
+                  {/* 경제 이벤트 마커 */}
+                  {displayEvents.map((event, index) => {
+                    const eventDate = new Date(event.date)
+                    const chartDateStr = eventDate.toISOString().split('T')[0] // YYYY-MM-DD 형식
+                    return (
+                      <ReferenceLine
+                        key={`${event.title}-${index}`}
+                        x={chartDateStr}
+                        stroke={event.color}
+                        strokeWidth={2}
+                        strokeDasharray="8 4"
+                      />
+                    )
+                  })}
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </CardContent>

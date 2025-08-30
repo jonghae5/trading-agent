@@ -62,7 +62,7 @@ class PortfolioOptimizationService:
             
             tickers_size = len(price_data.columns)
             if tickers_size <= 3:
-                max_position_size = (100 // tickers_size) + 1
+                max_position_size = ((100 // tickers_size) + 1) / 100
 
             # 실제 거래일 수 계산
             trading_days = len(price_data)

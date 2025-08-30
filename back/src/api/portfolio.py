@@ -8,12 +8,13 @@ from ..models.portfolio import Portfolio
 from ..schemas.portfolio import (
     PortfolioCreate, PortfolioOptimizeRequest, PortfolioOptimizeResponse,
     PortfolioResponse,  OptimizationResult,
-    SimulationDataPoint
+    SimulationDataPoint, EconomicEvent
 )
 from ..schemas.common import ApiResponse
 from ..services.portfolio_service import PortfolioOptimizationService
+from src.services.economic_service import get_economic_service, EconomicService
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["portfolio"])
@@ -22,7 +23,8 @@ router = APIRouter(tags=["portfolio"])
 @router.post("/optimize", response_model=ApiResponse[PortfolioOptimizeResponse])
 async def optimize_portfolio(
     request: PortfolioOptimizeRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    economic_service: EconomicService = Depends(get_economic_service)
 ):
     """포트폴리오 최적화"""
     try:
@@ -85,10 +87,22 @@ async def optimize_portfolio(
             for _, row in simulation_data.tail(252).iterrows()  # 최근 1년
         ]
         
+        # 시뮬레이션 기간의 경제 이벤트 가져오기
+        economic_events = []
+        if simulation:
+            start_date = datetime.fromisoformat(simulation[0].date)
+            end_date = datetime.fromisoformat(simulation[-1].date)
+            
+            events_data = economic_service.get_events_in_date_range(start_date, end_date)
+            economic_events = [
+                EconomicEvent(**event_data) for event_data in events_data
+            ]
+        
         response = PortfolioOptimizeResponse(
             optimization=optimization,
             simulation=simulation,
-            tickers=valid_tickers
+            tickers=valid_tickers,
+            economic_events=economic_events
         )
         
         logger.info(f"Portfolio optimization completed for user {current_user.username}")

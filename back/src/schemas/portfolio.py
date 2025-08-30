@@ -75,10 +75,25 @@ class SimulationDataPoint(BaseModel):
     cumulative_return: float
 
 
+class EconomicEvent(BaseModel):
+    date: str
+    detail_date: str
+    title: str
+    description: str
+    type: str
+    severity: str
+    color: str
+    icon: str
+    impact_duration_months: Optional[int] = None
+    related_indicators: List[str] = []
+    priority: int = 5
+
+
 class PortfolioOptimizeResponse(BaseModel):
     optimization: OptimizationResult
     simulation: List[SimulationDataPoint]
     tickers: List[str]
+    economic_events: Optional[List[EconomicEvent]] = []
 
 
 class PortfolioResponse(BaseModel):

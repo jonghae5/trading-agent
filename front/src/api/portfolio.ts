@@ -68,10 +68,25 @@ export interface SimulationDataPoint {
   cumulative_return: number
 }
 
+export interface EconomicEvent {
+  date: string
+  detail_date: string
+  title: string
+  description: string
+  type: string
+  severity: string
+  color: string
+  icon: string
+  impact_duration_months?: number
+  related_indicators: string[]
+  priority: number
+}
+
 export interface PortfolioOptimizeResponse {
   optimization: OptimizationResult
   simulation: SimulationDataPoint[]
   tickers: string[]
+  economic_events?: EconomicEvent[]
 }
 
 export interface PortfolioResponse {

@@ -365,7 +365,10 @@ export const Portfolio: React.FC = () => {
 
           {/* 수익률 타임라인 차트 */}
           {optimizationResult.simulation.length > 0 && (
-            <PortfolioChart simulation={optimizationResult.simulation} />
+            <PortfolioChart 
+              simulation={optimizationResult.simulation} 
+              economicEvents={optimizationResult.economic_events}
+            />
           )}
 
           {/* 효율적 프론티어 */}
