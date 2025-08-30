@@ -9,7 +9,7 @@ export * from './economic'
 export * from './history'
 export * from './news'
 export * from './stocks'
-export * from './portfolio'
+
 // Re-export commonly used types and utilities
 export { apiClient, ApiError, handleApiResponse } from './client'
 export { authApi } from './auth'

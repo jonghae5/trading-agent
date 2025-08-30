@@ -13,7 +13,8 @@ import {
 } from 'recharts'
 import { TrendingUp, Calendar } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
-import { SimulationDataPoint, EconomicEvent } from '../../api/portfolio'
+import { SimulationDataPoint } from '../../api/portfolio'
+import { EconomicEvent } from '../../api/economic'
 
 interface PortfolioChartProps {
   simulation: SimulationDataPoint[]
