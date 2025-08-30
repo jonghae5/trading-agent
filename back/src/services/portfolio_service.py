@@ -8,6 +8,9 @@ import cvxpy as cp
 from scipy.optimize import minimize
 from typing import List, Dict
 import logging
+from functools import lru_cache
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -286,7 +289,8 @@ class PortfolioOptimizationService:
             # 모든 방법에서 CAPM-EWMA 하이브리드 기대 수익률 사용 (CAPM 60% + EWMA 40%)
             try:
                 # 시장 벤치마크 데이터 가져오기 (SPY 사용)
-                market_data = yf.download("SPY", period="1y", progress=False)['Close']
+                # price_data와 동일한 기간으로 SPY 벤치마크 데이터를 가져옴
+                market_data = yf.download("SPY", start=price_data.index.min(), end=price_data.index.max(), progress=False)['Close']
                 market_data = market_data.reindex(price_data.index, method='ffill').dropna()
                 
                 # CAPM 기대수익률 계산

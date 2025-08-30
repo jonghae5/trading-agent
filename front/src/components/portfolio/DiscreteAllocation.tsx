@@ -82,11 +82,11 @@ export const DiscreteAllocation: React.FC<DiscreteAllocationProps> = ({
               <PieChart className="size-4" />
               종목별 매수 주식 수
             </h4>
-            <div className="space-y-2">
+            <div className="gap-2 grid grid-cols-1 md:grid-cols-2">
               {Object.entries(allocation).map(([ticker, shares]) => {
                 const targetWeight = weights[ticker] || 0
-                const actualWeight =
-                  ((targetWeight * investedAmount) / investmentAmount) * 100
+                const investmentAmount = targetWeight * 100000 // 해당 종목에 투자되는 금액
+                const pricePerShare = shares > 0 ? investmentAmount / shares : 0 // 1주당 가격 계산
 
                 return (
                   <div
@@ -94,17 +94,22 @@ export const DiscreteAllocation: React.FC<DiscreteAllocationProps> = ({
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                   >
                     <div className="flex-1">
-                      <div className="font-medium">{ticker}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-lg">{ticker}</span>
+                        <span className="text-sm text-gray-600">
+                          ({formatCurrency(pricePerShare)}/주)
+                        </span>
+                      </div>
                       <div className="text-sm text-gray-600">
                         {formatShares(shares)} 주 매수
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium">
-                        {actualWeight.toFixed(1)}%
+                      <div className="font-medium text-lg">
+                        {formatCurrency(investmentAmount)}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {formatShares(shares)} 주
+                        {(targetWeight * 100).toFixed(1)}% 비중
                       </div>
                     </div>
                   </div>
@@ -113,25 +118,19 @@ export const DiscreteAllocation: React.FC<DiscreteAllocationProps> = ({
             </div>
           </div>
 
-          {/* 매수 가이드 */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h5 className="font-medium mb-2 flex items-center gap-2">
-              <DollarSign className="size-4" />
-              매수 가이드
-            </h5>
-            <div className="text-sm space-y-1">
-              {Object.entries(allocation).map(([ticker, shares]) => (
-                <p key={ticker}>
-                  <span className="font-medium">{ticker}</span>:{' '}
-                  {formatShares(shares)} 주 매수
-                </p>
-              ))}
-              <p className="text-gray-600 mt-2">
+          {/* 잔여 현금 안내 */}
+          {leftoverCash > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <h5 className="font-medium mb-1 flex items-center gap-2 text-amber-800">
+                <DollarSign className="size-4" />
+                잔여 현금
+              </h5>
+              <p className="text-sm text-amber-700">
                 잔여 현금 {formatCurrency(leftoverCash)}는 현금으로 보유하거나
                 추가 투자 기회를 위해 보관하세요.
               </p>
             </div>
-          </div>
+          )}
         </motion.div>
       </CardContent>
     </Card>

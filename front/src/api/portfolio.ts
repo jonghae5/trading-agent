@@ -1,18 +1,6 @@
 import { apiClient } from './client'
 import { EconomicEvent } from './economic'
 
-export interface PortfolioOptimizeRequest {
-  tickers: string[]
-  optimization_method:
-    | 'max_sharpe'
-    | 'min_volatility'
-    | 'efficient_frontier'
-    | 'risk_parity'
-  investment_amount?: number
-  transaction_cost?: number
-  max_position_size?: number
-}
-
 export interface EfficientFrontierPoint {
   expected_return: number
   volatility: number
@@ -79,13 +67,6 @@ export interface SimulationDataPoint {
   portfolio_value: number
   daily_return: number
   cumulative_return: number
-}
-
-export interface PortfolioOptimizeResponse {
-  optimization: OptimizationResult
-  simulation: SimulationDataPoint[]
-  tickers: string[]
-  economic_events?: EconomicEvent[]
 }
 
 export interface PortfolioResponse {
@@ -177,19 +158,6 @@ type ApiResponse<T> = {
 }
 
 export const portfolioApi = {
-  /**
-   * 포트폴리오 최적화 수행
-   */
-  async optimize(
-    request: PortfolioOptimizeRequest
-  ): Promise<PortfolioOptimizeResponse> {
-    const response: ApiResponse<PortfolioOptimizeResponse> =
-      await apiClient.post('/api/v1/portfolio/optimize', request)
-    if (!response.success)
-      throw new Error(response.message || '포트폴리오 최적화 실패')
-    return response.data
-  },
-
   /**
    * 포트폴리오 생성 및 저장
    */

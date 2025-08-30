@@ -29,7 +29,6 @@ import { ConfirmDialog } from '../components/ui/dialog'
 import { StockAutocomplete } from '../components/ui/stock-autocomplete'
 import {
   portfolioApi,
-  PortfolioOptimizeResponse,
   PortfolioResponse,
   BacktestRequest,
   BacktestResponse
@@ -68,9 +67,7 @@ export const Portfolio: React.FC = () => {
     useState<OptimizationMethod>('max_sharpe')
   const [searchValue, setSearchValue] = useState('')
 
-  // 최적화 및 백테스트 결과
-  const [optimizationResult, setOptimizationResult] =
-    useState<PortfolioOptimizeResponse | null>(null)
+  // 백테스트 결과
   const [backtestResult, setBacktestResult] = useState<BacktestResponse | null>(
     null
   )
@@ -158,7 +155,6 @@ export const Portfolio: React.FC = () => {
       const result = await portfolioApi.backtestWalkForward(backtestRequest)
 
       setBacktestResult(result)
-      setOptimizationResult(null) // 최적화 결과 초기화
       toast.success('Walk-Forward Analysis 백테스팅이 완료되었습니다!')
     } catch (error: any) {
       console.error('백테스팅 실패:', error)
@@ -175,9 +171,9 @@ export const Portfolio: React.FC = () => {
       return
     }
 
-    // 최적화 결과 또는 백테스트 결과 중 하나는 있어야 함
-    if (!optimizationResult && !backtestResult) {
-      toast.error('저장할 포트폴리오 결과가 없습니다.')
+    // Walk-Forward 백테스트 결과가 있어야 저장 가능
+    if (!backtestResult || !backtestResult.results?.final_weights) {
+      toast.error('Walk-Forward Analysis 백테스트를 먼저 실행해주세요.')
       return
     }
 
@@ -186,7 +182,7 @@ export const Portfolio: React.FC = () => {
       await portfolioApi.create({
         name: portfolioName.trim(),
         description: portfolioDescription.trim() || undefined,
-        tickers: selectedTickers,
+        tickers: backtestResult.tickers, // 백테스트에서 검증된 종목 사용
         optimization_method: optimizationMethod
       })
 
@@ -233,27 +229,10 @@ export const Portfolio: React.FC = () => {
     setSelectedTickers(portfolio.tickers)
     setOptimizationMethod(portfolio.optimization_method as OptimizationMethod)
 
-    // 기존 최적화 결과 재생성
-    const weights = portfolio.tickers.reduce(
-      (acc, ticker, index) => {
-        acc[ticker] = portfolio.weights[index]
-        return acc
-      },
-      {} as Record<string, number>
-    )
+    // 백테스트 결과 초기화 (새로운 백테스트 실행 필요)
+    setBacktestResult(null)
 
-    setOptimizationResult({
-      optimization: {
-        weights,
-        expected_annual_return: portfolio.expected_return || 0,
-        annual_volatility: portfolio.volatility || 0,
-        sharpe_ratio: portfolio.sharpe_ratio || 0
-      },
-      simulation: [], // 시뮬레이션은 다시 실행해야 함
-      tickers: portfolio.tickers
-    })
-
-    toast.success(`"${portfolio.name}" 포트폴리오를 불러왔습니다.`)
+    toast.success(`"${portfolio.name}" 포트폴리오를 불러왔습니다. 백테스트를 다시 실행해주세요.`)
   }
 
   const optimizationMethods = [
