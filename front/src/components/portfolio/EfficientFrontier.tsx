@@ -1,5 +1,5 @@
 import React from 'react'
-import { TrendingUp, Target, Zap } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -90,24 +90,25 @@ export const EfficientFrontier: React.FC<EfficientFrontierProps> = ({
   ]
 
   // CAL (Capital Allocation Line) 데이터 계산
+  // CAL: y = rf + [(E[R*] - rf)/σ*] * x
   const calData = efficientFrontier.max_sharpe_point
-    ? [
-        {
-          volatility: 0,
-          expected_return: efficientFrontier.risk_free_rate * 100
-        },
-        {
-          volatility: efficientFrontier.max_sharpe_point.volatility * 100,
-          expected_return:
-            efficientFrontier.max_sharpe_point.expected_return * 100
-        },
-        {
-          volatility: efficientFrontier.max_sharpe_point.volatility * 200,
-          expected_return:
-            efficientFrontier.max_sharpe_point.expected_return * 200 -
-            efficientFrontier.risk_free_rate * 100
+    ? (() => {
+        const rf = efficientFrontier.risk_free_rate * 100
+        const er = efficientFrontier.max_sharpe_point.expected_return * 100
+        const sigma = efficientFrontier.max_sharpe_point.volatility * 100
+        const slope = sigma !== 0 ? (er - rf) / sigma : 0
+
+        // x: 0 ~ 1.5 * sigma
+        const points = []
+        for (let i = 0; i <= 3; i++) {
+          const x = (sigma * i) / 2 // 0, 0.5σ, 1.0σ, 1.5σ
+          points.push({
+            volatility: x,
+            expected_return: rf + slope * x
+          })
         }
-      ]
+        return points
+      })()
     : []
 
   // 커스텀 툴팁
@@ -387,41 +388,6 @@ export const EfficientFrontier: React.FC<EfficientFrontierProps> = ({
               )}
             </ComposedChart>
           </ResponsiveContainer>
-        </div>
-
-        {/* 범례 및 설명 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-4 h-1 bg-blue-500"></div>
-              <span className="font-medium text-blue-800">효율적 프론티어</span>
-            </div>
-            <p className="text-sm text-blue-700">
-              동일한 위험 수준에서 최대 수익률을 제공하는 포트폴리오들의 집합
-            </p>
-          </div>
-
-          <div className="bg-red-50 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="size-4 text-red-600" />
-              <span className="font-medium text-red-800">최적 포트폴리오</span>
-            </div>
-            <p className="text-sm text-red-700">
-              샤프 비율이 최대인 포트폴리오 (위험 대비 수익률 최적화)
-            </p>
-          </div>
-
-          <div className="bg-purple-50 p-3 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="size-4 text-purple-600" />
-              <span className="font-medium text-purple-800">
-                현재 포트폴리오
-              </span>
-            </div>
-            <p className="text-sm text-purple-700">
-              선택한 최적화 방법으로 구성된 현재 포트폴리오
-            </p>
-          </div>
         </div>
 
         {/* 추가 정보 */}

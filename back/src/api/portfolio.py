@@ -39,12 +39,14 @@ async def optimize_portfolio(
         # 주가 데이터 가져오기
         price_data = await PortfolioOptimizationService.fetch_price_data(valid_tickers)
         
-        # 포트폴리오 최적화
+        # 포트폴리오 최적화 (고급 파라미터 포함)
         optimization_result = PortfolioOptimizationService.optimize_portfolio(
             price_data, 
             method=request.optimization_method,
             risk_aversion=request.risk_aversion,
-            investment_amount=request.investment_amount or 10000
+            investment_amount=request.investment_amount or 100000,
+            transaction_cost=getattr(request, 'transaction_cost', 0.001),
+            max_position_size=getattr(request, 'max_position_size', 0.30)
         )
         
         # 포트폴리오 시뮬레이션
@@ -53,18 +55,24 @@ async def optimize_portfolio(
             optimization_result["weights"]
         )
         
-        # 응답 데이터 구성
+        # 응답 데이터 구성 (고급 지표 포함)
         optimization = OptimizationResult(
             weights=optimization_result["weights"],
             expected_annual_return=optimization_result["expected_annual_return"],
             annual_volatility=optimization_result["annual_volatility"],
             sharpe_ratio=optimization_result["sharpe_ratio"],
+            sortino_ratio=optimization_result.get("sortino_ratio"),
+            max_drawdown=optimization_result.get("max_drawdown"),
+            calmar_ratio=optimization_result.get("calmar_ratio"),
             value_at_risk_95=optimization_result.get("value_at_risk_95"),
             raw_weights=optimization_result.get("raw_weights"),
             discrete_allocation=optimization_result.get("discrete_allocation"),
             leftover_cash=optimization_result.get("leftover_cash"),
             correlation_matrix=optimization_result.get("correlation_matrix"),
-            efficient_frontier=optimization_result.get("efficient_frontier")
+            efficient_frontier=optimization_result.get("efficient_frontier"),
+            stress_scenarios=optimization_result.get("stress_scenarios"),
+            transaction_cost_impact=optimization_result.get("transaction_cost_impact"),
+            concentration_limit=optimization_result.get("concentration_limit")
         )
         
         simulation = [
@@ -132,7 +140,7 @@ async def create_portfolio(
             for ticker in valid_tickers
         ]
         
-        # DB에 저장
+        # DB에 저장 (고급 지표 포함)
         db_portfolio = Portfolio(
             user_id=current_user.id,
             name=portfolio.name,
@@ -142,7 +150,15 @@ async def create_portfolio(
             optimization_method=portfolio.optimization_method,
             expected_return=optimization_result["expected_annual_return"],
             volatility=optimization_result["annual_volatility"],
-            sharpe_ratio=optimization_result["sharpe_ratio"]
+            sharpe_ratio=optimization_result["sharpe_ratio"],
+            sortino_ratio=optimization_result.get("sortino_ratio"),
+            max_drawdown=optimization_result.get("max_drawdown"),
+            calmar_ratio=optimization_result.get("calmar_ratio"),
+            value_at_risk_95=optimization_result.get("value_at_risk_95"),
+            transaction_cost=optimization_result.get("transaction_cost_impact", 0.1) / 100,
+            max_position_size=optimization_result.get("concentration_limit", 30.0) / 100,
+            stress_scenarios=optimization_result.get("stress_scenarios"),
+            correlation_matrix=optimization_result.get("correlation_matrix")
         )
         
         db.add(db_portfolio)
@@ -254,7 +270,8 @@ async def delete_portfolio(
         
         # 소프트 삭제
         portfolio.is_active = False
-        portfolio.updated_at = datetime.utcnow()
+        from datetime import timezone
+        portfolio.updated_at = datetime.now(timezone.utc)
         
         db.commit()
         

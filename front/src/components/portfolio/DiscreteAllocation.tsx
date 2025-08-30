@@ -42,7 +42,7 @@ export const DiscreteAllocation: React.FC<DiscreteAllocationProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calculator className="size-5" />
-          실제 매수 주식 수량 ($10,000 투자 기준)
+          실제 매수 주식 수량 ($100,000 투자 기준)
         </CardTitle>
         <CardDescription>
           포트폴리오 가중치를 실제 매수할 수 있는 주식 수량으로 변환했습니다

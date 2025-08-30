@@ -2,9 +2,11 @@ import { apiClient } from './client'
 
 export interface PortfolioOptimizeRequest {
   tickers: string[]
-  optimization_method: 'max_sharpe' | 'min_volatility' | 'efficient_frontier'
+  optimization_method: 'max_sharpe' | 'min_volatility' | 'efficient_frontier' | 'risk_parity'
   risk_aversion?: number
   investment_amount?: number
+  transaction_cost?: number
+  max_position_size?: number
 }
 
 export interface EfficientFrontierPoint {
@@ -26,15 +28,33 @@ export interface EfficientFrontierData {
   risk_free_rate: number
 }
 
+export interface StressScenario {
+  name: string
+  portfolio_return?: number
+  max_drawdown?: number
+  volatility?: number
+  worst_day_return?: number
+  probability?: string
+  portfolio_impact?: number
+  affected_position?: string
+}
+
 export interface OptimizationResult {
   weights: Record<string, number>
   expected_annual_return: number
   annual_volatility: number
   sharpe_ratio: number
+  sortino_ratio?: number
+  max_drawdown?: number
+  calmar_ratio?: number
+  value_at_risk_95?: number
   discrete_allocation?: Record<string, number>
   leftover_cash?: number
   correlation_matrix?: Record<string, Record<string, number>>
   efficient_frontier?: EfficientFrontierData
+  stress_scenarios?: Record<string, StressScenario>
+  transaction_cost_impact?: number
+  concentration_limit?: number
 }
 
 export interface SimulationDataPoint {

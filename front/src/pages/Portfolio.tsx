@@ -40,7 +40,7 @@ export const Portfolio: React.FC = () => {
   // 포트폴리오 구성 상태
   const [selectedTickers, setSelectedTickers] = useState<string[]>([])
   const [optimizationMethod, setOptimizationMethod] = useState<
-    'max_sharpe' | 'min_volatility' | 'efficient_frontier'
+    'max_sharpe' | 'min_volatility' | 'efficient_frontier' | 'risk_parity'
   >('max_sharpe')
   const [searchValue, setSearchValue] = useState('')
 
@@ -233,6 +233,11 @@ export const Portfolio: React.FC = () => {
       value: 'efficient_frontier',
       label: '효율적 프론티어',
       description: '적정 수준의 위험과 수익률 균형을 맞춘 포트폴리오 구성'
+    },
+    {
+      value: 'risk_parity',
+      label: '리스크 패리티',
+      description: '각 자산의 위험 기여도를 균등하게 분배한 포트폴리오 구성'
     }
   ]
 
@@ -259,6 +264,11 @@ export const Portfolio: React.FC = () => {
           </CardTitle>
           <CardDescription>
             2-20개 종목을 선택하여 최적화된 포트폴리오를 생성하세요
+            <br />
+            <span className="text-xs text-blue-600 font-medium">
+              💡 모든 방법에서 CAPM(60%) + EWMA(40%) 하이브리드 기대수익률을
+              사용합니다
+            </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -294,7 +304,7 @@ export const Portfolio: React.FC = () => {
           {/* 최적화 방법 */}
           <div>
             <Label>최적화 방법</Label>
-            <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {optimizationMethods.map((method) => (
                 <div
                   key={method.value}
