@@ -39,12 +39,9 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
   }))
 
   // 성과 지표 계산
-  const startValue = simulation[0]?.portfolio_value || 100000
-  const endValue = simulation[simulation.length - 1]?.portfolio_value || 100000
-  const totalReturn = ((endValue - startValue) / startValue) * 100
 
-  const maxValue = Math.max(...simulation.map((p) => p.portfolio_value))
-  const minValue = Math.min(...simulation.map((p) => p.portfolio_value))
+  const totalReturn = simulation[simulation.length - 1]?.cumulative_return * 100
+
   const maxDrawdown =
     Math.min(...simulation.map((p) => p.cumulative_return)) * 100
 
