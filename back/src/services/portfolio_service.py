@@ -369,7 +369,7 @@ class PortfolioOptimizationService:
             raise ValueError(f"종목 코드 유효성 검증에 실패했습니다: {str(e)}")
     
     @staticmethod
-    def _calculate_efficient_frontier(mu, S, num_portfolios=100):
+    def _calculate_efficient_frontier(mu, S, num_portfolios=200):
         """Efficient Frontier 계산"""
         try:
             # 효율적 프론티어 포인트들 계산
@@ -378,6 +378,20 @@ class PortfolioOptimizationService:
             target_returns = np.linspace(min_vol, max_vol * 0.95, num_portfolios)
             
             efficient_portfolios = []
+            
+               # 안전한 목표 수익률 설정 (최대값의 80% 또는 평균과 최대값의 중간값 중 작은 값)
+                    max_possible_return = float(mu.max()) * 0.8
+                    avg_return = float(mu.mean())
+                    conservative_target = min(avg_return * 1.05, max_possible_return, mu.quantile(0.7))
+                    
+                    try:
+                        weights = ef_frontier.efficient_return(conservative_target, market_neutral=False)
+                    except (OptimizationError, cp.error.SolverError):
+                        # 목표 수익률이 여전히 너무 높으면 더 보수적으로 설정
+                        fallback_target = min(avg_return, mu.quantile(0.5))
+                        weights = ef_frontier.efficient_return(fallback_target, market_neutral=False)
+                    
+                    optimization_ef = ef_frontier
             
             for target_return in target_returns:
                 try:
