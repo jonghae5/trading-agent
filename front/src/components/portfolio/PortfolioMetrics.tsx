@@ -21,7 +21,7 @@ export const PortfolioMetrics: React.FC<PortfolioMetricsProps> = ({
   // 기본 지표
   const basicMetrics = [
     {
-      title: '기대 연간 수익률',
+      title: '연복리 수익률',
       value: (optimization.expected_annual_return * 100).toFixed(2) + '%',
       icon: TrendingUp,
       color:
@@ -30,7 +30,7 @@ export const PortfolioMetrics: React.FC<PortfolioMetricsProps> = ({
           : 'text-red-600',
       bgColor:
         optimization.expected_annual_return > 0 ? 'bg-green-50' : 'bg-red-50',
-      description: '포트폴리오의 예상 연간 수익률'
+      description: '예상 연간 복리 수익률 (하루 단위 연환산)'
     },
     {
       title: '연간 변동성',
