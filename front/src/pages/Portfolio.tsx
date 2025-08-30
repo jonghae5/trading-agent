@@ -45,8 +45,9 @@ type OptimizationMethod =
 export const Portfolio: React.FC = () => {
   // 포트폴리오 구성 상태
   const [selectedTickers, setSelectedTickers] = useState<string[]>([])
-  const [optimizationMethod, setOptimizationMethod] =
-    useState<OptimizationMethod | null>('max_sharpe')
+  const [optimizationMethod, setOptimizationMethod] = useState<
+    OptimizationMethod | null | string
+  >('max_sharpe')
   const [searchValue, setSearchValue] = useState('')
 
   // 최적화 결과
