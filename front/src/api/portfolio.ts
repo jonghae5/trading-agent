@@ -8,7 +8,6 @@ export interface PortfolioOptimizeRequest {
     | 'min_volatility'
     | 'efficient_frontier'
     | 'risk_parity'
-  risk_aversion?: number
   investment_amount?: number
   transaction_cost?: number
   max_position_size?: number
@@ -44,6 +43,17 @@ export interface StressScenario {
   affected_position?: string
 }
 
+export interface WalkForwardStats {
+  totalPeriods: number
+  winRate: number
+  totalReturn: number
+  finalValue: number
+  totalRebalances: number
+  avgSharpe: number
+  positiveReturns: number
+  negativeReturns: number
+}
+
 export interface OptimizationResult {
   weights: Record<string, number>
   expected_annual_return: number
@@ -60,6 +70,8 @@ export interface OptimizationResult {
   stress_scenarios?: Record<string, StressScenario>
   transaction_cost_impact?: number
   concentration_limit?: number
+  // Walk-Forward Analysis specific metrics
+  walkForwardStats?: WalkForwardStats
 }
 
 export interface SimulationDataPoint {
@@ -132,6 +144,31 @@ export interface DiscreteAllocationResponse {
   latest_prices: Record<string, number>
 }
 
+export interface BacktestRequest {
+  tickers: string[]
+  optimization_method:
+    | 'max_sharpe'
+    | 'min_volatility'
+    | 'efficient_frontier'
+    | 'risk_parity'
+
+  // Walk-Forward Analysis 파라미터
+  train_window?: number // 기본값: 252 (1년)
+  test_window?: number // 기본값: 21 (1개월)
+  rebalance_frequency?: 'weekly' | 'monthly' | 'quarterly'
+
+  // 공통 파라미터
+  investment_amount?: number
+  transaction_cost?: number
+  max_position_size?: number
+}
+
+export interface BacktestResponse {
+  backtest_type: 'walk_forward'
+  results: any // Walk-Forward Analysis 결과 구조
+  tickers: string[]
+}
+
 // Generic API response wrapper
 type ApiResponse<T> = {
   success: boolean
@@ -198,6 +235,21 @@ export const portfolioApi = {
     )
     if (!response.success)
       throw new Error(response.message || '포트폴리오 삭제 실패')
+    return response.data
+  },
+
+  /**
+   * Walk-Forward Analysis 백테스팅
+   */
+  async backtestWalkForward(
+    request: BacktestRequest
+  ): Promise<BacktestResponse> {
+    const response: ApiResponse<BacktestResponse> = await apiClient.post(
+      '/api/v1/portfolio/backtest/walk-forward',
+      request
+    )
+    if (!response.success)
+      throw new Error(response.message || 'Walk-Forward 백테스트 실패')
     return response.data
   }
 }

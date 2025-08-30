@@ -264,6 +264,104 @@ export const PortfolioMetrics: React.FC<PortfolioMetricsProps> = ({
             </div>
           )}
 
+          {/* Walk-Forward Analysis 전용 지표 */}
+          {optimization.walkForwardStats && (
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                🎯 Walk-Forward Analysis 지표
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-full bg-blue-50">
+                        <Target className="size-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">
+                          총 리밸런싱 기간
+                        </p>
+                        <p className="text-lg font-bold text-blue-600">
+                          {optimization.walkForwardStats.totalPeriods}개월
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-full bg-green-50">
+                        <TrendingUp className="size-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">
+                          승률
+                        </p>
+                        <p
+                          className={`text-lg font-bold ${
+                            optimization.walkForwardStats.winRate >= 0.55
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {(
+                            optimization.walkForwardStats.winRate * 100
+                          ).toFixed(1)}
+                          %
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-full bg-purple-50">
+                        <Activity className="size-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">
+                          평균 샤프 비율
+                        </p>
+                        <p
+                          className={`text-lg font-bold ${
+                            optimization.walkForwardStats.avgSharpe >= 1.0
+                              ? 'text-green-600'
+                              : 'text-orange-600'
+                          }`}
+                        >
+                          {optimization.walkForwardStats.avgSharpe.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-full bg-orange-50">
+                        <Shield className="size-4 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">
+                          수익/손실 월수
+                        </p>
+                        <p className="text-lg font-bold text-gray-600">
+                          {optimization.walkForwardStats.positiveReturns}/
+                          {optimization.walkForwardStats.negativeReturns}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
           {/* 거래비용 & 집중도 정보 */}
           {(optimization.transaction_cost_impact ||
             optimization.concentration_limit) && (
@@ -271,7 +369,7 @@ export const PortfolioMetrics: React.FC<PortfolioMetricsProps> = ({
               <h3 className="text-lg font-semibold text-gray-800 mb-3">
                 ⚙️ 최적화 설정
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
                 {optimization.transaction_cost_impact && (
                   <Card>
                     <CardContent className="p-4">
@@ -286,9 +384,7 @@ export const PortfolioMetrics: React.FC<PortfolioMetricsProps> = ({
                           <p className="text-lg font-bold text-blue-600">
                             {optimization.transaction_cost_impact}%
                           </p>
-                          <p className="text-xs text-gray-500">
-                            리밸런싱 시 거래비용 고려
-                          </p>
+                          <p className="text-xs text-gray-500">리밸런싱 고려</p>
                         </div>
                       </div>
                     </CardContent>
@@ -310,7 +406,7 @@ export const PortfolioMetrics: React.FC<PortfolioMetricsProps> = ({
                             최대 {optimization.concentration_limit}%
                           </p>
                           <p className="text-xs text-gray-500">
-                            종목별 최대 투자 한도
+                            종목별 최대 한도
                           </p>
                         </div>
                       </div>
@@ -418,39 +514,6 @@ export const PortfolioMetrics: React.FC<PortfolioMetricsProps> = ({
             </div>
           </motion.div>
         )}
-
-      {/* 추가 설명 */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <h4 className="font-semibold text-blue-800 mb-2">
-              💡 지표 해석 가이드
-            </h4>
-            <div className="text-sm text-blue-800 space-y-1">
-              <p>
-                <strong>Sortino 비율:</strong> 하락 리스크만 고려한 지표로
-                개인투자자에게 더 의미있음 (1.5 이상 우수)
-              </p>
-              <p>
-                <strong>최대 낙폭:</strong> 최악의 손실 구간으로 개인투자자의
-                심리적 부담 측정 (20% 이하 권장)
-              </p>
-              <p>
-                <strong>거래비용:</strong> 리밸런싱 시 발생하는 수수료를 고려한
-                현실적 최적화
-              </p>
-              <p>
-                <strong>집중도 제한:</strong> 한 종목에 과도한 집중을 방지하여
-                리스크 분산
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
     </div>
   )
 }

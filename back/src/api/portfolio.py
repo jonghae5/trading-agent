@@ -8,7 +8,7 @@ from ..models.portfolio import Portfolio
 from ..schemas.portfolio import (
     PortfolioCreate, PortfolioOptimizeRequest, PortfolioOptimizeResponse,
     PortfolioResponse,  OptimizationResult,
-    SimulationDataPoint, EconomicEvent
+    SimulationDataPoint, EconomicEvent, BacktestRequest, BacktestResponse
 )
 from ..schemas.common import ApiResponse
 from ..services.portfolio_service import PortfolioOptimizationService
@@ -45,7 +45,6 @@ async def optimize_portfolio(
         optimization_result = PortfolioOptimizationService.optimize_portfolio(
             price_data, 
             method=request.optimization_method,
-            risk_aversion=request.risk_aversion,
             investment_amount=request.investment_amount or 100000,
             transaction_cost=getattr(request, 'transaction_cost', 0.001),
             max_position_size=getattr(request, 'max_position_size', 0.30)
@@ -305,3 +304,63 @@ async def delete_portfolio(
             status_code=500, 
             detail="포트폴리오 삭제에 실패했습니다."
         )
+
+
+@router.post("/backtest/walk-forward", response_model=ApiResponse[BacktestResponse])
+async def walk_forward_backtest(
+    request: BacktestRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Walk-Forward Analysis 백테스팅 - 월스트리트 스타일"""
+    try:
+        logger.info(f"User {current_user.username} starting Walk-Forward Analysis")
+        
+        # 종목 코드 유효성 검증
+        valid_tickers = PortfolioOptimizationService.validate_tickers(request.tickers)
+        if len(valid_tickers) < 2:
+            raise HTTPException(
+                status_code=400, 
+                detail="최소 2개 이상의 유효한 종목이 필요합니다."
+            )
+        
+        # 더 긴 기간의 데이터 가져오기 (2년)
+        price_data = await PortfolioOptimizationService.fetch_price_data(valid_tickers, period="2y")
+        
+        # Walk-Forward Analysis 실행
+        backtest_result = PortfolioOptimizationService.walk_forward_analysis(
+            price_data,
+            method=request.optimization_method,
+            train_window=request.train_window or 252,  # 1년 기본값
+            test_window=request.test_window or 21,     # 1개월 기본값
+            rebalance_freq=request.rebalance_frequency or "monthly",
+            investment_amount=request.investment_amount or 100000,
+            transaction_cost=request.transaction_cost or 0.001,
+            max_position_size=request.max_position_size or 0.30
+        )
+        
+        response = BacktestResponse(
+            backtest_type="walk_forward",
+            results=backtest_result,
+            tickers=valid_tickers
+        )
+        
+        logger.info(f"Walk-Forward Analysis completed for user {current_user.username}")
+        return ApiResponse(
+            success=True,
+            message="Walk-Forward Analysis 백테스팅이 완료되었습니다.",
+            data=response
+        )
+        
+    except ValueError as e:
+        logger.warning(f"Walk-Forward backtest validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Walk-Forward 백테스트 API 에러: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail="Walk-Forward 백테스트 중 서버 오류가 발생했습니다."
+        )
+
+
+
+
