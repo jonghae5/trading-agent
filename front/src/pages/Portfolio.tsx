@@ -36,12 +36,17 @@ import {
 } from '../components/portfolio'
 import toast from 'react-hot-toast'
 
+type OptimizationMethod =
+  | 'max_sharpe'
+  | 'min_volatility'
+  | 'efficient_frontier'
+  | 'risk_parity'
+
 export const Portfolio: React.FC = () => {
   // 포트폴리오 구성 상태
   const [selectedTickers, setSelectedTickers] = useState<string[]>([])
-  const [optimizationMethod, setOptimizationMethod] = useState<
-    'max_sharpe' | 'min_volatility' | 'efficient_frontier' | 'risk_parity'
-  >('max_sharpe')
+  const [optimizationMethod, setOptimizationMethod] =
+    useState<OptimizationMethod>('max_sharpe')
   const [searchValue, setSearchValue] = useState('')
 
   // 최적화 결과
@@ -193,7 +198,7 @@ export const Portfolio: React.FC = () => {
   // 저장된 포트폴리오 불러오기
   const handleLoadPortfolio = (portfolio: PortfolioResponse) => {
     setSelectedTickers(portfolio.tickers)
-    setOptimizationMethod(portfolio.optimization_method as any)
+    setOptimizationMethod(portfolio.optimization_method as OptimizationMethod)
 
     // 기존 최적화 결과 재생성
     const weights = portfolio.tickers.reduce(

@@ -81,16 +81,28 @@ class PortfolioOptimizeResponse(BaseModel):
     tickers: List[str]
 
 
-class PortfolioResponse(PortfolioBase):
+class PortfolioResponse(BaseModel):
     id: int
     user_id: int
+    name: str
+    description: Optional[str] = None
+    tickers: List[str]
     weights: List[float]
-    expected_return: Optional[float]
-    volatility: Optional[float]
-    sharpe_ratio: Optional[float]
+    optimization_method: str
+    expected_return: Optional[float] = None
+    volatility: Optional[float] = None
+    sharpe_ratio: Optional[float] = None
+    sortino_ratio: Optional[float] = None
+    max_drawdown: Optional[float] = None
+    calmar_ratio: Optional[float] = None
+    value_at_risk_95: Optional[float] = None
+    transaction_cost: Optional[float] = None
+    max_position_size: Optional[float] = None
+    stress_scenarios: Optional[Dict[str, StressScenario]] = None
+    correlation_matrix: Optional[Dict[str, Dict[str, float]]] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True

@@ -308,22 +308,25 @@ export const EfficientFrontier: React.FC<EfficientFrontierProps> = ({
                 dataKey="expected_return"
                 data={currentPortfolioData}
                 fill="#8b5cf6"
-                shape={(props) => (
-                  <svg
-                    x={props.cx - 8}
-                    y={props.cy - 8}
-                    width={16}
-                    height={16}
-                    viewBox="0 0 16 16"
-                  >
-                    <polygon
-                      points="8,1 15,8 8,15 1,8"
-                      fill="#8b5cf6"
-                      stroke="#6d28d9"
-                      strokeWidth="1"
-                    />
-                  </svg>
-                )}
+                shape={(props: unknown) => {
+                  const p = props as { cx: number; cy: number; payload?: any }
+                  return (
+                    <svg
+                      x={p.cx - 8}
+                      y={p.cy - 8}
+                      width={16}
+                      height={16}
+                      viewBox="0 0 16 16"
+                    >
+                      <polygon
+                        points="8,1 15,8 8,15 1,8"
+                        fill="#8b5cf6"
+                        stroke="#6d28d9"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                  )
+                }}
                 name="현재 포트폴리오"
                 z={10}
               />
@@ -332,28 +335,31 @@ export const EfficientFrontier: React.FC<EfficientFrontierProps> = ({
               <Scatter
                 dataKey="expected_return"
                 data={assetsData}
-                shape={(props) => (
-                  <>
-                    <circle
-                      cx={props.cx}
-                      cy={props.cy}
-                      r={4}
-                      fill="#10b981"
-                      stroke="#047857"
-                      strokeWidth={1}
-                    />
-                    <text
-                      x={props.cx}
-                      y={props.cy + 20}
-                      textAnchor="middle"
-                      fontSize="10"
-                      fill="#047857"
-                      fontWeight="bold"
-                    >
-                      {props.payload?.ticker}
-                    </text>
-                  </>
-                )}
+                shape={(props: unknown) => {
+                  const p = props as { cx: number; cy: number; payload?: any }
+                  return (
+                    <>
+                      <circle
+                        cx={p.cx}
+                        cy={p.cy}
+                        r={4}
+                        fill="#10b981"
+                        stroke="#047857"
+                        strokeWidth={1}
+                      />
+                      <text
+                        x={p.cx}
+                        y={p.cy + 20}
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#047857"
+                        fontWeight="bold"
+                      >
+                        {p.payload?.ticker}
+                      </text>
+                    </>
+                  )
+                }}
                 fill="#10b981"
                 name="개별 자산"
                 z={1}
@@ -366,22 +372,25 @@ export const EfficientFrontier: React.FC<EfficientFrontierProps> = ({
                   data={maxSharpeData}
                   fill="#ef4444"
                   // shape="star" // 지원 안됨
-                  shape={(props) => (
-                    <svg
-                      x={props.cx - 8}
-                      y={props.cy - 8}
-                      width={16}
-                      height={16}
-                      viewBox="0 0 16 16"
-                    >
-                      <polygon
-                        points="8,1 10,6 15,6 11,9 12,15 8,12 4,15 5,9 1,6 6,6"
-                        fill="#ef4444"
-                        stroke="#b91c1c"
-                        strokeWidth="1"
-                      />
-                    </svg>
-                  )}
+                  shape={(props: unknown) => {
+                    const p = props as { cx: number; cy: number; payload?: any }
+                    return (
+                      <svg
+                        x={p.cx - 8}
+                        y={p.cy - 8}
+                        width={16}
+                        height={16}
+                        viewBox="0 0 16 16"
+                      >
+                        <polygon
+                          points="8,1 10,6 15,6 11,9 12,15 8,12 4,15 5,9 1,6 6,6"
+                          fill="#ef4444"
+                          stroke="#b91c1c"
+                          strokeWidth="1"
+                        />
+                      </svg>
+                    )
+                  }}
                   name="최적 포트폴리오"
                   z={3}
                 />

@@ -146,7 +146,7 @@ class PortfolioOptimizationService:
                     
                 elif method == "risk_parity":
                     # Risk Parity 모델 구현
-                    weights = PortfolioOptimizationService._risk_parity_optimization(mu, S)
+                    weights = PortfolioOptimizationService._risk_parity_optimization(mu, S, max_position_size)
                     # Risk Parity의 경우 별도로 성과 계산을 위한 EF 인스턴스 생성
                     optimization_ef = EfficientFrontier(mu, S)
                     optimization_ef.add_constraint(lambda w: cp.sum(w) == 1)
@@ -439,7 +439,7 @@ class PortfolioOptimizationService:
             }
     
     @staticmethod
-    def _risk_parity_optimization(mu, S):
+    def _risk_parity_optimization(mu, S, max_position_size):
         """Risk Parity 포트폴리오 최적화"""
         try:
             n_assets = len(mu)
@@ -451,7 +451,7 @@ class PortfolioOptimizationService:
             constraints = [
                 {'type': 'eq', 'fun': lambda x: np.sum(x) - 1.0},
                 {'type': 'ineq', 'fun': lambda x: x - 0.005},  # 최소 0.5%
-                {'type': 'ineq', 'fun': lambda x: 0.30 - x}   # 최대 30%
+                {'type': 'ineq', 'fun': lambda x: max_position_size - x}   # 최대 30%
             ]
             
             # Risk Parity 목적함수 (위험 기여도의 분산 최소화)
