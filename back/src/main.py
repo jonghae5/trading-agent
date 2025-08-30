@@ -32,6 +32,7 @@ from src.middleware import (
 )
 from src.models.user import User, UserPreference
 from src.services.stock_seeder import seed_stock_database_on_startup
+from src.services.portfolio_seeder import seed_portfolio_database_on_startup
 
 # Initialize settings
 settings = get_settings()
@@ -151,6 +152,17 @@ async def lifespan(app: FastAPI):
             logger.info(f"✅ Stock database already contains {stock_seeding_result['count']} stocks")
         else:
             logger.warning(f"⚠️ Stock database seeding failed: {stock_seeding_result.get('error', 'Unknown error')}")
+        
+        # Seed portfolio database on startup
+        logger.info("📊 Starting portfolio database seeding...")
+        portfolio_seeding_result = await seed_portfolio_database_on_startup(force_refresh=False)
+        
+        if portfolio_seeding_result['status'] == 'completed':
+            logger.info(f"✅ Portfolio database seeded successfully: {portfolio_seeding_result['successful_inserts']} portfolios added")
+        elif portfolio_seeding_result['status'] == 'already_seeded':
+            logger.info(f"✅ Portfolio database already contains {portfolio_seeding_result['count']} famous portfolios")
+        else:
+            logger.warning(f"⚠️ Portfolio database seeding failed: {portfolio_seeding_result.get('error', 'Unknown error')}")
         
         # Initialize other services here (Redis, external APIs, etc.)
         
