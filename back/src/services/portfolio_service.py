@@ -19,6 +19,69 @@ class PortfolioOptimizationService:
     """Portfolio optimization service using PyPortfolioOpt with Walk-Forward Analysis."""
     
     @staticmethod
+    @lru_cache(maxsize=64)
+    def _cached_spy_data(start_date: str, end_date: str):
+        """SPY 시장 데이터 캐시 (날짜별)"""
+        try:
+            logger.info(f"Downloading SPY data from {start_date} to {end_date}")
+            market_data = yf.download("SPY", start=start_date, end=end_date, progress=False)['Close']
+            logger.info(f"SPY data downloaded: {len(market_data)} days")
+            return market_data
+        except Exception as e:
+            logger.warning(f"Failed to download SPY data: {e}")
+            return None
+
+    @staticmethod
+    def _optimize_single_period(args):
+        """단일 기간 최적화 (병렬 처리용)"""
+        train_data, test_data, method, kwargs = args
+        
+        try:
+            # 훈련 데이터로 포트폴리오 최적화
+            optimization_result = PortfolioOptimizationService.optimize_portfolio(
+                train_data, method=method, **kwargs
+            )
+            
+            new_weights = optimization_result['weights']
+            
+            # 테스트 기간 성과 시뮬레이션 (벡터화)
+            test_returns = test_data.pct_change().dropna()
+            
+            # 가중치 조정 (테스트 데이터에 있는 종목만)
+            available_tickers = [t for t in new_weights.keys() if t in test_returns.columns]
+            if not available_tickers:
+                return None
+            
+            # 가중치 정규화 (벡터화)
+            adjusted_weights = {t: new_weights.get(t, 0) for t in available_tickers}
+            total_weight = sum(adjusted_weights.values())
+            if total_weight > 0:
+                adjusted_weights = {t: w/total_weight for t, w in adjusted_weights.items()}
+            
+            # 포트폴리오 수익률 계산 (벡터화)
+            weight_series = pd.Series(adjusted_weights).reindex(test_returns.columns, fill_value=0)
+            portfolio_returns = test_returns.dot(weight_series)
+            
+            # 성과 지표 계산 (벡터화)
+            period_cumret = (1 + portfolio_returns).prod() - 1
+            period_vol = portfolio_returns.std() * np.sqrt(252)
+            period_sharpe = (portfolio_returns.mean() * 252 - 0.02) / period_vol if period_vol > 0 else 0
+            
+            return {
+                'period_start': test_data.index[0].strftime('%Y-%m-%d'),
+                'period_end': test_data.index[-1].strftime('%Y-%m-%d'),
+                'weights': adjusted_weights,
+                'period_return': round(float(period_cumret), 4),
+                'period_volatility': round(float(period_vol), 4),
+                'period_sharpe': round(float(period_sharpe), 2),
+                'train_period': f"{train_data.index[0].strftime('%Y-%m-%d')} to {train_data.index[-1].strftime('%Y-%m-%d')}"
+            }
+            
+        except Exception as e:
+            logger.warning(f"Optimization failed for period {test_data.index[0] if len(test_data) > 0 else 'unknown'}: {e}")
+            return None
+
+    @staticmethod
     def walk_forward_analysis(
         price_data: pd.DataFrame,
         method: str = "max_sharpe",
@@ -27,126 +90,97 @@ class PortfolioOptimizationService:
         rebalance_freq: str = "monthly",  # 월별 리밸런싱
         **kwargs
     ) -> Dict:
-        """Walk-Forward Analysis를 통한 실제적인 백테스팅"""
+        """Walk-Forward Analysis를 통한 실제적인 백테스팅 (최적화됨)"""
         try:
-            logger.info(f"Starting Walk-Forward Analysis with {len(price_data)} days of data")
+            start_time = time.time()
+            logger.info(f"Starting optimized Walk-Forward Analysis with {len(price_data)} days of data")
             
             # 데이터 길이 검증
             if len(price_data) < train_window + test_window:
                 raise ValueError(f"최소 {train_window + test_window}일 이상의 데이터가 필요합니다")
             
+            # 모든 기간 데이터를 먼저 준비 (메모리 사용량을 줄이기 위해)
+            periods_args = []
+            start_idx = train_window
+            
+            while start_idx + test_window <= len(price_data):
+                train_end_idx = start_idx
+                train_start_idx = max(0, train_end_idx - train_window)
+                train_data = price_data.iloc[train_start_idx:train_end_idx].copy()
+                test_data = price_data.iloc[start_idx:start_idx + test_window].copy()
+                
+                periods_args.append((train_data, test_data, method, kwargs))
+                start_idx += test_window
+            
+            logger.info(f"Processing {len(periods_args)} periods")
+            
+            # 병렬 처리로 최적화 (CPU 코어 수 고려)
             results = []
+            max_workers = min(4, len(periods_args))  # 최대 4개 워커로 제한
+            
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # 병렬 실행
+                future_to_period = {
+                    executor.submit(PortfolioOptimizationService._optimize_single_period, args): i 
+                    for i, args in enumerate(periods_args)
+                }
+                
+                period_results = [None] * len(periods_args)
+                for future in as_completed(future_to_period):
+                    period_idx = future_to_period[future]
+                    try:
+                        result = future.result(timeout=30)  # 30초 타임아웃
+                        if result:
+                            period_results[period_idx] = result
+                    except Exception as e:
+                        logger.warning(f"Period {period_idx} failed: {e}")
+            
+            # 결과 필터링 및 포트폴리오 가치 계산
+            initial_value = 100000
+            current_value = initial_value
             portfolio_values = []
             rebalance_dates = []
             current_weights = None
-            initial_value = 100000
-            current_value = initial_value
             
-            # 시작 인덱스: 첫 번째 훈련 기간이 확보되는 지점
-            start_idx = train_window
-            
-            # Walk-Forward 진행
-            while start_idx + test_window <= len(price_data):
-                # 훈련 데이터: 현재 시점 기준 과거 train_window 일
-                train_end_idx = start_idx
-                train_start_idx = max(0, train_end_idx - train_window)
-                train_data = price_data.iloc[train_start_idx:train_end_idx]
-                
-                # 테스트 데이터: 현재 시점 이후 test_window 일
-                test_data = price_data.iloc[start_idx:start_idx + test_window]
-                
-                logger.info(f"Train period: {train_data.index[0]} to {train_data.index[-1]}")
-                logger.info(f"Test period: {test_data.index[0]} to {test_data.index[-1]}")
-                
-                try:
-                    # 훈련 데이터로 포트폴리오 최적화
-                    optimization_result = PortfolioOptimizationService.optimize_portfolio(
-                        train_data, method=method, **kwargs
-                    )
-                    
-                    new_weights = optimization_result['weights']
-                    
-                    # 테스트 기간 성과 시뮬레이션
-                    test_returns = test_data.pct_change().dropna()
-                    
-                    # 가중치 조정 (테스트 데이터에 있는 종목만)
-                    available_tickers = [t for t in new_weights.keys() if t in test_returns.columns]
-                    if not available_tickers:
-                        logger.warning(f"No valid tickers for test period starting {test_data.index[0]}")
-                        start_idx += test_window
-                        continue
-                    
-                    # 가중치 정규화
-                    adjusted_weights = {t: new_weights.get(t, 0) for t in available_tickers}
-                    total_weight = sum(adjusted_weights.values())
-                    if total_weight > 0:
-                        adjusted_weights = {t: w/total_weight for t, w in adjusted_weights.items()}
-                    
-                    # 포트폴리오 수익률 계산
-                    weight_series = pd.Series(adjusted_weights).reindex(test_returns.columns, fill_value=0)
-                    portfolio_returns = test_returns.dot(weight_series)
-                    
-                    # 누적 수익률 계산
-                    period_cumret = (1 + portfolio_returns).prod() - 1
-                    period_vol = portfolio_returns.std() * np.sqrt(252)  # 연환산
-                    period_sharpe = (portfolio_returns.mean() * 252 - 0.02) / period_vol if period_vol > 0 else 0
-                    
+            for result in period_results:
+                if result:
                     # 포트폴리오 가치 업데이트
-                    current_value = current_value * (1 + period_cumret)
-                    
-                    # 결과 저장
-                    result = {
-                        'period_start': test_data.index[0].strftime('%Y-%m-%d'),
-                        'period_end': test_data.index[-1].strftime('%Y-%m-%d'),
-                        'weights': adjusted_weights,
-                        'period_return': round(float(period_cumret), 4),
-                        'period_volatility': round(float(period_vol), 4),
-                        'period_sharpe': round(float(period_sharpe), 2),
-                        'portfolio_value': round(float(current_value), 2),
-                        'train_period': f"{train_data.index[0].strftime('%Y-%m-%d')} to {train_data.index[-1].strftime('%Y-%m-%d')}"
-                    }
+                    current_value = current_value * (1 + result['period_return'])
+                    result['portfolio_value'] = round(float(current_value), 2)
                     
                     results.append(result)
                     portfolio_values.append({
-                        'date': test_data.index[-1].strftime('%Y-%m-%d'),
+                        'date': result['period_end'],
                         'value': current_value,
                         'cumulative_return': (current_value / initial_value) - 1
                     })
                     
-                    rebalance_dates.append(test_data.index[0].strftime('%Y-%m-%d'))
-                    current_weights = new_weights
-                    
-                except Exception as e:
-                    logger.warning(f"Optimization failed for period {test_data.index[0]}: {e}")
-                
-                # 다음 기간으로 이동
-                start_idx += test_window
+                    rebalance_dates.append(result['period_start'])
+                    current_weights = result['weights']
             
-            # 전체 성과 지표 계산
+            # 전체 성과 지표 계산 (벡터화)
             if not results:
                 raise ValueError("Walk-Forward Analysis 실행 중 유효한 결과를 얻지 못했습니다")
             
             total_return = (current_value / initial_value) - 1
-            period_returns = [r['period_return'] for r in results]
-            avg_return = np.mean(period_returns) * (252 / test_window)  # 연환산
-            volatility = np.std(period_returns) * np.sqrt(252 / test_window)  # 연환산
+            period_returns = np.array([r['period_return'] for r in results])
+            
+            # 벡터화된 계산
+            avg_return = np.mean(period_returns) * (252 / test_window)
+            volatility = np.std(period_returns) * np.sqrt(252 / test_window)
             sharpe_ratio = (avg_return - 0.02) / volatility if volatility > 0 else 0
             
-            # 최대 낙폭 계산
-            values = [pv['value'] for pv in portfolio_values]
-            if values:
-                peak = values[0]
-                max_dd = 0
-                for value in values:
-                    peak = max(peak, value)
-                    dd = (value - peak) / peak
-                    max_dd = min(max_dd, dd)
+            # 최대 낙폭 계산 (벡터화)
+            values = np.array([pv['value'] for pv in portfolio_values])
+            if len(values) > 0:
+                peaks = np.maximum.accumulate(values)
+                drawdowns = (values - peaks) / peaks
+                max_dd = np.min(drawdowns)
             else:
                 max_dd = 0
             
-            # 승률 계산
-            positive_periods = len([r for r in period_returns if r > 0])
-            win_rate = positive_periods / len(period_returns) if period_returns else 0
+            # 승률 계산 (벡터화)
+            win_rate = np.mean(period_returns > 0)
             
             # 최종 포트폴리오에 대한 추가 분석 정보 생성
             final_weights = current_weights or {}
@@ -164,9 +198,14 @@ class PortfolioOptimizationService:
                         ewma_span = max(30, int(len(latest_data) * 0.7))
                         
                         try:
-                            # 시장 벤치마크 데이터 
-                            market_data = yf.download("SPY", period="1y", progress=False)['Close']
-                            market_data = market_data.reindex(latest_data.index, method='ffill').dropna()
+                            # 시장 벤치마크 데이터 (캐시 사용)
+                            start_date = latest_data.index.min().strftime('%Y-%m-%d')
+                            end_date = latest_data.index.max().strftime('%Y-%m-%d')
+                            market_data = PortfolioOptimizationService._cached_spy_data(start_date, end_date)
+                            if market_data is not None:
+                                market_data = market_data.reindex(latest_data.index, method='ffill').dropna()
+                            else:
+                                raise Exception("Failed to get SPY data")
                             
                             # CAPM 기대수익률 계산
                             capm_mu = expected_returns.capm_return(
@@ -201,6 +240,10 @@ class PortfolioOptimizationService:
                     
                 except Exception as e:
                     logger.warning(f"추가 분석 정보 생성 실패: {e}")
+            
+            # 실행 시간 기록
+            execution_time = time.time() - start_time
+            logger.info(f"Walk-Forward Analysis completed in {execution_time:.2f} seconds with {len(results)} periods")
 
             return {
                 'walk_forward_results': results,
