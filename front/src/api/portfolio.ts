@@ -2,7 +2,11 @@ import { apiClient } from './client'
 
 export interface PortfolioOptimizeRequest {
   tickers: string[]
-  optimization_method: 'max_sharpe' | 'min_volatility' | 'efficient_frontier' | 'risk_parity'
+  optimization_method:
+    | 'max_sharpe'
+    | 'min_volatility'
+    | 'efficient_frontier'
+    | 'risk_parity'
   risk_aversion?: number
   investment_amount?: number
   transaction_cost?: number
@@ -72,13 +76,23 @@ export interface PortfolioOptimizeResponse {
 
 export interface PortfolioResponse {
   id: number
+  user_id: number
   name: string
   description?: string
   tickers: string[]
   weights: number[]
+  optimization_method: string
   expected_return?: number
   volatility?: number
   sharpe_ratio?: number
+  sortino_ratio?: number
+  max_drawdown?: number
+  calmar_ratio?: number
+  value_at_risk_95?: number
+  transaction_cost?: number
+  max_position_size?: number
+  stress_scenarios?: Record<string, StressScenario>
+  correlation_matrix?: Record<string, Record<string, number>>
   is_active: boolean
   created_at: string
   updated_at: string
