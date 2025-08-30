@@ -167,17 +167,50 @@ class PortfolioOptimizationService:
                     if transaction_cost > 0:
                         ef_frontier.add_objective(objective_functions.L2_reg, gamma=transaction_cost)
                     
-                    # 안전한 목표 수익률 설정 (최대값의 80% 또는 평균과 최대값의 중간값 중 작은 값)
-                    max_possible_return = float(mu.max()) * 0.8
+                    # 실제 달성 가능한 최대 수익률 계산 (max_sharpe로 계산해보기)
+                    try:
+                        # 임시 EF 인스턴스로 최대 달성 가능 수익률 확인
+                        ef_temp = EfficientFrontier(mu, S)
+                        ef_temp.add_constraint(lambda w: cp.sum(w) == 1)
+                        ef_temp.add_constraint(lambda w: w >= 0.01)
+                        ef_temp.add_constraint(lambda w: w <= max_position_size)
+                        temp_weights = ef_temp.max_sharpe(risk_free_rate=0.02)
+                        temp_performance = ef_temp.portfolio_performance(verbose=False, risk_free_rate=0.02)
+                        max_achievable_return = temp_performance[0] * 0.95  # 95%로 안전마진 설정
+                    except:
+                        # 계산 실패시 매우 보수적으로 설정
+                        max_achievable_return = float(mu.mean()) * 0.8
+                    
+                    # 더 보수적인 목표 수익률 설정
                     avg_return = float(mu.mean())
-                    conservative_target = min(avg_return * 1.05, max_possible_return, mu.quantile(0.7))
+                    median_return = float(mu.median())
+                    
+                    # 여러 후보 중 가장 안전한 값 선택
+                    target_candidates = [
+                        avg_return * 0.8,           # 평균의 80%
+                        median_return * 1.1,        # 중간값의 110%
+                        max_achievable_return,      # 달성 가능한 최대값의 95%
+                        float(mu.quantile(0.6))     # 60분위수
+                    ]
+                    
+                    conservative_target = min(target_candidates)
+                    
+                    logger.info(f"Target return candidates: {target_candidates}")
+                    logger.info(f"Selected conservative target: {conservative_target}")
                     
                     try:
                         weights = ef_frontier.efficient_return(conservative_target, market_neutral=False)
-                    except (OptimizationError, cp.error.SolverError):
-                        # 목표 수익률이 여전히 너무 높으면 더 보수적으로 설정
-                        fallback_target = min(avg_return, mu.quantile(0.5))
-                        weights = ef_frontier.efficient_return(fallback_target, market_neutral=False)
+                    except (OptimizationError, cp.error.SolverError) as e:
+                        logger.warning(f"First efficient_return attempt failed: {e}")
+                        # 더욱 보수적으로 다시 시도
+                        ultra_conservative_target = min(avg_return * 0.6, median_return * 0.9, float(mu.quantile(0.4)))
+                        logger.info(f"Falling back to ultra-conservative target: {ultra_conservative_target}")
+                        try:
+                            weights = ef_frontier.efficient_return(ultra_conservative_target, market_neutral=False)
+                        except (OptimizationError, cp.error.SolverError):
+                            # 최후의 수단: min_volatility 사용
+                            logger.warning("All efficient_return attempts failed, falling back to min_volatility")
+                            weights = ef_frontier.min_volatility()
                     
                     optimization_ef = ef_frontier
                     
