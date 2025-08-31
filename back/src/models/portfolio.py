@@ -29,7 +29,6 @@ class Portfolio(Base):
     max_position_size = Column(Float, nullable=True, default=0.30)
     
     # 추가 메타데이터
-    stress_scenarios = Column(JSON, nullable=True)
     correlation_matrix = Column(JSON, nullable=True)
     
     is_active = Column(Boolean, default=True)

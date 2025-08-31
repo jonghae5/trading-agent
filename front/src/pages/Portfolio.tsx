@@ -65,6 +65,9 @@ export const Portfolio: React.FC = () => {
   const [selectedTickers, setSelectedTickers] = useState<string[]>([])
   const [optimizationMethod, setOptimizationMethod] =
     useState<OptimizationMethod>('max_sharpe')
+  const [rebalanceFrequency, setRebalanceFrequency] = useState<
+    'monthly' | 'quarterly'
+  >('monthly')
   const [searchValue, setSearchValue] = useState('')
 
   // 백테스트 결과
@@ -73,6 +76,7 @@ export const Portfolio: React.FC = () => {
   )
   const [isBacktesting, setIsBacktesting] = useState(false)
 
+  console.log('backtestResult', backtestResult)
   // 포트폴리오 저장
   const [portfolioName, setPortfolioName] = useState('')
   const [portfolioDescription, setPortfolioDescription] = useState('')
@@ -146,6 +150,7 @@ export const Portfolio: React.FC = () => {
       const backtestRequest: BacktestRequest = {
         tickers: selectedTickers,
         optimization_method: optimizationMethod,
+        rebalance_frequency: rebalanceFrequency,
         investment_amount: 100000,
         transaction_cost: 0.001,
         max_position_size: 0.3
@@ -155,7 +160,7 @@ export const Portfolio: React.FC = () => {
       const result = await portfolioApi.backtestWalkForward(backtestRequest)
 
       setBacktestResult(result)
-      toast.success('Walk-Forward Analysis 백테스팅이 완료되었습니다!')
+      toast.success('백테스팅이 완료되었습니다!')
     } catch (error: any) {
       console.error('백테스팅 실패:', error)
       toast.error(error?.response?.data?.detail || '백테스팅에 실패했습니다.')
@@ -228,11 +233,15 @@ export const Portfolio: React.FC = () => {
   const handleLoadPortfolio = (portfolio: PortfolioResponse) => {
     setSelectedTickers(portfolio.tickers)
     setOptimizationMethod(portfolio.optimization_method as OptimizationMethod)
+    // 기본값으로 월별 리밸런싱 설정 (저장된 포트폴리오에는 리밸런싱 빈도 정보가 없으므로)
+    setRebalanceFrequency('monthly')
 
     // 백테스트 결과 초기화 (새로운 백테스트 실행 필요)
     setBacktestResult(null)
 
-    toast.success(`"${portfolio.name}" 포트폴리오를 불러왔습니다. 백테스트를 다시 실행해주세요.`)
+    toast.success(
+      `"${portfolio.name}" 포트폴리오를 불러왔습니다. 리밸런싱 빈도를 확인하고 백테스트를 다시 실행해주세요.`
+    )
   }
 
   const optimizationMethods = [
@@ -266,9 +275,6 @@ export const Portfolio: React.FC = () => {
           📊 포트폴리오 최적화
         </h1>
         <p className="text-gray-600 text-sm md:text-base max-w-2xl mx-auto">
-          월스트리트 표준 Walk-Forward Analysis 백테스팅 방법론으로 신뢰할 수
-          있는 포트폴리오를 구성하세요.
-          <br />
           단계별 가이드를 따라 최적화된 투자 포트폴리오를 생성할 수 있습니다.
         </p>
       </div>
@@ -427,6 +433,53 @@ export const Portfolio: React.FC = () => {
               </div>
             </div>
 
+            {/* 리밸런싱 빈도 */}
+            <div>
+              <Label>리밸런싱 빈도</Label>
+              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    rebalanceFrequency === 'monthly'
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setRebalanceFrequency('monthly')}
+                >
+                  <div className="font-medium text-sm mb-1">
+                    📅 월별 리밸런싱
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    매달 포트폴리오 재조정 (더 빈번한 최적화)
+                  </div>
+                  <div className="text-xs text-green-600 font-medium mt-1">
+                    ✓ 시장 변동에 민감한 대응
+                  </div>
+                </div>
+                <div
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    rebalanceFrequency === 'quarterly'
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => setRebalanceFrequency('quarterly')}
+                >
+                  <div className="font-medium text-sm mb-1">
+                    📊 분기별 리밸런싱
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    3개월마다 포트폴리오 재조정 (안정적인 전략)
+                  </div>
+                  <div className="text-xs text-green-600 font-medium mt-1">
+                    ✓ 거래 비용 절약 및 장기 관점
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-gray-500">
+                💡 월별: 더 자주 최적화하여 시장 변화에 빠르게 대응 | 분기별:
+                거래 비용을 줄이고 안정적인 장기 전략
+              </div>
+            </div>
+
             <div className="border-t pt-6">
               <div className="text-center mb-4">
                 <div className="inline-flex items-center justify-center w-10 h-10 bg-green-100 text-green-600 rounded-full mb-2">
@@ -471,13 +524,27 @@ export const Portfolio: React.FC = () => {
                   • 실제 투자환경을 완벽 모사하여 미래 데이터 누설 완전 방지
                 </p>
                 <p>
-                  • 1년 데이터로 학습 → 1개월 실제 성과 측정 → 월별 리밸런싱
+                  • 1년 데이터로 학습 →{' '}
+                  {rebalanceFrequency === 'monthly' ? '1개월' : '1분기'} 실제
+                  성과 측정 →
+                  <b>
+                    {rebalanceFrequency === 'monthly' ? '월별' : '분기별'}{' '}
+                    리밸런싱
+                  </b>{' '}
                   반복
                 </p>
                 <p>
                   • 가장 현실적이고 신뢰할 수 있는 월스트리트 표준 백테스트 방법
                 </p>
                 <p>• 거래비용, 슬리피지 등 실제 제약사항 모두 반영</p>
+                <p className="mt-2 font-medium">
+                  🔄 선택된 리밸런싱:{' '}
+                  <span className="text-amber-900">
+                    {rebalanceFrequency === 'monthly'
+                      ? '월별 (12회/년)'
+                      : '분기별 (4회/년)'}
+                  </span>
+                </p>
               </div>
             </div>
           </CardContent>
@@ -498,6 +565,12 @@ export const Portfolio: React.FC = () => {
               <p className="text-gray-600 text-sm">
                 Walk-Forward Analysis 백테스트 결과 요약
               </p>
+              <div className="mt-2 inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                🔄{' '}
+                {rebalanceFrequency === 'monthly'
+                  ? '월별 리밸런싱 (12회/년)'
+                  : '분기별 리밸런싱 (4회/년)'}
+              </div>
             </div>
 
             {/* Consolidated Performance Metrics */}
@@ -722,10 +795,12 @@ export const Portfolio: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="size-5" />
-                    월별 수익률 타임라인
+                    {rebalanceFrequency === 'monthly' ? '월별' : '분기별'}{' '}
+                    수익률 타임라인
                   </CardTitle>
                   <CardDescription>
-                    각 리밸런싱 기간별 수익률 추이를 확인하세요
+                    각 리밸런싱 기간별 수익률 추이를 확인하세요 (
+                    {rebalanceFrequency === 'monthly' ? '월간' : '분기별'} 분석)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -762,7 +837,10 @@ export const Portfolio: React.FC = () => {
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between gap-4">
                                 <span className="text-gray-600">
-                                  월간 수익률:
+                                  {rebalanceFrequency === 'monthly'
+                                    ? '월간'
+                                    : '분기간'}{' '}
+                                  수익률:
                                 </span>
                                 <span
                                   className={`font-semibold ${
@@ -843,7 +921,11 @@ export const Portfolio: React.FC = () => {
                                 stroke: '#3b82f6',
                                 strokeWidth: 2
                               }}
-                              name="월간 수익률 (%)"
+                              name={`${
+                                rebalanceFrequency === 'monthly'
+                                  ? '월간'
+                                  : '분기간'
+                              } 수익률 (%)`}
                             />
                           </LineChart>
                         </ResponsiveContainer>
@@ -926,7 +1008,10 @@ export const Portfolio: React.FC = () => {
                               </div>
                               <div className="flex justify-between gap-4">
                                 <span className="text-gray-600">
-                                  월간 수익률:
+                                  {rebalanceFrequency === 'monthly'
+                                    ? '월간'
+                                    : '분기간'}{' '}
+                                  수익률:
                                 </span>
                                 <span
                                   className={`font-medium ${

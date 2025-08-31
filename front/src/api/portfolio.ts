@@ -20,17 +20,6 @@ export interface EfficientFrontierData {
   risk_free_rate: number
 }
 
-export interface StressScenario {
-  name: string
-  portfolio_return?: number
-  max_drawdown?: number
-  volatility?: number
-  worst_day_return?: number
-  probability?: string
-  portfolio_impact?: number
-  affected_position?: string
-}
-
 export interface WalkForwardStats {
   totalPeriods: number
   winRate: number
@@ -55,7 +44,6 @@ export interface OptimizationResult {
   leftover_cash?: number
   correlation_matrix?: Record<string, Record<string, number>>
   efficient_frontier?: EfficientFrontierData
-  stress_scenarios?: Record<string, StressScenario>
   transaction_cost_impact?: number
   concentration_limit?: number
   // Walk-Forward Analysis specific metrics
@@ -86,7 +74,6 @@ export interface PortfolioResponse {
   value_at_risk_95?: number
   transaction_cost?: number
   max_position_size?: number
-  stress_scenarios?: Record<string, StressScenario>
   correlation_matrix?: Record<string, Record<string, number>>
   is_active: boolean
   created_at: string
@@ -134,8 +121,6 @@ export interface BacktestRequest {
     | 'risk_parity'
 
   // Walk-Forward Analysis 파라미터
-  train_window?: number // 기본값: 252 (1년)
-  test_window?: number // 기본값: 21 (1개월)
   rebalance_frequency?: 'weekly' | 'monthly' | 'quarterly'
 
   // 공통 파라미터

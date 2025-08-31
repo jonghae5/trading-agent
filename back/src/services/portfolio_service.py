@@ -9,8 +9,8 @@ from scipy.optimize import minimize
 from typing import List, Dict
 import logging
 from functools import lru_cache
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +24,31 @@ class PortfolioOptimizationService:
         """SPY 시장 데이터 캐시 (날짜별)"""
         try:
             logger.info(f"Downloading SPY data from {start_date} to {end_date}")
-            market_data = yf.download("SPY", start=start_date, end=end_date, progress=False)['Close']
+            market_data = yf.download("SPY", start=start_date, end=end_date, progress=False, threads=True)['Close']
             logger.info(f"SPY data downloaded: {len(market_data)} days")
             return market_data
         except Exception as e:
             logger.warning(f"Failed to download SPY data: {e}")
+            return None
+    
+    @staticmethod
+    async def _async_cached_spy_data(start_date: str, end_date: str):
+        """SPY 시장 데이터 비동기 캐시"""
+        try:
+            # 먼저 캐시 확인
+            cached_data = PortfolioOptimizationService._cached_spy_data(start_date, end_date)
+            if cached_data is not None:
+                return cached_data
+            
+            # 캐시에 없으면 비동기로 다운로드
+            def _download_spy():
+                return yf.download("SPY", start=start_date, end=end_date, progress=False, threads=True)['Close']
+            
+            market_data = await asyncio.to_thread(_download_spy)
+            logger.info(f"SPY data downloaded asynchronously: {len(market_data)} days")
+            return market_data
+        except Exception as e:
+            logger.warning(f"Failed to download SPY data asynchronously: {e}")
             return None
 
     @staticmethod
@@ -37,6 +57,9 @@ class PortfolioOptimizationService:
         train_data, test_data, method, kwargs = args
         
         try:
+            # 거래비용 파라미터 추출
+            transaction_cost = kwargs.get('transaction_cost', 0.001)
+            
             # 훈련 데이터로 포트폴리오 최적화
             optimization_result = PortfolioOptimizationService.optimize_portfolio(
                 train_data, method=method, **kwargs
@@ -62,6 +85,10 @@ class PortfolioOptimizationService:
             weight_series = pd.Series(adjusted_weights).reindex(test_returns.columns, fill_value=0)
             portfolio_returns = test_returns.dot(weight_series)
             
+            # 리밸런싱 거래비용 차감 (첫날에 한 번만 적용)
+            if len(portfolio_returns) > 0:
+                portfolio_returns.iloc[0] -= transaction_cost
+            
             # 성과 지표 계산 (벡터화)
             period_cumret = (1 + portfolio_returns).prod() - 1
             period_vol = portfolio_returns.std() * np.sqrt(252)
@@ -82,22 +109,37 @@ class PortfolioOptimizationService:
             return None
 
     @staticmethod
-    def walk_forward_analysis(
+    async def walk_forward_analysis(
         price_data: pd.DataFrame,
         method: str = "max_sharpe",
-        train_window: int = 252,  # 1년 훈련 윈도우
-        test_window: int = 21,   # 1달 테스트 윈도우
-        rebalance_freq: str = "monthly",  # 월별 리밸런싱
+        rebalance_freq: str = "monthly",  # 리밸런싱 빈도: "monthly", "quarterly"
+        transaction_cost: float = 0.001,  # 거래비용 (0.1%)
         **kwargs
     ) -> Dict:
         """Walk-Forward Analysis를 통한 실제적인 백테스팅 (최적화됨)"""
         try:
             start_time = time.time()
+            
+            # 리밸런싱 빈도에 따른 자동 윈도우 설정
+            if rebalance_freq == "quarterly":
+                train_window = 252  # 4분기 (1년)
+                test_window = 63    # 1분기 (3개월)
+                logger.info(f"Quarterly rebalancing mode: {train_window} train / {test_window} test days")
+                
+            else:  # monthly (기본값)
+                # 월별 모드: 12개월 훈련, 1개월 테스트  
+                train_window = 252  # 12개월 (1년)
+                test_window = 21    # 1개월
+                logger.info(f"Monthly rebalancing mode: {train_window} train / {test_window} test days")
+            
             logger.info(f"Starting optimized Walk-Forward Analysis with {len(price_data)} days of data")
             
             # 데이터 길이 검증
             if len(price_data) < train_window + test_window:
-                raise ValueError(f"최소 {train_window + test_window}일 이상의 데이터가 필요합니다")
+                raise ValueError(f"최소 {train_window + test_window}일 이상의 데이터가 필요합니다 (현재: {len(price_data)}일)")
+            
+            # kwargs에 transaction_cost 추가
+            kwargs['transaction_cost'] = transaction_cost
             
             # 모든 기간 데이터를 먼저 준비 (메모리 사용량을 줄이기 위해)
             periods_args = []
@@ -114,26 +156,32 @@ class PortfolioOptimizationService:
             
             logger.info(f"Processing {len(periods_args)} periods")
             
-            # 병렬 처리로 최적화 (CPU 코어 수 고려)
+            # asyncio를 사용한 개선된 병렬 처리 (순서 보장)
             results = []
-            max_workers = min(4, len(periods_args))  # 최대 4개 워커로 제한
             
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                # 병렬 실행
-                future_to_period = {
-                    executor.submit(PortfolioOptimizationService._optimize_single_period, args): i 
-                    for i, args in enumerate(periods_args)
-                }
-                
-                period_results = [None] * len(periods_args)
-                for future in as_completed(future_to_period):
-                    period_idx = future_to_period[future]
-                    try:
-                        result = future.result(timeout=30)  # 30초 타임아웃
-                        if result:
-                            period_results[period_idx] = result
-                    except Exception as e:
-                        logger.warning(f"Period {period_idx} failed: {e}")
+            async def process_single_period_with_index(idx, args):
+                """단일 기간을 비동기적으로 처리 (인덱스 포함)"""
+                loop = asyncio.get_event_loop()
+                result = await loop.run_in_executor(
+                    None, 
+                    PortfolioOptimizationService._optimize_single_period, 
+                    args
+                )
+                return idx, result  # 인덱스와 함께 반환
+            
+            # 비동기 병렬 처리 - 순서 보장을 위해 인덱스 포함
+            tasks = [
+                process_single_period_with_index(i, args) 
+                for i, args in enumerate(periods_args)
+            ]
+            results_with_idx = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # 순서대로 정렬하여 시간순서 보장
+            period_results = [None] * len(periods_args)
+            for result in results_with_idx:
+                if not isinstance(result, Exception) and result is not None:
+                    idx, data = result
+                    period_results[idx] = data if not isinstance(data, Exception) else None
             
             # 결과 필터링 및 포트폴리오 가치 계산
             initial_value = 100000
@@ -198,10 +246,10 @@ class PortfolioOptimizationService:
                         ewma_span = max(30, int(len(latest_data) * 0.7))
                         
                         try:
-                            # 시장 벤치마크 데이터 (캐시 사용)
+                            # 시장 벤치마크 데이터 (비동기 캐시 사용)
                             start_date = latest_data.index.min().strftime('%Y-%m-%d')
                             end_date = latest_data.index.max().strftime('%Y-%m-%d')
-                            market_data = PortfolioOptimizationService._cached_spy_data(start_date, end_date)
+                            market_data = await PortfolioOptimizationService._async_cached_spy_data(start_date, end_date)
                             if market_data is not None:
                                 market_data = market_data.reindex(latest_data.index, method='ffill').dropna()
                             else:
@@ -264,7 +312,8 @@ class PortfolioOptimizationService:
                 'parameters': {
                     'train_window': train_window,
                     'test_window': test_window,
-                    'rebalance_frequency': rebalance_freq
+                    'rebalance_frequency': rebalance_freq,
+                    'transaction_cost': transaction_cost
                 },
                 # 추가 분석 정보
                 **additional_info
@@ -275,11 +324,21 @@ class PortfolioOptimizationService:
             raise ValueError(f"Walk-Forward Analysis 실행에 실패했습니다: {str(e)}")
     
     @staticmethod
-    async def fetch_price_data(tickers: List[str], period: str = "2y") -> pd.DataFrame:
-        """주가 데이터 가져오기"""
+    async def fetch_price_data(tickers: List[str], period: str = "2y", rebalance_freq: str = "monthly") -> pd.DataFrame:
+        """주가 데이터 가져오기 (비동기 최적화)"""
         try:
-            # yfinance로 데이터 가져오기
-            data = yf.download(tickers, period=period, progress=False)
+            # 리밸런싱 빈도에 따른 데이터 기간 자동 조정
+            if rebalance_freq == "quarterly":
+                period = "5y"  # 분기별 모드는 더 긴 기간 필요
+                logger.info(f"Quarterly mode: extended data period to {period}")
+            
+            # asyncio.to_thread를 사용해서 yfinance를 비동기적으로 실행
+            def _download_data():
+                return yf.download(tickers, period=period, progress=False, threads=True)
+            
+            # 병렬로 데이터 다운로드
+            data = await asyncio.to_thread(_download_data)
+            
             # 단일 종목인 경우 처리
             if len(tickers) == 1:
                 data = pd.DataFrame(data['Close'])
@@ -331,8 +390,7 @@ class PortfolioOptimizationService:
             
             # 모든 방법에서 CAPM-EWMA 하이브리드 기대 수익률 사용 (CAPM 60% + EWMA 40%)
             try:
-                # 시장 벤치마크 데이터 가져오기 (SPY 사용, 캐시 적용)
-                # price_data와 동일한 기간으로 SPY 벤치마크 데이터를 가져옴
+                # 시장 벤치마크 데이터 가져오기 (SPY 사용, 동기 캐시 사용 - optimize_portfolio는 동기함수)
                 start_date = price_data.index.min().strftime('%Y-%m-%d')
                 end_date = price_data.index.max().strftime('%Y-%m-%d')
                 market_data = PortfolioOptimizationService._cached_spy_data(start_date, end_date)
@@ -561,10 +619,6 @@ class PortfolioOptimizationService:
                 mu, S
             )
             
-            # Stress Test 시나리오 계산
-            stress_scenarios = PortfolioOptimizationService._calculate_stress_scenarios(
-                weighted_returns, significant_weights, price_data
-            )
             
             return {
                 "weights": significant_weights,
@@ -580,7 +634,6 @@ class PortfolioOptimizationService:
                 "leftover_cash": round(float(leftover), 2),
                 "correlation_matrix": correlation_matrix,
                 "efficient_frontier": efficient_frontier_data,
-                "stress_scenarios": stress_scenarios,
                 "transaction_cost_impact": round(float(transaction_cost * 100), 2),
                 "concentration_limit": round(float(max_position_size * 100), 1)
             }
@@ -640,11 +693,39 @@ class PortfolioOptimizationService:
             raise ValueError(f"포트폴리오 시뮬레이션에 실패했습니다: {str(e)}")
     
     @staticmethod
+    async def validate_tickers_async(tickers: List[str]) -> List[str]:
+        """종목 코드 유효성 검증 (비동기)"""
+        try:
+            # 비동기로 yfinance 데이터 요청
+            def _validate_data():
+                return yf.download(tickers, period="5d", progress=False, threads=True)
+            
+            test_data = await asyncio.to_thread(_validate_data)
+            
+            if test_data.empty:
+                raise ValueError("유효하지 않은 종목 코드가 포함되어 있습니다.")
+            
+            # 실제 데이터가 있는 종목들만 반환
+            if len(tickers) == 1:
+                return tickers if not test_data.empty else []
+            else:
+                # MultiIndex 컬럼 구조에서 유효한 티커 확인
+                if isinstance(test_data.columns, pd.MultiIndex):
+                    valid_tickers = [ticker for ticker in tickers if ticker in test_data.columns.get_level_values(1)]
+                else:
+                    valid_tickers = [ticker for ticker in tickers if ticker in test_data.columns]
+                return valid_tickers
+                
+        except Exception as e:
+            logger.error(f"종목 코드 유효성 검증 실패: {e}")
+            raise ValueError(f"종목 코드 유효성 검증에 실패했습니다: {str(e)}")
+
+    @staticmethod
     def validate_tickers(tickers: List[str]) -> List[str]:
-        """종목 코드 유효성 검증"""
+        """종목 코드 유효성 검증 (동기 - 하위 호환성)"""
         try:
             # yfinance로 간단한 데이터 요청해서 유효성 확인
-            test_data = yf.download(tickers, period="5d", progress=False)
+            test_data = yf.download(tickers, period="5d", progress=False, threads=True)
             
             if test_data.empty:
                 raise ValueError("유효하지 않은 종목 코드가 포함되어 있습니다.")
@@ -665,41 +746,63 @@ class PortfolioOptimizationService:
             raise ValueError(f"종목 코드 유효성 검증에 실패했습니다: {str(e)}")
     
     @staticmethod
-    def _calculate_efficient_frontier(mu, S, num_portfolios=300):
-        """Efficient Frontier 계산"""
+    def _calculate_efficient_frontier(mu, S, num_portfolios=100):
+        """Efficient Frontier 계산 (강화된 안정성)"""
         try:
-            # 효율적 프론티어 포인트들 계산
-            min_vol = mu.min()
-            max_vol = mu.max()
-            target_returns = np.linspace(min_vol, max_vol * 0.95, num_portfolios)
+            # 공분산 행렬 정규화 및 안정성 강화
+            eigenvals, eigenvecs = np.linalg.eigh(S)
+            min_eigenval = np.min(eigenvals)
+            
+            if min_eigenval <= 1e-8:
+                # 음수 또는 0에 가까운 고유값 보정
+                eigenvals = np.maximum(eigenvals, 1e-6)
+                S_regularized = eigenvecs @ np.diag(eigenvals) @ eigenvecs.T
+                S = pd.DataFrame(S_regularized, index=S.index, columns=S.columns)
+                logger.info(f"Regularized covariance matrix: min eigenvalue was {min_eigenval}")
+            
+            # 기대수익률 범위를 더 보수적으로 설정
+            mu_mean = mu.mean()
+            mu_std = mu.std()
+            min_return = max(mu.min(), mu_mean - 2*mu_std)
+            max_return = min(mu.max(), mu_mean + 2*mu_std) * 0.9  # 더 보수적
+            
+            # 포인트 수를 줄여서 안정성 향상
+            target_returns = np.linspace(min_return, max_return, num_portfolios)
             
             efficient_portfolios = []
+            successful_optimizations = 0
             
             for target_return in target_returns:
                 try:
                     # 새로운 EfficientFrontier 인스턴스 생성
                     ef_temp = EfficientFrontier(mu, S)
                     ef_temp.add_constraint(lambda w: cp.sum(w) == 1)
-                    ef_temp.add_constraint(lambda w: w >= 0)
+                    ef_temp.add_constraint(lambda w: w >= 0.01)  # 최소 1%
+                    ef_temp.add_constraint(lambda w: w <= 0.40)  # 최대 40%
                     
                     # 목표 수익률에 대한 최소 변동성 포트폴리오
                     ef_temp.efficient_return(target_return, market_neutral=False)
                     performance = ef_temp.portfolio_performance(verbose=False, risk_free_rate=0.02)
                     
-                    efficient_portfolios.append({
-                        "expected_return": round(float(performance[0]), 4),
-                        "volatility": round(float(performance[1]), 4),
-                        "sharpe_ratio": round(float(performance[2]), 2)
-                    })
+                    # 성과지표 유효성 검증
+                    if all(np.isfinite([performance[0], performance[1], performance[2]])):
+                        efficient_portfolios.append({
+                            "expected_return": round(float(performance[0]), 4),
+                            "volatility": round(float(performance[1]), 4),
+                            "sharpe_ratio": round(float(performance[2]), 2)
+                        })
+                        successful_optimizations += 1
                     
-                except (OptimizationError, cp.error.SolverError):
+                except (OptimizationError, cp.error.SolverError, ValueError) as e:
                     # 최적화 실패 시 건너뛰기
                     continue
+                    
+            logger.info(f"Efficient Frontier: {successful_optimizations}/{num_portfolios} successful optimizations")
             
             # Max Sharpe 포트폴리오 계산
             ef_sharpe = EfficientFrontier(mu, S)
             ef_sharpe.add_constraint(lambda w: cp.sum(w) == 1)
-            ef_sharpe.add_constraint(lambda w: w >= 0)
+            ef_sharpe.add_constraint(lambda w: w >= 0.01)
             ef_sharpe.max_sharpe(risk_free_rate=0.02)
             sharpe_performance = ef_sharpe.portfolio_performance(verbose=False, risk_free_rate=0.02)
             
@@ -780,56 +883,4 @@ class PortfolioOptimizationService:
             n_assets = len(mu)
             equal_weights = np.ones(n_assets) / n_assets
             return dict(zip(mu.index, equal_weights))
-    
-    @staticmethod
-    def _calculate_stress_scenarios(weighted_returns, weights, price_data):
-        """스트레스 테스트 시나리오 계산"""
-        try:
-            scenarios = {}
-            
-            # 실제 거래일 수 사용
-            frequency = len(price_data)
-            
-            # 1. 시장 급락 시나리오 (-20%)
-            market_crash_returns = weighted_returns * 0.8  # 20% 하락
-            scenarios["market_crash"] = {
-                "name": "시장 급락 (-20%)",
-                "portfolio_return": round(float(market_crash_returns.mean() * frequency), 4),
-                "max_drawdown": round(float(market_crash_returns.min()), 4)
-            }
-            
-            # 2. 높은 변동성 시나리오 (변동성 2배)
-            high_vol_returns = weighted_returns * 2 - weighted_returns.mean()
-            scenarios["high_volatility"] = {
-                "name": "고변동성 (변동성 2배)",
-                "portfolio_return": round(float(high_vol_returns.mean() * frequency), 4),
-                "volatility": round(float(high_vol_returns.std() * np.sqrt(frequency)), 4)
-            }
-            
-            # 3. 금리 급등 시나리오 (채권형 자산 타격)
-            returns = price_data.pct_change().dropna()
-            correlations = returns.corr()
-            
-            # 상관관계가 높은 자산들 식별 (0.7 이상)
-            high_corr_impact = {}
-            for ticker in weights.keys():
-                if ticker in correlations.index:
-                    avg_corr = correlations[ticker].drop(ticker).mean()
-                    impact_factor = 0.9 if avg_corr > 0.7 else 1.0
-                    high_corr_impact[ticker] = impact_factor
-            
-            # 4. 최악의 과거 시나리오 (worst 5% days)
-            worst_days = weighted_returns.quantile(0.05)
-            scenarios["worst_historical"] = {
-                "name": "과거 최악 시나리오 (하위 5%)",
-                "worst_day_return": round(float(worst_days), 4),
-                "probability": "5%"
-            }
-            
-            return scenarios
-            
-        except Exception as e:
-            logger.warning(f"Stress test 계산 실패: {e}")
-            return {}
-
     

@@ -14,7 +14,7 @@ from ..schemas.common import ApiResponse
 from ..services.portfolio_service import PortfolioOptimizationService
 from src.services.economic_service import get_economic_service, EconomicService
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["portfolio"])
@@ -38,7 +38,7 @@ async def create_portfolio(
             )
         
         # 주가 데이터 가져오기 및 최적화
-        price_data = await PortfolioOptimizationService.fetch_price_data(valid_tickers)
+        price_data = await PortfolioOptimizationService.fetch_price_data(tickers=valid_tickers)
         optimization_result = PortfolioOptimizationService.optimize_portfolio(
             price_data, 
             portfolio.optimization_method
@@ -67,7 +67,6 @@ async def create_portfolio(
             value_at_risk_95=optimization_result.get("value_at_risk_95"),
             transaction_cost=optimization_result.get("transaction_cost_impact", 0.1) / 100,
             max_position_size=optimization_result.get("concentration_limit", 30.0) / 100,
-            stress_scenarios=optimization_result.get("stress_scenarios"),
             correlation_matrix=optimization_result.get("correlation_matrix")
         )
         
@@ -180,7 +179,6 @@ async def delete_portfolio(
         
         # 소프트 삭제
         portfolio.is_active = False
-        from datetime import timezone
         portfolio.updated_at = datetime.now(timezone.utc)
         
         db.commit()
@@ -212,23 +210,24 @@ async def walk_forward_backtest(
     try:
         logger.info(f"User {current_user.username} starting Walk-Forward Analysis")
         
-        # 종목 코드 유효성 검증
-        valid_tickers = PortfolioOptimizationService.validate_tickers(request.tickers)
+        # 종목 코드 유효성 검증 (비동기)
+        valid_tickers = await PortfolioOptimizationService.validate_tickers_async(request.tickers)
         if len(valid_tickers) < 2:
             raise HTTPException(
                 status_code=400, 
                 detail="최소 2개 이상의 유효한 종목이 필요합니다."
             )
         
-        # 더 긴 기간의 데이터 가져오기 (2년)
-        price_data = await PortfolioOptimizationService.fetch_price_data(valid_tickers, period="2y")
+        # 리밸런싱 빈도에 따른 데이터 가져오기 (분기별=5년, 월별=2년)
+        price_data = await PortfolioOptimizationService.fetch_price_data(
+            tickers=valid_tickers, 
+            rebalance_freq=request.rebalance_frequency or "monthly"
+        )
         
-        # Walk-Forward Analysis 실행
-        backtest_result = PortfolioOptimizationService.walk_forward_analysis(
+        # Walk-Forward Analysis 실행 (비동기)
+        backtest_result = await PortfolioOptimizationService.walk_forward_analysis(
             price_data,
             method=request.optimization_method,
-            train_window=request.train_window or 252,  # 1년 기본값
-            test_window=request.test_window or 21,     # 1개월 기본값
             rebalance_freq=request.rebalance_frequency or "monthly",
             investment_amount=request.investment_amount or 100000,
             transaction_cost=request.transaction_cost or 0.001,

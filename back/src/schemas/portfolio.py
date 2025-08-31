@@ -38,16 +38,6 @@ class EfficientFrontierData(BaseModel):
     individual_assets: List[IndividualAsset]
     risk_free_rate: float
 
-class StressScenario(BaseModel):
-    name: str
-    portfolio_return: Optional[float] = None
-    max_drawdown: Optional[float] = None
-    volatility: Optional[float] = None
-    worst_day_return: Optional[float] = None
-    probability: Optional[str] = None
-    portfolio_impact: Optional[float] = None
-    affected_position: Optional[str] = None
-
 class OptimizationResult(BaseModel):
     weights: Dict[str, float]
     expected_annual_return: float
@@ -62,7 +52,6 @@ class OptimizationResult(BaseModel):
     leftover_cash: Optional[float] = None
     correlation_matrix: Optional[Dict[str, Dict[str, float]]] = None
     efficient_frontier: Optional[EfficientFrontierData] = None
-    stress_scenarios: Optional[Dict[str, StressScenario]] = None
     transaction_cost_impact: Optional[float] = None
     concentration_limit: Optional[float] = None
     
@@ -112,7 +101,6 @@ class PortfolioResponse(BaseModel):
     value_at_risk_95: Optional[float] = None
     transaction_cost: Optional[float] = None
     max_position_size: Optional[float] = None
-    stress_scenarios: Optional[Dict[str, StressScenario]] = None
     correlation_matrix: Optional[Dict[str, Dict[str, float]]] = None
     is_active: bool
     created_at: datetime
@@ -127,15 +115,7 @@ class BacktestRequest(BaseModel):
     optimization_method: str = Field(default="max_sharpe", pattern="^(max_sharpe|min_volatility|efficient_frontier|risk_parity)$")
     
     # Walk-Forward Analysis 파라미터
-    train_window: Optional[int] = Field(default=252, ge=60, le=1260)  # 2개월~5년
-    test_window: Optional[int] = Field(default=21, ge=5, le=63)       # 1주~3개월
-    rebalance_frequency: Optional[str] = Field(default="monthly", pattern="^(weekly|monthly|quarterly)$")
-    
-    # Out-of-Sample 파라미터
-    train_ratio: Optional[float] = Field(default=0.7, ge=0.5, le=0.9)  # 50%~90%
-    
-    # Monthly Rebalancing 파라미터
-    lookback_months: Optional[int] = Field(default=12, ge=3, le=36)  # 3개월~3년
+    rebalance_frequency: Optional[str] = Field(default="monthly", pattern="^(monthly|quarterly)$")
     
     # 공통 파라미터
     investment_amount: Optional[float] = Field(default=100000, ge=1000, le=10000000)
