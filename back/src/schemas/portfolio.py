@@ -8,6 +8,7 @@ class PortfolioBase(BaseModel):
     description: Optional[str] = None
     tickers: List[str] = Field(..., min_items=2, max_items=20)
     optimization_method: str = Field(..., pattern="^(max_sharpe|min_volatility|efficient_frontier)$")
+    rebalance_frequency: str = Field(..., pattern="^(monthly|quarterly)$")
 
 
 class PortfolioCreate(PortfolioBase):
@@ -90,18 +91,8 @@ class PortfolioResponse(BaseModel):
     name: str
     description: Optional[str] = None
     tickers: List[str]
-    weights: List[float]
     optimization_method: str
-    expected_return: Optional[float] = None
-    volatility: Optional[float] = None
-    sharpe_ratio: Optional[float] = None
-    sortino_ratio: Optional[float] = None
-    max_drawdown: Optional[float] = None
-    calmar_ratio: Optional[float] = None
-    value_at_risk_95: Optional[float] = None
-    transaction_cost: Optional[float] = None
-    max_position_size: Optional[float] = None
-    correlation_matrix: Optional[Dict[str, Dict[str, float]]] = None
+    rebalance_frequency: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

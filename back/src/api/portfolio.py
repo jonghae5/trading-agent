@@ -37,39 +37,16 @@ async def create_portfolio(
                 detail="최소 2개 이상의 유효한 종목이 필요합니다."
             )
         
-        # 주가 데이터 가져오기 및 최적화
-        price_data = await PortfolioOptimizationService.fetch_price_data(tickers=valid_tickers)
-        optimization_result = PortfolioOptimizationService.optimize_portfolio(
-            price_data, 
-            portfolio.optimization_method
-        )
-        
-        # 가중치를 리스트로 변환 (종목 순서대로)
-        weights_list = [
-            optimization_result["weights"].get(ticker, 0.0) 
-            for ticker in valid_tickers
-        ]
-        
         # DB에 저장 (고급 지표 포함)
         db_portfolio = Portfolio(
             user_id=current_user.id,
             name=portfolio.name,
             description=portfolio.description,
             tickers=valid_tickers,
-            weights=weights_list,
             optimization_method=portfolio.optimization_method,
-            expected_return=optimization_result["expected_annual_return"],
-            volatility=optimization_result["annual_volatility"],
-            sharpe_ratio=optimization_result["sharpe_ratio"],
-            sortino_ratio=optimization_result.get("sortino_ratio"),
-            max_drawdown=optimization_result.get("max_drawdown"),
-            calmar_ratio=optimization_result.get("calmar_ratio"),
-            value_at_risk_95=optimization_result.get("value_at_risk_95"),
-            transaction_cost=optimization_result.get("transaction_cost_impact", 0.1) / 100,
-            max_position_size=optimization_result.get("concentration_limit", 30.0) / 100,
-            correlation_matrix=optimization_result.get("correlation_matrix")
+            rebalance_frequency=portfolio.rebalance_frequency
         )
-        
+ 
         db.add(db_portfolio)
         db.commit()
         db.refresh(db_portfolio)

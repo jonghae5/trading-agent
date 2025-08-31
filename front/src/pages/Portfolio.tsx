@@ -188,7 +188,8 @@ export const Portfolio: React.FC = () => {
         name: portfolioName.trim(),
         description: portfolioDescription.trim() || undefined,
         tickers: backtestResult.tickers, // 백테스트에서 검증된 종목 사용
-        optimization_method: optimizationMethod
+        optimization_method: optimizationMethod,
+        rebalance_frequency: rebalanceFrequency
       })
 
       toast.success('포트폴리오가 저장되었습니다!')
@@ -1301,21 +1302,17 @@ export const Portfolio: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">기대 수익률:</span>
+                        <span className="text-gray-600">월별/분기별:</span>
                         <span
                           className={`font-medium ${
-                            (portfolio.expected_return || 0) >= 0
+                            portfolio.rebalance_frequency == 'monthly'
                               ? 'text-green-600'
                               : 'text-red-600'
                           }`}
                         >
-                          {((portfolio.expected_return || 0) * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">샤프 비율:</span>
-                        <span className="font-medium">
-                          {(portfolio.sharpe_ratio || 0).toFixed(2)}
+                          {portfolio.rebalance_frequency == 'monthly'
+                            ? '월 단위'
+                            : '분기 단위'}
                         </span>
                       </div>
                     </div>

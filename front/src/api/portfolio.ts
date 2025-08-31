@@ -1,5 +1,4 @@
 import { apiClient } from './client'
-import { EconomicEvent } from './economic'
 
 export interface EfficientFrontierPoint {
   expected_return: number
@@ -63,18 +62,8 @@ export interface PortfolioResponse {
   name: string
   description?: string
   tickers: string[]
-  weights: number[]
   optimization_method: string
-  expected_return?: number
-  volatility?: number
-  sharpe_ratio?: number
-  sortino_ratio?: number
-  max_drawdown?: number
-  calmar_ratio?: number
-  value_at_risk_95?: number
-  transaction_cost?: number
-  max_position_size?: number
-  correlation_matrix?: Record<string, Record<string, number>>
+  rebalance_frequency: string
   is_active: boolean
   created_at: string
   updated_at: string
@@ -85,6 +74,7 @@ export interface PortfolioCreateRequest {
   description?: string
   tickers: string[]
   optimization_method: string
+  rebalance_frequency: string
 }
 
 export interface PortfolioSimulationResponse {
