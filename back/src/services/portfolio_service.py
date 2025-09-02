@@ -800,7 +800,7 @@ class PortfolioOptimizationService:
             raise ValueError(f"종목 코드 유효성 검증에 실패했습니다: {str(e)}")
     
     @staticmethod
-    def _calculate_efficient_frontier(mu, S, num_portfolios=100, max_position_size=0.40):
+    def _calculate_efficient_frontier(mu, S, num_portfolios=200, max_position_size=0.40):
         """Efficient Frontier 계산 (강화된 안정성)"""
         try:
             # 공분산 행렬 정규화 및 안정성 강화
