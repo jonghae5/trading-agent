@@ -33,16 +33,16 @@ const navigation: NavigationItem[] = [
     description: 'Run AI trading analysis'
   },
   {
-    name: '📊 포트폴리오',
-    href: '/portfolio',
-    icon: PieChart,
-    description: 'Portfolio optimization'
-  },
-  {
     name: '📚 히스토리',
     href: '/history',
     icon: History,
     description: 'View analysis history'
+  },
+  {
+    name: '📊 포트폴리오',
+    href: '/portfolio',
+    icon: PieChart,
+    description: 'Portfolio optimization'
   },
   {
     name: '📰 뉴스',
