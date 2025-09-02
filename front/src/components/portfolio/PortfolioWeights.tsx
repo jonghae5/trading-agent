@@ -214,15 +214,15 @@ export const PortfolioWeights: React.FC<PortfolioWeightsProps> = ({
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600">다양성:</span>
+                    <span className="text-gray-600">투자 스타일:</span>
                     <span className="font-semibold ml-2">
-                      {chartData.length >= 10
-                        ? '매우 높음'
-                        : chartData.length >= 7
-                          ? '높음'
-                          : chartData.length >= 5
-                            ? '보통'
-                            : '낮음'}
+                      {chartData.length <= 2
+                        ? '초집중형'
+                        : chartData.length <= 4
+                          ? '집중형'
+                          : chartData.length <= 6
+                            ? '균형형'
+                            : '분산형'}
                     </span>
                   </div>
                 </div>
@@ -238,23 +238,26 @@ export const PortfolioWeights: React.FC<PortfolioWeightsProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Card className="bg-yellow-50 border-yellow-200">
+        <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-4">
-            <h4 className="font-semibold text-yellow-800 mb-2">
-              💡 분산투자 가이드
+            <h4 className="font-semibold text-blue-800 mb-2">
+              🏛️ 월가 공격적 투자 전략
             </h4>
-            <div className="text-sm text-yellow-800 space-y-1">
+            <div className="text-sm text-blue-800 space-y-1">
               <p>
-                • <strong>집중도:</strong> 단일 종목이 30% 이상 차지하면 위험이
-                높아집니다
+                • <strong>집중투자:</strong> 2개 종목 시 각 50%, 3개 종목 시
+                최대 35%로 공격적 집중
               </p>
               <p>
-                • <strong>다양성:</strong> 5개 이상 종목으로 구성하면 리스크
-                분산 효과가 있습니다
+                • <strong>리스크-리턴:</strong> 높은 집중도를 통해 초과수익 추구
               </p>
               <p>
-                • <strong>리밸런싱:</strong> 정기적으로 비중을 조정하여 목표
-                구성을 유지하세요
+                • <strong>포지션 사이징:</strong> 확신 있는 종목에 대한 대형
+                포지션
+              </p>
+              <p>
+                • <strong>모니터링:</strong> 집중투자 시 개별 종목 리스크를
+                면밀히 관찰 필요
               </p>
             </div>
           </CardContent>

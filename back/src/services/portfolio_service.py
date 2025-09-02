@@ -270,8 +270,12 @@ class PortfolioOptimizationService:
                         
                         S = risk_models.CovarianceShrinkage(latest_data).ledoit_wolf()
                         
-                        # 효율적 프론티어 계산
-                        efficient_frontier_data = PortfolioOptimizationService._calculate_efficient_frontier(mu, S)
+                        # 효율적 프론티어 계산 (동적 집중도 제한 적용)
+                        tickers_count = len(latest_data.columns)
+                        dynamic_max_position = 0.50 if tickers_count == 2 else (0.35 if tickers_count == 3 else 0.30)
+                        efficient_frontier_data = PortfolioOptimizationService._calculate_efficient_frontier(
+                            mu, S, max_position_size=dynamic_max_position
+                        )
                         additional_info['efficient_frontier'] = efficient_frontier_data
                         
                         # 이산 할당 계산 (최신 가격 사용)
@@ -369,7 +373,7 @@ class PortfolioOptimizationService:
         method: str = "max_sharpe",
         investment_amount: float = 100000,
         transaction_cost: float = 0.001,
-        max_position_size: float = 0.30
+        max_position_size: float = 0.65  # 공격적 투자를 위한 높은 집중도 허용
     ) -> Dict:
         """포트폴리오 최적화 - 개선된 버전"""
         try:
@@ -377,9 +381,22 @@ class PortfolioOptimizationService:
             if len(price_data) < 30:
                 raise ValueError("최소 30일 이상의 가격 데이터가 필요합니다")
             
+            # 월가 공격적 집중투자 전략 적용
             tickers_size = len(price_data.columns)
-            if tickers_size <= 3:
-                max_position_size = ((100 // tickers_size) + 1) / 100
+            if tickers_size == 2:
+                max_position_size = 0.50  # 2개 종목: 각 50%
+            elif tickers_size == 3:
+                max_position_size = 0.35  # 3개 종목: 최대 35%
+            elif tickers_size == 4:
+                max_position_size = 0.30  # 4개 종목: 최대 30%
+            elif tickers_size == 5:
+                max_position_size = 0.25  # 5개 종목: 최대 25%
+            elif tickers_size == 6:
+                max_position_size = 0.20  # 6개 종목: 최대 20%
+            else:
+                max_position_size = 0.15  # 7개 이상: 최대 15%
+            
+            logger.info(f"Wall Street aggressive strategy applied: {tickers_size} assets, max position: {max_position_size*100}%")
 
             # 실제 거래일 수 계산
             trading_days = len(price_data)
@@ -446,7 +463,7 @@ class PortfolioOptimizationService:
                     # Max Sharpe 전용 EF 인스턴스 생성
                     ef_sharpe = EfficientFrontier(mu, S)
                     ef_sharpe.add_constraint(lambda w: cp.sum(w) == 1)
-                    ef_sharpe.add_constraint(lambda w: w >= 0.01)
+                    ef_sharpe.add_constraint(lambda w: w >= 0.005)  # 최소 0.5% (더 공격적)
                     ef_sharpe.add_constraint(lambda w: w <= max_position_size)
                     weights = ef_sharpe.max_sharpe(risk_free_rate=0.02)
                     optimization_ef = ef_sharpe
@@ -455,7 +472,7 @@ class PortfolioOptimizationService:
                     # Min Volatility 전용 EF 인스턴스 생성
                     ef_min_vol = EfficientFrontier(mu, S)
                     ef_min_vol.add_constraint(lambda w: cp.sum(w) == 1)
-                    ef_min_vol.add_constraint(lambda w: w >= 0.01)
+                    ef_min_vol.add_constraint(lambda w: w >= 0.005)  # 최소 0.5% (더 공격적)
                     ef_min_vol.add_constraint(lambda w: w <= max_position_size)
                     
                     # 거래비용 고려
@@ -471,7 +488,7 @@ class PortfolioOptimizationService:
                     # Risk Parity의 경우 별도로 성과 계산을 위한 EF 인스턴스 생성
                     optimization_ef = EfficientFrontier(mu, S)
                     optimization_ef.add_constraint(lambda w: cp.sum(w) == 1)
-                    optimization_ef.add_constraint(lambda w: w >= 0.01)
+                    optimization_ef.add_constraint(lambda w: w >= 0.005)  # 최소 0.5% (더 공격적)
                     
                     # 거래비용 고려
                     if transaction_cost > 0:
@@ -481,7 +498,7 @@ class PortfolioOptimizationService:
                     # Efficient Frontier 전용 EF 인스턴스 생성
                     ef_frontier = EfficientFrontier(mu, S)
                     ef_frontier.add_constraint(lambda w: cp.sum(w) == 1)
-                    ef_frontier.add_constraint(lambda w: w >= 0.01)
+                    ef_frontier.add_constraint(lambda w: w >= 0.005)  # 최소 0.5% (더 공격적)
                     ef_frontier.add_constraint(lambda w: w <= max_position_size)
                     
                     # 거래비용 고려
@@ -493,7 +510,7 @@ class PortfolioOptimizationService:
                         # 임시 EF 인스턴스로 최대 달성 가능 수익률 확인
                         ef_temp = EfficientFrontier(mu, S)
                         ef_temp.add_constraint(lambda w: cp.sum(w) == 1)
-                        ef_temp.add_constraint(lambda w: w >= 0.01)
+                        ef_temp.add_constraint(lambda w: w >= 0.005)  # 최소 0.5% (더 공격적)
                         ef_temp.add_constraint(lambda w: w <= max_position_size)
                         ef_temp.max_sharpe(risk_free_rate=0.02)
                         temp_performance = ef_temp.portfolio_performance(verbose=False, risk_free_rate=0.02)
@@ -616,7 +633,7 @@ class PortfolioOptimizationService:
             
             # Efficient Frontier 계산
             efficient_frontier_data = PortfolioOptimizationService._calculate_efficient_frontier(
-                mu, S
+                mu, S, max_position_size=max_position_size
             )
             
             
@@ -746,7 +763,7 @@ class PortfolioOptimizationService:
             raise ValueError(f"종목 코드 유효성 검증에 실패했습니다: {str(e)}")
     
     @staticmethod
-    def _calculate_efficient_frontier(mu, S, num_portfolios=100):
+    def _calculate_efficient_frontier(mu, S, num_portfolios=100, max_position_size=0.40):
         """Efficient Frontier 계산 (강화된 안정성)"""
         try:
             # 공분산 행렬 정규화 및 안정성 강화
@@ -777,8 +794,9 @@ class PortfolioOptimizationService:
                     # 새로운 EfficientFrontier 인스턴스 생성
                     ef_temp = EfficientFrontier(mu, S)
                     ef_temp.add_constraint(lambda w: cp.sum(w) == 1)
-                    ef_temp.add_constraint(lambda w: w >= 0.01)  # 최소 1%
-                    ef_temp.add_constraint(lambda w: w <= 0.40)  # 최대 40%
+                    ef_temp.add_constraint(lambda w: w >= 0.005)  # 최소 0.5% (공격적)
+                    # 동적 집중도 제한 적용
+                    ef_temp.add_constraint(lambda w: w <= max_position_size)
                     
                     # 목표 수익률에 대한 최소 변동성 포트폴리오
                     ef_temp.efficient_return(target_return, market_neutral=False)
@@ -802,7 +820,8 @@ class PortfolioOptimizationService:
             # Max Sharpe 포트폴리오 계산
             ef_sharpe = EfficientFrontier(mu, S)
             ef_sharpe.add_constraint(lambda w: cp.sum(w) == 1)
-            ef_sharpe.add_constraint(lambda w: w >= 0.01)
+            ef_sharpe.add_constraint(lambda w: w >= 0.005)  # 최소 0.5% (공격적)
+            ef_sharpe.add_constraint(lambda w: w <= max_position_size)  # 동적 집중도 제한
             ef_sharpe.max_sharpe(risk_free_rate=0.02)
             sharpe_performance = ef_sharpe.portfolio_performance(verbose=False, risk_free_rate=0.02)
             

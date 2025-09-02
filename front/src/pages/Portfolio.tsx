@@ -147,13 +147,23 @@ export const Portfolio: React.FC = () => {
 
     setIsBacktesting(true)
     try {
+      // 월가 공격적 집중투자 전략 적용
+      const calculateMaxPositionSize = (tickerCount: number): number => {
+        if (tickerCount === 2) return 0.5 // 2개 종목: 각 50%
+        if (tickerCount === 3) return 0.35 // 3개 종목: 최대 35%
+        if (tickerCount === 4) return 0.3 // 4개 종목: 최대 30%
+        if (tickerCount === 5) return 0.25 // 5개 종목: 최대 25%
+        if (tickerCount === 6) return 0.2 // 6개 종목: 최대 20%
+        return 0.15 // 7개 이상: 최대 15%
+      }
+
       const backtestRequest: BacktestRequest = {
         tickers: selectedTickers,
         optimization_method: optimizationMethod,
         rebalance_frequency: rebalanceFrequency,
         investment_amount: 100000,
         transaction_cost: 0.001,
-        max_position_size: 0.3
+        max_position_size: calculateMaxPositionSize(selectedTickers.length)
       }
 
       // Only Walk-Forward Analysis
