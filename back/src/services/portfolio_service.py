@@ -236,11 +236,32 @@ class PortfolioOptimizationService:
             
             if final_weights and len(price_data) > 0:
                 try:
-                    # 상관관계 매트릭스
+                    # 상관관계 매트릭스 (전체 기간 사용 - 장기 상관관계 파악용)
+                    # 이것은 Look-ahead가 아님 - 상관관계는 전략적 자산 배분을 위한 장기 통계
                     correlation_matrix = price_data.corr().round(3).to_dict()
                     
-                    # 마지막 최적화 결과를 사용하여 효율적 프론티어 계산
-                    latest_data = price_data.tail(train_window)
+                    # Walk-Forward 마지막 기간과 일치하는 효율적 프론티어 계산 (Look-ahead bias 방지)
+                    # 마지막 Walk-Forward 기간의 훈련 데이터만 사용
+                    if results:
+                        # Walk-Forward 로직과 동일하게 마지막 훈련 윈도우 재구성
+                        total_periods = len(results)
+                        last_start_idx = train_window + (total_periods - 1) * test_window
+                        last_train_start_idx = max(0, last_start_idx - train_window)
+                        last_train_end_idx = last_start_idx
+                        
+                        # 훈련 기간만 엄격히 추출 (Look-ahead bias 방지)
+                        latest_data = price_data.iloc[last_train_start_idx:last_train_end_idx].copy()
+                        
+                        logger.info(f"Walk-Forward Efficient Frontier: using training data [{last_train_start_idx}:{last_train_end_idx}] = {len(latest_data)} days")
+                        logger.info(f"Training period: {latest_data.index[0].strftime('%Y-%m-%d')} to {latest_data.index[-1].strftime('%Y-%m-%d')}")
+                    else:
+                        # 결과가 없으면 마지막 훈련 윈도우 사용 (여전히 Look-ahead bias 없음)
+                        if len(price_data) >= train_window:
+                            latest_data = price_data.iloc[-train_window:].copy()
+                        else:
+                            latest_data = price_data.copy()
+                        logger.info(f"No Walk-Forward results, using last {len(latest_data)} days for Efficient Frontier")
+                    
                     if len(latest_data) >= 30:  # 최소 데이터 요구사항
                         frequency = len(latest_data)
                         ewma_span = max(30, int(len(latest_data) * 0.7))
@@ -270,21 +291,37 @@ class PortfolioOptimizationService:
                         
                         S = risk_models.CovarianceShrinkage(latest_data).ledoit_wolf()
                         
-                        # 효율적 프론티어 계산 (동적 집중도 제한 적용)
+                        # 월가 공격적 집중투자 전략 완전 적용
                         tickers_count = len(latest_data.columns)
-                        dynamic_max_position = 0.50 if tickers_count == 2 else (0.35 if tickers_count == 3 else 0.30)
+                        if tickers_count == 2:
+                            dynamic_max_position = 0.50  # 2개 종목: 각 50%
+                        elif tickers_count == 3:
+                            dynamic_max_position = 0.35  # 3개 종목: 최대 35%
+                        elif tickers_count == 4:
+                            dynamic_max_position = 0.30  # 4개 종목: 최대 30%
+                        elif tickers_count == 5:
+                            dynamic_max_position = 0.25  # 5개 종목: 최대 25%
+                        elif tickers_count == 6:
+                            dynamic_max_position = 0.20  # 6개 종목: 최대 20%
+                        else:
+                            dynamic_max_position = 0.15  # 7개 이상: 최대 15%
+                        
+                        logger.info(f"Efficient Frontier: {tickers_count} assets, Wall Street max position: {dynamic_max_position*100}%")
+                        
                         efficient_frontier_data = PortfolioOptimizationService._calculate_efficient_frontier(
                             mu, S, max_position_size=dynamic_max_position
                         )
                         additional_info['efficient_frontier'] = efficient_frontier_data
                         
-                        # 이산 할당 계산 (최신 가격 사용)
+                        # 이산 할당 계산 (훈련 기간 마지막 가격 사용 - Look-ahead bias 방지)
                         try:
-                            latest_prices = get_latest_prices(price_data)
-                            da = DiscreteAllocation(final_weights, latest_prices, total_portfolio_value=100000)
+                            # 훈련 데이터의 마지막 날 가격 사용 (미래 정보 사용 안함)
+                            training_latest_prices = latest_data.iloc[-1].to_dict()
+                            da = DiscreteAllocation(final_weights, training_latest_prices, total_portfolio_value=100000)
                             allocation, leftover = da.greedy_portfolio()
                             additional_info['discrete_allocation'] = allocation
                             additional_info['leftover_cash'] = round(float(leftover), 2)
+                            logger.info(f"Discrete allocation using training end prices from {latest_data.index[-1].strftime('%Y-%m-%d')}")
                         except Exception as e:
                             logger.warning(f"Discrete allocation 계산 실패: {e}")
                     
