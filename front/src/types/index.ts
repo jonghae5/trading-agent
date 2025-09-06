@@ -463,3 +463,91 @@ export interface BenGrahamAnalysisResponse {
   message: string
   data: BenGrahamAnalysisResult
 }
+
+// Portfolio Types
+export interface Portfolio {
+  id: number
+  user_id: number
+  name: string
+  description?: string
+  tickers: string[]
+  ticker_weights?: Record<string, number>
+  optimization_method: string
+  rebalance_frequency?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface PortfolioCreate {
+  name: string
+  description?: string
+  tickers: string[]
+  ticker_weights?: Record<string, number>
+  optimization_method: string
+  rebalance_frequency: string
+}
+
+export interface BacktestRequest {
+  tickers: string[]
+  ticker_weights?: Record<string, number>
+  optimization_method?: string
+  rebalance_frequency?: string
+  investment_amount?: number
+  transaction_cost?: number
+  max_position_size?: number
+}
+
+export interface BacktestResponse {
+  backtest_type: string
+  results: {
+    walk_forward_results?: any[]
+    portfolio_timeline?: any[]
+    rebalance_dates?: string[]
+    summary_stats?: {
+      total_return: number
+      annualized_return: number
+      annualized_volatility: number
+      sharpe_ratio: number
+      max_drawdown: number
+      win_rate: number
+      total_periods: number
+      final_value: number
+    }
+    final_weights?: Record<string, number>
+    method_used?: string
+    parameters?: any
+    correlation_matrix?: Record<string, Record<string, number>>
+    efficient_frontier?: any
+    discrete_allocation?: Record<string, number>
+    leftover_cash?: number
+    fixed_weights_performance?: {
+      portfolio_timeline: any[]
+      rebalance_dates: string[]
+      summary_stats: {
+        total_return: number
+        annualized_return: number
+        annualized_volatility: number
+        sharpe_ratio: number
+        sortino_ratio: number
+        max_drawdown: number
+        value_at_risk_95: number
+        total_transaction_costs: number
+        final_value: number
+        total_periods: number
+      }
+      fixed_weights: Record<string, number>
+      parameters: {
+        rebalance_frequency: string
+        transaction_cost: number
+        investment_amount: number
+      }
+    }
+  }
+  tickers: string[]
+}
+
+export interface TickerWeight {
+  ticker: string
+  weight: number
+}

@@ -43,6 +43,7 @@ async def create_portfolio(
             name=portfolio.name,
             description=portfolio.description,
             tickers=valid_tickers,
+            ticker_weights=portfolio.ticker_weights,
             optimization_method=portfolio.optimization_method,
             rebalance_frequency=portfolio.rebalance_frequency
         )
@@ -201,14 +202,15 @@ async def walk_forward_backtest(
             rebalance_freq=request.rebalance_frequency or "monthly"
         )
         
-        # Walk-Forward Analysis 실행 (비동기)
+        # Walk-Forward Analysis 실행 (비동기) - 고정 비중 통합
         backtest_result = await PortfolioOptimizationService.walk_forward_analysis(
             price_data,
             method=request.optimization_method,
             rebalance_freq=request.rebalance_frequency or "monthly",
-            investment_amount=request.investment_amount or 100000,
             transaction_cost=request.transaction_cost or 0.001,
-            max_position_size=request.max_position_size or 0.30
+            fixed_weights=request.ticker_weights,  # 고정 비중 전달 (있는 경우)
+            investment_amount=request.investment_amount or 100000,
+            max_position_size=request.max_position_size or 0.40
         )
         
         response = BacktestResponse(

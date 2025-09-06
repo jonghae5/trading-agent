@@ -11,6 +11,7 @@ class Portfolio(Base):
     name = Column(String(100), nullable=False)
     description = Column(String, nullable=True)
     tickers = Column(JSON, nullable=False)
+    ticker_weights = Column(JSON, nullable=True)
     optimization_method = Column(String(50), nullable=False)
     rebalance_frequency = Column(String(20), nullable=True, default="monthly")
     

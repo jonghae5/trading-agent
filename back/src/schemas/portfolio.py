@@ -7,6 +7,7 @@ class PortfolioBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
     tickers: List[str] = Field(..., min_items=2, max_items=20)
+    ticker_weights: Optional[Dict[str, float]] = None
     optimization_method: str = Field(..., pattern="^(max_sharpe|min_volatility|efficient_frontier)$")
     rebalance_frequency: str = Field(..., pattern="^(monthly|quarterly)$")
 
@@ -91,6 +92,7 @@ class PortfolioResponse(BaseModel):
     name: str
     description: Optional[str] = None
     tickers: List[str]
+    ticker_weights: Optional[Dict[str, float]] = None
     optimization_method: str
     rebalance_frequency: Optional[str] = None
     is_active: bool
@@ -103,6 +105,7 @@ class PortfolioResponse(BaseModel):
 
 class BacktestRequest(BaseModel):
     tickers: List[str] = Field(..., min_items=2, max_items=20)
+    ticker_weights: Optional[Dict[str, float]] = None
     optimization_method: str = Field(default="max_sharpe", pattern="^(max_sharpe|min_volatility|efficient_frontier|risk_parity)$")
     
     # Walk-Forward Analysis 파라미터

@@ -62,6 +62,7 @@ export interface PortfolioResponse {
   name: string
   description?: string
   tickers: string[]
+  ticker_weights?: Record<string, number>
   optimization_method: string
   rebalance_frequency: string
   is_active: boolean
@@ -73,6 +74,7 @@ export interface PortfolioCreateRequest {
   name: string
   description?: string
   tickers: string[]
+  ticker_weights?: Record<string, number>
   optimization_method: string
   rebalance_frequency: string
 }
@@ -104,6 +106,7 @@ export interface DiscreteAllocationResponse {
 
 export interface BacktestRequest {
   tickers: string[]
+  ticker_weights?: Record<string, number>
   optimization_method:
     | 'max_sharpe'
     | 'min_volatility'

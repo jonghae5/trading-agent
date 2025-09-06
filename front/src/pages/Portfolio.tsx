@@ -63,6 +63,8 @@ type OptimizationMethod =
 export const Portfolio: React.FC = () => {
   // 포트폴리오 구성 상태
   const [selectedTickers, setSelectedTickers] = useState<string[]>([])
+  const [tickerWeights, setTickerWeights] = useState<Record<string, number>>({})
+  const [useCustomWeights, setUseCustomWeights] = useState(false)
   const [optimizationMethod, setOptimizationMethod] =
     useState<OptimizationMethod>('max_sharpe')
   const [rebalanceFrequency, setRebalanceFrequency] = useState<
@@ -136,12 +138,89 @@ export const Portfolio: React.FC = () => {
   // 종목 제거
   const handleRemoveTicker = useCallback((ticker: string) => {
     setSelectedTickers((prev) => prev.filter((t) => t !== ticker))
+    // 비중 정보도 함께 제거
+    setTickerWeights((prev) => {
+      const newWeights = { ...prev }
+      delete newWeights[ticker]
+      return newWeights
+    })
   }, [])
+
+  // 비중 업데이트
+  const handleWeightChange = useCallback((ticker: string, weight: number) => {
+    setTickerWeights((prev) => ({
+      ...prev,
+      [ticker]: weight
+    }))
+  }, [])
+
+  // 균등 배분
+  const handleEqualDistribution = useCallback(() => {
+    if (selectedTickers.length === 0) return
+    const equalWeight = 100 / selectedTickers.length
+    const newWeights: Record<string, number> = {}
+    selectedTickers.forEach((ticker) => {
+      newWeights[ticker] = Math.round(equalWeight * 100) / 100
+    })
+    setTickerWeights(newWeights)
+  }, [selectedTickers])
+
+  // 비중 정규화 (합계가 100%가 되도록)
+  const normalizeWeights = useCallback(() => {
+    const totalWeight = selectedTickers.reduce(
+      (sum, ticker) => sum + (tickerWeights[ticker] || 0),
+      0
+    )
+    if (totalWeight === 0) return
+
+    const normalizedWeights: Record<string, number> = {}
+    selectedTickers.forEach((ticker) => {
+      const currentWeight = tickerWeights[ticker] || 0
+      normalizedWeights[ticker] =
+        Math.round((currentWeight / totalWeight) * 100 * 100) / 100
+    })
+    setTickerWeights(normalizedWeights)
+  }, [selectedTickers, tickerWeights])
+
+  // 비중 유효성 검증
+  const getWeightValidation = useCallback(() => {
+    if (!useCustomWeights) return { isValid: true, message: '' }
+
+    const totalWeight = selectedTickers.reduce(
+      (sum, ticker) => sum + (tickerWeights[ticker] || 0),
+      0
+    )
+    const hasEmptyWeights = selectedTickers.some(
+      (ticker) => !tickerWeights[ticker] || tickerWeights[ticker] <= 0
+    )
+
+    if (hasEmptyWeights) {
+      return { isValid: false, message: '모든 종목의 비중을 입력해주세요.' }
+    }
+
+    if (Math.abs(totalWeight - 100) > 0.1) {
+      return {
+        isValid: false,
+        message: `비중 합계가 ${totalWeight.toFixed(
+          1
+        )}%입니다. 100%가 되어야 합니다.`
+      }
+    }
+
+    return { isValid: true, message: '' }
+  }, [useCustomWeights, selectedTickers, tickerWeights])
 
   // Walk-Forward 백테스팅 실행 (Only Walk-Forward Analysis)
   const handleBacktest = async () => {
     if (selectedTickers.length < 2) {
       toast.error('최소 2개 이상의 종목을 선택해주세요.')
+      return
+    }
+
+    // 커스텀 비중 사용 시 유효성 검증
+    const weightValidation = getWeightValidation()
+    if (!weightValidation.isValid) {
+      toast.error(weightValidation.message)
       return
     }
 
@@ -157,8 +236,18 @@ export const Portfolio: React.FC = () => {
         return 0.15 // 7개 이상: 최대 15%
       }
 
+      // 커스텀 비중을 백분율에서 소수로 변환
+      let requestWeights: Record<string, number> | undefined = undefined
+      if (useCustomWeights && Object.keys(tickerWeights).length > 0) {
+        requestWeights = {}
+        selectedTickers.forEach((ticker) => {
+          requestWeights![ticker] = (tickerWeights[ticker] || 0) / 100
+        })
+      }
+
       const backtestRequest: BacktestRequest = {
         tickers: selectedTickers,
+        ticker_weights: requestWeights,
         optimization_method: optimizationMethod,
         rebalance_frequency: rebalanceFrequency,
         investment_amount: 100000,
@@ -194,10 +283,20 @@ export const Portfolio: React.FC = () => {
 
     setIsSaving(true)
     try {
+      // 사용자 정의 비중이 있는 경우 포함해서 저장
+      let weightsToSave: Record<string, number> | undefined = undefined
+      if (useCustomWeights && Object.keys(tickerWeights).length > 0) {
+        weightsToSave = {}
+        selectedTickers.forEach((ticker) => {
+          weightsToSave![ticker] = (tickerWeights[ticker] || 0) / 100 // 백분율을 소수로 변환
+        })
+      }
+
       await portfolioApi.create({
         name: portfolioName.trim(),
         description: portfolioDescription.trim() || undefined,
         tickers: backtestResult.tickers, // 백테스트에서 검증된 종목 사용
+        ticker_weights: weightsToSave,
         optimization_method: optimizationMethod,
         rebalance_frequency: rebalanceFrequency
       })
@@ -244,14 +343,39 @@ export const Portfolio: React.FC = () => {
   const handleLoadPortfolio = (portfolio: PortfolioResponse) => {
     setSelectedTickers(portfolio.tickers)
     setOptimizationMethod(portfolio.optimization_method as OptimizationMethod)
-    // 기본값으로 월별 리밸런싱 설정 (저장된 포트폴리오에는 리밸런싱 빈도 정보가 없으므로)
-    setRebalanceFrequency('monthly')
+
+    // 리밸런싱 빈도 설정
+    setRebalanceFrequency(
+      (portfolio.rebalance_frequency as 'monthly' | 'quarterly') || 'monthly'
+    )
+
+    // 비중 정보가 있는 경우 불러오기
+    if (
+      portfolio.ticker_weights &&
+      Object.keys(portfolio.ticker_weights).length > 0
+    ) {
+      setUseCustomWeights(true)
+      // 소수를 백분율로 변환
+      const percentWeights: Record<string, number> = {}
+      Object.entries(portfolio.ticker_weights).forEach(([ticker, weight]) => {
+        percentWeights[ticker] = weight * 100
+      })
+      setTickerWeights(percentWeights)
+    } else {
+      setUseCustomWeights(false)
+      setTickerWeights({})
+    }
 
     // 백테스트 결과 초기화 (새로운 백테스트 실행 필요)
     setBacktestResult(null)
 
+    const hasWeights =
+      portfolio.ticker_weights &&
+      Object.keys(portfolio.ticker_weights).length > 0
     toast.success(
-      `"${portfolio.name}" 포트폴리오를 불러왔습니다. 리밸런싱 빈도를 확인하고 백테스트를 다시 실행해주세요.`
+      `"${portfolio.name}" 포트폴리오를 불러왔습니다${
+        hasWeights ? ' (고정 비중 포함)' : ''
+      }. 백테스트를 실행해주세요.`
     )
   }
 
@@ -421,6 +545,143 @@ export const Portfolio: React.FC = () => {
               )}
             </div>
 
+            {/* 비중 설정 */}
+            {selectedTickers.length > 0 && (
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <Label>포트폴리오 비중 설정</Label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="useCustomWeights"
+                      checked={useCustomWeights}
+                      onChange={(e) => {
+                        setUseCustomWeights(e.target.checked)
+                        if (!e.target.checked) {
+                          setTickerWeights({})
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <label
+                      htmlFor="useCustomWeights"
+                      className="text-sm font-medium"
+                    >
+                      고정 비중 사용
+                    </label>
+                  </div>
+                </div>
+
+                {useCustomWeights ? (
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <h4 className="font-medium text-blue-800 mb-2">
+                        🎯 고정 비중 모드
+                      </h4>
+                      <p className="text-sm text-blue-700 mb-3">
+                        각 종목의 비중을 직접 설정하면, 해당 비중으로 고정하여
+                        리밸런싱했을 때의 성과와 최적화 결과를 함께 비교할 수
+                        있습니다.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleEqualDistribution}
+                          className="text-xs"
+                        >
+                          균등 배분
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={normalizeWeights}
+                          className="text-xs"
+                        >
+                          비중 정규화
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {selectedTickers.map((ticker) => (
+                        <div
+                          key={ticker}
+                          className="flex items-center space-x-2"
+                        >
+                          <label className="text-sm font-medium min-w-[60px]">
+                            {ticker}:
+                          </label>
+                          <div className="flex-1">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              value={tickerWeights[ticker] || ''}
+                              onChange={(e) => {
+                                const value = parseFloat(e.target.value) || 0
+                                if (value >= 0 && value <= 100) {
+                                  handleWeightChange(ticker, value)
+                                }
+                              }}
+                              placeholder="0.0"
+                              className="text-sm"
+                            />
+                          </div>
+                          <span className="text-sm text-gray-500 min-w-[20px]">
+                            %
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 비중 합계 및 유효성 표시 */}
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      {(() => {
+                        const totalWeight = selectedTickers.reduce(
+                          (sum, ticker) => sum + (tickerWeights[ticker] || 0),
+                          0
+                        )
+                        const validation = getWeightValidation()
+
+                        return (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">
+                              총 비중: {totalWeight.toFixed(1)}%
+                            </span>
+                            <div className="flex items-center">
+                              {validation.isValid ? (
+                                <span className="text-xs text-green-600 font-medium">
+                                  ✓ 유효
+                                </span>
+                              ) : (
+                                <span className="text-xs text-red-600 font-medium">
+                                  {validation.message}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-800 mb-2">
+                      🤖 자동 최적화 모드
+                    </h4>
+                    <p className="text-sm text-gray-700">
+                      선택한 최적화 방법에 따라 알고리즘이 자동으로 최적의
+                      비중을 계산합니다.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 최적화 방법 */}
             <div>
               <Label>최적화 방법</Label>
@@ -584,48 +845,304 @@ export const Portfolio: React.FC = () => {
               </div>
             </div>
 
-            {/* Consolidated Performance Metrics */}
+            {/* Performance Comparison */}
             {backtestResult.results?.summary_stats && (
-              <PortfolioMetrics
-                optimization={{
-                  weights: backtestResult.results.final_weights || {},
-                  expected_annual_return:
-                    backtestResult.results.summary_stats.annualized_return,
-                  annual_volatility:
-                    backtestResult.results.summary_stats.annualized_volatility,
-                  sharpe_ratio:
-                    backtestResult.results.summary_stats.sharpe_ratio,
-                  max_drawdown:
-                    backtestResult.results.summary_stats.max_drawdown,
-                  transaction_cost_impact: 0.1,
-                  concentration_limit: 30.0,
-                  walkForwardStats: {
-                    totalPeriods:
-                      backtestResult.results.summary_stats.total_periods,
-                    winRate: backtestResult.results.summary_stats.win_rate,
-                    totalReturn:
-                      backtestResult.results.summary_stats.total_return,
-                    finalValue:
-                      backtestResult.results.summary_stats.final_value,
-                    totalRebalances:
-                      backtestResult.results.walk_forward_results?.length || 0,
-                    avgSharpe: backtestResult.results.walk_forward_results
-                      ? backtestResult.results.walk_forward_results.reduce(
-                          (sum: number, r: any) => sum + r.period_sharpe,
-                          0
-                        ) / backtestResult.results.walk_forward_results.length
-                      : 0,
-                    positiveReturns:
-                      backtestResult.results.walk_forward_results?.filter(
-                        (r: any) => r.period_return > 0
-                      ).length || 0,
-                    negativeReturns:
-                      backtestResult.results.walk_forward_results?.filter(
-                        (r: any) => r.period_return < 0
-                      ).length || 0
-                  }
-                }}
-              />
+              <>
+                <PortfolioMetrics
+                  optimization={{
+                    weights: backtestResult.results.final_weights || {},
+                    expected_annual_return:
+                      backtestResult.results.summary_stats.annualized_return,
+                    annual_volatility:
+                      backtestResult.results.summary_stats
+                        .annualized_volatility,
+                    sharpe_ratio:
+                      backtestResult.results.summary_stats.sharpe_ratio,
+                    max_drawdown:
+                      backtestResult.results.summary_stats.max_drawdown,
+                    transaction_cost_impact: 0.1,
+                    concentration_limit: 30.0,
+                    walkForwardStats: {
+                      totalPeriods:
+                        backtestResult.results.summary_stats.total_periods,
+                      winRate: backtestResult.results.summary_stats.win_rate,
+                      totalReturn:
+                        backtestResult.results.summary_stats.total_return,
+                      finalValue:
+                        backtestResult.results.summary_stats.final_value,
+                      totalRebalances:
+                        backtestResult.results.walk_forward_results?.length ||
+                        0,
+                      avgSharpe: backtestResult.results.walk_forward_results
+                        ? backtestResult.results.walk_forward_results.reduce(
+                            (sum: number, r: any) => sum + r.period_sharpe,
+                            0
+                          ) / backtestResult.results.walk_forward_results.length
+                        : 0,
+                      positiveReturns:
+                        backtestResult.results.walk_forward_results?.filter(
+                          (r: any) => r.period_return > 0
+                        ).length || 0,
+                      negativeReturns:
+                        backtestResult.results.walk_forward_results?.filter(
+                          (r: any) => r.period_return < 0
+                        ).length || 0
+                    }
+                  }}
+                />
+
+                {/* Fixed Weights Performance Comparison */}
+                {backtestResult.results?.fixed_weights_performance && (
+                  <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-purple-800">
+                        <Target className="size-5" />
+                        고정 비중 vs 최적화 성과 비교
+                      </CardTitle>
+                      <CardDescription className="text-purple-700">
+                        설정한 고정 비중으로 리밸런싱한 결과와 알고리즘 최적화
+                        결과를 비교합니다
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* 최적화 결과 */}
+                        <div className="bg-white rounded-lg p-4 border">
+                          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            🤖 알고리즘 최적화 ({optimizationMethod})
+                          </h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                총 수익률:
+                              </span>
+                              <span
+                                className={`text-sm font-medium ${
+                                  backtestResult.results.summary_stats
+                                    .total_return >= 0
+                                    ? 'text-green-600'
+                                    : 'text-red-600'
+                                }`}
+                              >
+                                {(
+                                  backtestResult.results.summary_stats
+                                    .total_return * 100
+                                ).toFixed(2)}
+                                %
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                연간 수익률:
+                              </span>
+                              <span
+                                className={`text-sm font-medium ${
+                                  backtestResult.results.summary_stats
+                                    .annualized_return >= 0
+                                    ? 'text-green-600'
+                                    : 'text-red-600'
+                                }`}
+                              >
+                                {(
+                                  backtestResult.results.summary_stats
+                                    .annualized_return * 100
+                                ).toFixed(2)}
+                                %
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                샤프 비율:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {backtestResult.results.summary_stats.sharpe_ratio.toFixed(
+                                  2
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                최대 낙폭:
+                              </span>
+                              <span className="text-sm font-medium text-red-600">
+                                {(
+                                  backtestResult.results.summary_stats
+                                    .max_drawdown * 100
+                                ).toFixed(2)}
+                                %
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                최종 가치:
+                              </span>
+                              <span className="text-sm font-medium">
+                                $
+                                {backtestResult.results.summary_stats.final_value.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 고정 비중 결과 */}
+                        <div className="bg-white rounded-lg p-4 border">
+                          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            🎯 고정 비중 전략
+                          </h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                총 수익률:
+                              </span>
+                              <span
+                                className={`text-sm font-medium ${
+                                  backtestResult.results
+                                    .fixed_weights_performance.summary_stats
+                                    .total_return >= 0
+                                    ? 'text-green-600'
+                                    : 'text-red-600'
+                                }`}
+                              >
+                                {(
+                                  backtestResult.results
+                                    .fixed_weights_performance.summary_stats
+                                    .total_return * 100
+                                ).toFixed(2)}
+                                %
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                연간 수익률:
+                              </span>
+                              <span
+                                className={`text-sm font-medium ${
+                                  backtestResult.results
+                                    .fixed_weights_performance.summary_stats
+                                    .annualized_return >= 0
+                                    ? 'text-green-600'
+                                    : 'text-red-600'
+                                }`}
+                              >
+                                {(
+                                  backtestResult.results
+                                    .fixed_weights_performance.summary_stats
+                                    .annualized_return * 100
+                                ).toFixed(2)}
+                                %
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                샤프 비율:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {backtestResult.results.fixed_weights_performance.summary_stats.sharpe_ratio.toFixed(
+                                  2
+                                )}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                최대 낙폭:
+                              </span>
+                              <span className="text-sm font-medium text-red-600">
+                                {(
+                                  backtestResult.results
+                                    .fixed_weights_performance.summary_stats
+                                    .max_drawdown * 100
+                                ).toFixed(2)}
+                                %
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                최종 가치:
+                              </span>
+                              <span className="text-sm font-medium">
+                                $
+                                {backtestResult.results.fixed_weights_performance.summary_stats.final_value.toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-gray-600">
+                                승률:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {(backtestResult.results.fixed_weights_performance.summary_stats.win_rate * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Performance Difference */}
+                      <div className="mt-4 bg-gray-50 rounded-lg p-3">
+                        <h5 className="font-medium text-gray-900 mb-2">
+                          성과 차이 분석
+                        </h5>
+                        {(() => {
+                          const optimizedReturn =
+                            backtestResult.results.summary_stats.total_return
+                          const fixedReturn =
+                            backtestResult.results.fixed_weights_performance
+                              .summary_stats.total_return
+                          const returnDiff = optimizedReturn - fixedReturn
+                          const optimizedSharpe =
+                            backtestResult.results.summary_stats.sharpe_ratio
+                          const fixedSharpe =
+                            backtestResult.results.fixed_weights_performance
+                              .summary_stats.sharpe_ratio
+                          const sharpeDiff = optimizedSharpe - fixedSharpe
+
+                          return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">
+                                  수익률 차이:
+                                </span>
+                                <span
+                                  className={`font-medium ${
+                                    returnDiff >= 0
+                                      ? 'text-green-600'
+                                      : 'text-red-600'
+                                  }`}
+                                >
+                                  {returnDiff >= 0 ? '+' : ''}
+                                  {(returnDiff * 100).toFixed(2)}%p (
+                                  {returnDiff >= 0
+                                    ? '최적화 우세'
+                                    : '고정비중 우세'}
+                                  )
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">
+                                  샤프 비율 차이:
+                                </span>
+                                <span
+                                  className={`font-medium ${
+                                    sharpeDiff >= 0
+                                      ? 'text-green-600'
+                                      : 'text-red-600'
+                                  }`}
+                                >
+                                  {sharpeDiff >= 0 ? '+' : ''}
+                                  {sharpeDiff.toFixed(3)}(
+                                  {sharpeDiff >= 0
+                                    ? '최적화 우세'
+                                    : '고정비중 우세'}
+                                  )
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
           </section>
 
@@ -658,11 +1175,19 @@ export const Portfolio: React.FC = () => {
                   <CardTitle className="flex items-center gap-2">
                     <BarChart3 className="size-5" />
                     포트폴리오 가중치 변화 (전체 리밸런싱)
+                    {backtestResult.results?.fixed_weights_performance && (
+                      <span className="text-sm font-normal text-purple-600 ml-2">
+                        (알고리즘 vs 고정비중)
+                      </span>
+                    )}
                   </CardTitle>
                   <CardDescription>
                     시간에 따른 각 종목별 비중 변화를 확인하세요 - 전체{' '}
                     {backtestResult.results.walk_forward_results.length}회
                     리밸런싱
+                    {backtestResult.results?.fixed_weights_performance && (
+                      <span className="text-purple-600"> vs 고정 비중 유지</span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -675,7 +1200,7 @@ export const Portfolio: React.FC = () => {
                       )
                     )
 
-                    const chartData =
+                    const algorithicChartData =
                       backtestResult.results.walk_forward_results.map(
                         (result: any) => {
                           const dataPoint: any = {
@@ -697,6 +1222,24 @@ export const Portfolio: React.FC = () => {
                           return dataPoint
                         }
                       )
+
+                    // 고정 비중 차트 데이터 생성
+                    let fixedChartData: any[] = []
+                    if (backtestResult.results?.fixed_weights_performance?.fixed_weights) {
+                      const fixedWeights = backtestResult.results.fixed_weights_performance.fixed_weights
+                      fixedChartData = algorithicChartData.map((item: any) => {
+                        const dataPoint: any = {
+                          date: item.date,
+                          fullDate: item.fullDate
+                        }
+                        
+                        allTickers.forEach((ticker: string) => {
+                          dataPoint[ticker] = (fixedWeights[ticker] || 0) * 100
+                        })
+                        
+                        return dataPoint
+                      })
+                    }
 
                     const colors = [
                       '#3b82f6',
@@ -731,7 +1274,7 @@ export const Portfolio: React.FC = () => {
                                 >
                                   <div className="flex items-center gap-2">
                                     <div
-                                      className="w-3 h-3 rounded"
+                                      className="size-3 rounded"
                                       style={{ backgroundColor: entry.color }}
                                     />
                                     <span className="font-medium">
@@ -751,48 +1294,98 @@ export const Portfolio: React.FC = () => {
                     }
 
                     return (
-                      <div className="h-96">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart
-                            data={chartData}
-                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                          >
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              opacity={0.3}
-                            />
-                            <XAxis
-                              dataKey="date"
-                              fontSize={12}
-                              tick={{ fontSize: 11 }}
-                            />
-                            <YAxis
-                              domain={[0, 100]}
-                              tickFormatter={(value) => `${value}%`}
-                              fontSize={12}
-                              tick={{ fontSize: 11 }}
-                            />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend
-                              wrapperStyle={{
-                                paddingTop: '20px',
-                                fontSize: '12px'
-                              }}
-                            />
+                      <div className={`grid ${backtestResult.results?.fixed_weights_performance ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'} gap-6`}>
+                        {/* 알고리즘 가중치 변화 */}
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            🤖 알고리즘 최적화 가중치 변화
+                          </h4>
+                          <div className="h-80">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart
+                                data={algorithicChartData}
+                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                              >
+                                <CartesianGrid
+                                  strokeDasharray="3 3"
+                                  opacity={0.3}
+                                />
+                                <XAxis
+                                  dataKey="date"
+                                  fontSize={12}
+                                  tick={{ fontSize: 11 }}
+                                />
+                                <YAxis
+                                  domain={[0, 100]}
+                                  tickFormatter={(value) => `${value}%`}
+                                  fontSize={12}
+                                  tick={{ fontSize: 11 }}
+                                />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend />
 
-                            {allTickers.map((ticker: string, index: number) => (
-                              <Area
-                                key={ticker}
-                                type="monotone"
-                                dataKey={ticker}
-                                stackId="1"
-                                stroke={colors[index % colors.length]}
-                                fill={colors[index % colors.length]}
-                                fillOpacity={0.8}
-                              />
-                            ))}
-                          </AreaChart>
-                        </ResponsiveContainer>
+                                {allTickers.map((ticker: string, index: number) => (
+                                  <Area
+                                    key={ticker}
+                                    type="monotone"
+                                    dataKey={ticker}
+                                    stackId="1"
+                                    stroke={colors[index % colors.length]}
+                                    fill={colors[index % colors.length]}
+                                    fillOpacity={0.8}
+                                  />
+                                ))}
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+
+                        {/* 고정 비중 차트 (있는 경우에만) */}
+                        {backtestResult.results?.fixed_weights_performance && (
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                              🎯 고정 비중 유지 (일정한 가중치)
+                            </h4>
+                            <div className="h-80">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart
+                                  data={fixedChartData}
+                                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                >
+                                  <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    opacity={0.3}
+                                  />
+                                  <XAxis
+                                    dataKey="date"
+                                    fontSize={12}
+                                    tick={{ fontSize: 11 }}
+                                  />
+                                  <YAxis
+                                    domain={[0, 100]}
+                                    tickFormatter={(value) => `${value}%`}
+                                    fontSize={12}
+                                    tick={{ fontSize: 11 }}
+                                  />
+                                  <Tooltip content={<CustomTooltip />} />
+                                  <Legend />
+
+                                  {allTickers.map((ticker: string, index: number) => (
+                                    <Area
+                                      key={ticker}
+                                      type="monotone"
+                                      dataKey={ticker}
+                                      stackId="1"
+                                      stroke={colors[index % colors.length]}
+                                      fill={colors[index % colors.length]}
+                                      fillOpacity={0.6}
+                                    />
+                                  ))}
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )
                   })()}
@@ -808,10 +1401,21 @@ export const Portfolio: React.FC = () => {
                     <TrendingUp className="size-5" />
                     {rebalanceFrequency === 'monthly' ? '월별' : '분기별'}{' '}
                     수익률 타임라인
+                    {backtestResult.results?.fixed_weights_performance && (
+                      <span className="text-sm font-normal text-purple-600 ml-2">
+                        (최적화 vs 고정비중 비교)
+                      </span>
+                    )}
                   </CardTitle>
                   <CardDescription>
                     각 리밸런싱 기간별 수익률 추이를 확인하세요 (
                     {rebalanceFrequency === 'monthly' ? '월간' : '분기별'} 분석)
+                    {backtestResult.results?.fixed_weights_performance && (
+                      <span className="text-purple-600">
+                        {' '}
+                        - 고정 비중 성과와 함께 비교
+                      </span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -833,6 +1437,36 @@ export const Portfolio: React.FC = () => {
                         })
                       )
 
+                    // 고정 비중 리밸런싱 데이터 추가 (portfolio_timeline 사용)
+                    if (
+                      backtestResult.results?.fixed_weights_performance
+                        ?.portfolio_timeline
+                    ) {
+                      const fixedResults =
+                        backtestResult.results.fixed_weights_performance
+                          .portfolio_timeline
+
+                      // 고정 비중 기간별 수익률 매핑
+                      const fixedPeriodReturns = new Map()
+                      
+                      fixedResults.forEach((result: any) => {
+                        fixedPeriodReturns.set(
+                          result.period_start,
+                          result.period_return * 100
+                        )
+                      })
+
+                      // 기존 데이터에 고정 비중 정보 추가
+                      performanceData.forEach((item: any) => {
+                        const fixedReturn = fixedPeriodReturns.get(
+                          item.fullDate
+                        )
+                        if (fixedReturn !== undefined) {
+                          item.fixedReturnValue = fixedReturn
+                        }
+                      })
+                    }
+
                     const CustomPerformanceTooltip = ({
                       active,
                       payload,
@@ -848,6 +1482,7 @@ export const Portfolio: React.FC = () => {
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between gap-4">
                                 <span className="text-gray-600">
+                                  최적화{' '}
                                   {rebalanceFrequency === 'monthly'
                                     ? '월간'
                                     : '분기간'}{' '}
@@ -864,6 +1499,27 @@ export const Portfolio: React.FC = () => {
                                   {data.return}%
                                 </span>
                               </div>
+                              {data.fixedReturnValue !== undefined && (
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-gray-600">
+                                    고정비중{' '}
+                                    {rebalanceFrequency === 'monthly'
+                                      ? '월간'
+                                      : '분기간'}{' '}
+                                    수익률:
+                                  </span>
+                                  <span
+                                    className={`font-semibold ${
+                                      data.fixedReturnValue >= 0
+                                        ? 'text-green-600'
+                                        : 'text-red-600'
+                                    }`}
+                                  >
+                                    {data.fixedReturnValue >= 0 ? '+' : ''}
+                                    {data.fixedReturnValue.toFixed(2)}%
+                                  </span>
+                                </div>
+                              )}
                               <div className="flex justify-between gap-4">
                                 <span className="text-gray-600">
                                   샤프 비율:
@@ -932,12 +1588,35 @@ export const Portfolio: React.FC = () => {
                                 stroke: '#3b82f6',
                                 strokeWidth: 2
                               }}
-                              name={`${
+                              name={`최적화 ${
                                 rebalanceFrequency === 'monthly'
                                   ? '월간'
                                   : '분기간'
                               } 수익률 (%)`}
                             />
+
+                            {/* 고정 비중 수익률 라인 (있는 경우에만) */}
+                            {backtestResult.results
+                              ?.fixed_weights_performance && (
+                              <Line
+                                type="monotone"
+                                dataKey="fixedReturnValue"
+                                stroke="#8b5cf6"
+                                strokeWidth={3}
+                                strokeDasharray="8 4"
+                                dot={{ r: 4, fill: '#8b5cf6' }}
+                                activeDot={{
+                                  r: 6,
+                                  stroke: '#8b5cf6',
+                                  strokeWidth: 2
+                                }}
+                                name={`고정비중 ${
+                                  rebalanceFrequency === 'monthly'
+                                    ? '월간'
+                                    : '분기간'
+                                } 수익률 (%)`}
+                              />
+                            )}
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
@@ -954,14 +1633,25 @@ export const Portfolio: React.FC = () => {
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="size-5" />
                     누적 수익률 타임라인
+                    {backtestResult.results?.fixed_weights_performance && (
+                      <span className="text-sm font-normal text-purple-600 ml-2">
+                        (최적화 vs 고정비중 비교)
+                      </span>
+                    )}
                   </CardTitle>
                   <CardDescription>
                     시간에 따른 포트폴리오 누적 수익률 추이를 확인하세요
+                    {backtestResult.results?.fixed_weights_performance && (
+                      <span className="text-purple-600">
+                        {' '}
+                        - 고정 비중 성과와 함께 비교
+                      </span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    // 누적 수익률 데이터 계산
+                    // 누적 수익률 데이터 계산 (최적화)
                     let cumulativeReturn = 1 // 1에서 시작 (100%)
                     const cumulativeData =
                       backtestResult.results.walk_forward_results.map(
@@ -989,6 +1679,42 @@ export const Portfolio: React.FC = () => {
                         }
                       )
 
+                    // 고정 비중 누적 수익률 계산 (있는 경우)
+                    if (
+                      backtestResult.results?.fixed_weights_performance
+                        ?.portfolio_timeline
+                    ) {
+                      const fixedTimeline =
+                        backtestResult.results.fixed_weights_performance
+                          .portfolio_timeline
+
+                      // 고정 비중 누적 수익률을 직접 계산
+                      let fixedCumulativeReturn = 1 // 1에서 시작 (100%)
+                      
+                      // 날짜별로 고정 비중 데이터 매핑 (기간별 수익률로부터 누적 계산)
+                      const fixedDataMap = new Map()
+                      fixedTimeline.forEach((item: any, index: number) => {
+                        if (index === 0) {
+                          fixedCumulativeReturn = 1 + item.period_return // 첫 번째 기간
+                        } else {
+                          fixedCumulativeReturn = fixedCumulativeReturn * (1 + item.period_return) // 복리 계산
+                        }
+                        
+                        fixedDataMap.set(
+                          item.period_start, // period_start를 키로 사용
+                          (fixedCumulativeReturn - 1) * 100 // 백분율로 변환
+                        )
+                      })
+
+                      // 기존 데이터에 고정 비중 정보 추가
+                      cumulativeData.forEach((item: any) => {
+                        const fixedReturn = fixedDataMap.get(item.fullDate)
+                        if (fixedReturn !== undefined) {
+                          item.fixedCumulativeReturn = fixedReturn
+                        }
+                      })
+                    }
+
                     const CustomCumulativeTooltip = ({
                       active,
                       payload,
@@ -1004,7 +1730,7 @@ export const Portfolio: React.FC = () => {
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between gap-4">
                                 <span className="text-gray-600">
-                                  누적 수익률:
+                                  최적화 누적 수익률:
                                 </span>
                                 <span
                                   className={`font-semibold ${
@@ -1017,6 +1743,23 @@ export const Portfolio: React.FC = () => {
                                   {data.cumulativeReturn.toFixed(2)}%
                                 </span>
                               </div>
+                              {data.fixedCumulativeReturn !== undefined && (
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-gray-600">
+                                    고정비중 누적 수익률:
+                                  </span>
+                                  <span
+                                    className={`font-semibold ${
+                                      data.fixedCumulativeReturn >= 0
+                                        ? 'text-green-600'
+                                        : 'text-red-600'
+                                    }`}
+                                  >
+                                    {data.fixedCumulativeReturn >= 0 ? '+' : ''}
+                                    {data.fixedCumulativeReturn.toFixed(2)}%
+                                  </span>
+                                </div>
+                              )}
                               <div className="flex justify-between gap-4">
                                 <span className="text-gray-600">
                                   {rebalanceFrequency === 'monthly'
@@ -1085,7 +1828,7 @@ export const Portfolio: React.FC = () => {
                               name="기준선 (0%)"
                             />
 
-                            {/* 누적 수익률 라인 */}
+                            {/* 최적화 누적 수익률 라인 */}
                             <Line
                               type="monotone"
                               dataKey="cumulativeReturn"
@@ -1097,8 +1840,27 @@ export const Portfolio: React.FC = () => {
                                 stroke: '#10b981',
                                 strokeWidth: 2
                               }}
-                              name="누적 수익률 (%)"
+                              name="알고리즘 최적화 누적 수익률 (%)"
                             />
+
+                            {/* 고정 비중 누적 수익률 라인 (있는 경우에만) */}
+                            {backtestResult.results
+                              ?.fixed_weights_performance && (
+                              <Line
+                                type="monotone"
+                                dataKey="fixedCumulativeReturn"
+                                stroke="#8b5cf6"
+                                strokeWidth={3}
+                                strokeDasharray="8 4"
+                                dot={{ r: 4, fill: '#8b5cf6' }}
+                                activeDot={{
+                                  r: 6,
+                                  stroke: '#8b5cf6',
+                                  strokeWidth: 2
+                                }}
+                                name="고정 비중 누적 수익률 (%)"
+                              />
+                            )}
                           </LineChart>
                         </ResponsiveContainer>
                       </div>

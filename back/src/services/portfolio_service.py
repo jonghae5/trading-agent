@@ -112,8 +112,9 @@ class PortfolioOptimizationService:
     async def walk_forward_analysis(
         price_data: pd.DataFrame,
         method: str = "max_sharpe",
-        rebalance_freq: str = "monthly",  # 리밸런싱 빈도: "monthly", "quarterly"
+        rebalance_freq: str = "monthly",  # 리밸런싱 빈도: "monthly", "quarterly"  
         transaction_cost: float = 0.001,  # 거래비용 (0.1%)
+        fixed_weights: Dict[str, float] = None,  # 고정 비중 (선택적)
         **kwargs
     ) -> Dict:
         """Walk-Forward Analysis를 통한 실제적인 백테스팅 (최적화됨)"""
@@ -190,9 +191,14 @@ class PortfolioOptimizationService:
             rebalance_dates = []
             current_weights = None
             
-            for result in period_results:
+            # 고정 비중 성과 추적 변수들 (fixed_weights가 제공된 경우)
+            fixed_results = []
+            fixed_current_value = initial_value if fixed_weights else None
+            fixed_portfolio_values = []
+            
+            for i, result in enumerate(period_results):
                 if result:
-                    # 포트폴리오 가치 업데이트
+                    # 최적화 포트폴리오 가치 업데이트
                     current_value = current_value * (1 + result['period_return'])
                     result['portfolio_value'] = round(float(current_value), 2)
                     
@@ -205,6 +211,57 @@ class PortfolioOptimizationService:
                     
                     rebalance_dates.append(result['period_start'])
                     current_weights = result['weights']
+                    
+                    # 고정 비중 성과 계산 (동일한 기간, 동일한 데이터)
+                    if fixed_weights:
+                        # 동일한 테스트 기간 데이터 사용
+                        period_start_idx = i * test_window + train_window
+                        period_end_idx = period_start_idx + test_window
+                        
+                        if period_end_idx <= len(price_data):
+                            test_data_fixed = price_data.iloc[period_start_idx:period_end_idx].copy()
+                            test_returns_fixed = test_data_fixed.pct_change().dropna()
+                            
+                            # 고정 비중을 테스트 데이터에 맞춰 조정
+                            available_tickers = [t for t in fixed_weights.keys() if t in test_returns_fixed.columns]
+                            if available_tickers:
+                                adjusted_fixed_weights = {t: fixed_weights.get(t, 0) for t in available_tickers}
+                                total_weight = sum(adjusted_fixed_weights.values())
+                                if total_weight > 0:
+                                    adjusted_fixed_weights = {t: w/total_weight for t, w in adjusted_fixed_weights.items()}
+                                
+                                # 고정 비중 포트폴리오 수익률 계산 (Walk-Forward와 완전히 동일한 방식)
+                                weight_series = pd.Series(adjusted_fixed_weights).reindex(test_returns_fixed.columns, fill_value=0)
+                                fixed_portfolio_returns = test_returns_fixed.dot(weight_series)
+                                
+                                # 동일한 거래비용 차감
+                                if len(fixed_portfolio_returns) > 0:
+                                    fixed_portfolio_returns.iloc[0] -= transaction_cost
+                                
+                                # 기간별 총 수익률 계산 (Walk-Forward와 동일한 방식)
+                                fixed_period_return = (1 + fixed_portfolio_returns).prod() - 1
+                                fixed_current_value = fixed_current_value * (1 + fixed_period_return)
+                                
+                                # 성과 지표 계산 (Walk-Forward와 동일한 방식)
+                                fixed_period_vol = np.std(fixed_portfolio_returns) * np.sqrt(252)
+                                fixed_period_sharpe = ((np.mean(fixed_portfolio_returns) * 252) - 0.02) / fixed_period_vol if fixed_period_vol > 0 else 0
+                                
+                                fixed_result = {
+                                    'period_start': result['period_start'],
+                                    'period_end': result['period_end'],
+                                    'weights': adjusted_fixed_weights,
+                                    'period_return': round(float(fixed_period_return), 4),
+                                    'period_volatility': round(float(fixed_period_vol), 4),
+                                    'period_sharpe': round(float(fixed_period_sharpe), 2),
+                                    'portfolio_value': round(float(fixed_current_value), 2)
+                                }
+                                fixed_results.append(fixed_result)
+                                
+                                fixed_portfolio_values.append({
+                                    'date': result['period_end'],
+                                    'value': fixed_current_value,
+                                    'cumulative_return': (fixed_current_value / initial_value) - 1
+                                })
             
             # 전체 성과 지표 계산 (벡터화)
             if not results:
@@ -330,11 +387,56 @@ class PortfolioOptimizationService:
                 except Exception as e:
                     logger.warning(f"추가 분석 정보 생성 실패: {e}")
             
+            # 고정 비중 성과 지표 계산 (제공된 경우)
+            fixed_weights_performance = None
+            if fixed_weights and fixed_results:
+                fixed_total_return = (fixed_current_value / initial_value) - 1
+                fixed_period_returns = np.array([r['period_return'] for r in fixed_results])
+                
+                # Walk-Forward와 정확히 동일한 벡터화된 계산
+                fixed_avg_return = np.mean(fixed_period_returns) * (252 / test_window)
+                fixed_volatility = np.std(fixed_period_returns) * np.sqrt(252 / test_window)
+                fixed_sharpe_ratio = (fixed_avg_return - 0.02) / fixed_volatility if fixed_volatility > 0 else 0
+                
+                # 최대 낙폭 계산 (Walk-Forward와 동일한 방식)
+                fixed_values = np.array([pv['value'] for pv in fixed_portfolio_values])
+                if len(fixed_values) > 0:
+                    fixed_peaks = np.maximum.accumulate(fixed_values)
+                    fixed_drawdowns = (fixed_values - fixed_peaks) / fixed_peaks
+                    fixed_max_dd = np.min(fixed_drawdowns)
+                else:
+                    fixed_max_dd = 0
+                
+                # 승률 계산 (Walk-Forward와 동일한 방식)
+                fixed_win_rate = np.mean(fixed_period_returns > 0)
+                
+                fixed_weights_performance = {
+                    'portfolio_timeline': fixed_results,  # Walk-Forward와 동일한 구조
+                    'rebalance_dates': rebalance_dates,  # 동일한 날짜 사용
+                    'summary_stats': {
+                        'total_return': round(float(fixed_total_return), 4),
+                        'annualized_return': round(float(fixed_avg_return), 4),
+                        'annualized_volatility': round(float(fixed_volatility), 4),
+                        'sharpe_ratio': round(float(fixed_sharpe_ratio), 2),
+                        'max_drawdown': round(float(fixed_max_dd), 4),
+                        'win_rate': round(float(fixed_win_rate), 2),
+                        'total_periods': len(fixed_results),
+                        'final_value': round(float(fixed_current_value), 2)
+                    },
+                    'fixed_weights': fixed_weights,
+                    'parameters': {
+                        'rebalance_frequency': rebalance_freq,
+                        'transaction_cost': transaction_cost,
+                        'investment_amount': initial_value
+                    }
+                }
+                logger.info(f"Fixed weights performance calculated: Total return {fixed_total_return:.4f}, Sharpe {fixed_sharpe_ratio:.2f}")
+
             # 실행 시간 기록
             execution_time = time.time() - start_time
             logger.info(f"Walk-Forward Analysis completed in {execution_time:.2f} seconds with {len(results)} periods")
 
-            return {
+            result_data = {
                 'walk_forward_results': results,
                 'portfolio_timeline': portfolio_values,
                 'rebalance_dates': rebalance_dates,
@@ -359,6 +461,12 @@ class PortfolioOptimizationService:
                 # 추가 분석 정보
                 **additional_info
             }
+            
+            # 고정 비중 성과 추가 (있는 경우)
+            if fixed_weights_performance:
+                result_data['fixed_weights_performance'] = fixed_weights_performance
+                
+            return result_data
             
         except Exception as e:
             logger.error(f"Walk-Forward Analysis 실패: {e}")
@@ -939,4 +1047,5 @@ class PortfolioOptimizationService:
             n_assets = len(mu)
             equal_weights = np.ones(n_assets) / n_assets
             return dict(zip(mu.index, equal_weights))
+
     
