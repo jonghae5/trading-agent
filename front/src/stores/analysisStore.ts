@@ -115,8 +115,6 @@ const initialReportSections: Record<ReportSectionType, ReportSection | null> = {
   [ReportSectionType.SENTIMENT_REPORT]: null,
   [ReportSectionType.NEWS_REPORT]: null,
   [ReportSectionType.FUNDAMENTALS_REPORT]: null,
-  [ReportSectionType.BEN_GRAHAM_REPORT]: null,
-  [ReportSectionType.WARREN_BUFFETT_REPORT]: null,
   [ReportSectionType.INVESTMENT_PLAN]: null,
   [ReportSectionType.TRADER_INVESTMENT_PLAN]: null,
   [ReportSectionType.FINAL_TRADE_DECISION]: null

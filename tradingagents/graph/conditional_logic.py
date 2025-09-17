@@ -43,21 +43,6 @@ class ConditionalLogic:
             return "tools_fundamentals"
         return "Msg Clear Fundamentals"
     
-    def should_continue_ben_graham(self, state: AgentState):
-        """Determine if Ben Graham analysis should continue."""
-        messages = state["messages"]
-        last_message = messages[-1]
-        if last_message.tool_calls:
-            return "tools_ben_graham"
-        return "Msg Clear Ben_graham"
-
-    def should_continue_warren_buffett(self, state: AgentState):
-        """Determine if Warren Buffett analysis should continue."""
-        messages = state["messages"]
-        last_message = messages[-1]
-        if last_message.tool_calls:
-            return "tools_warren_buffett"
-        return "Msg Clear Warren_buffett"
 
     def should_continue_debate(self, state: AgentState) -> str:
         """Determine if debate should continue."""

@@ -20,9 +20,7 @@ import {
   Users,
   PieChart,
   TrendingDown,
-  Minus,
-  Gem,
-  Award
+  Minus
 } from 'lucide-react'
 
 import {
@@ -82,10 +80,6 @@ const ReportSectionCard: React.FC<{ section: HistoryReportSection }> = ({
         return Target
       case 'trader_investment_plan':
         return Zap
-      case 'warren_buffett_report':
-        return Award
-      case 'ben_graham_report':
-        return Gem
       default:
         return FileText
     }

@@ -51,10 +51,7 @@ const getAnalystDisplayName = (analyst: AnalystType): string => {
       return '뉴스'
     case AnalystType.FUNDAMENTALS:
       return '펀더멘털'
-    case AnalystType.BEN_GRAHAM:
-      return '벤자민 그레이엄 가치투자'
-    case AnalystType.WARREN_BUFFETT:
-      return '워렌버핏 가치투자'
+
     default:
       return analyst
   }
@@ -87,9 +84,7 @@ export const Analysis: React.FC = () => {
     AnalystType.MARKET,
     AnalystType.SOCIAL,
     AnalystType.NEWS,
-    AnalystType.FUNDAMENTALS,
-    AnalystType.BEN_GRAHAM,
-    AnalystType.WARREN_BUFFETT
+    AnalystType.FUNDAMENTALS
   ])
 
   // Fear & Greed Index state
@@ -158,9 +153,7 @@ export const Analysis: React.FC = () => {
   }
 
   // Load historical Fear & Greed Index data only
-  const loadFearGreedHistory = async (
-    period?: '1M' | '3M' | '6M' | '1Y'
-  ) => {
+  const loadFearGreedHistory = async (period?: '1M' | '3M' | '6M' | '1Y') => {
     setFearGreedLoading(true)
     setFearGreedError(null)
 
@@ -245,9 +238,7 @@ export const Analysis: React.FC = () => {
     updateConfig({ ticker: stock.symbol })
   }
 
-  const handlePeriodChange = async (
-    period: '1M' | '3M' | '6M' | '1Y'
-  ) => {
+  const handlePeriodChange = async (period: '1M' | '3M' | '6M' | '1Y') => {
     setSelectedPeriod(period)
     // Only reload history, not current data
     await loadFearGreedHistory(period)

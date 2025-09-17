@@ -115,9 +115,7 @@ export function getAnalystDisplayName(analyst: AnalystType): string {
     [AnalystType.MARKET]: '📈 Market Analyst',
     [AnalystType.SOCIAL]: '💬 Social Media Analyst',
     [AnalystType.NEWS]: '📰 News Analyst',
-    [AnalystType.FUNDAMENTALS]: '📊 Fundamentals Analyst',
-    [AnalystType.BEN_GRAHAM]: '📚 Ben Graham Analyst',
-    [AnalystType.WARREN_BUFFETT]: '🦉 Warren Buffett Analyst'
+    [AnalystType.FUNDAMENTALS]: '📊 Fundamentals Analyst'
   }
   return names[analyst] || analyst
 }
@@ -145,8 +143,6 @@ export function getReportSectionName(section: ReportSectionType): string {
     [ReportSectionType.SENTIMENT_REPORT]: 'Sentiment Analysis',
     [ReportSectionType.NEWS_REPORT]: 'News Analysis',
     [ReportSectionType.FUNDAMENTALS_REPORT]: 'Fundamentals Analysis',
-    [ReportSectionType.BEN_GRAHAM_REPORT]: 'Ben Graham Analysis',
-    [ReportSectionType.WARREN_BUFFETT_REPORT]: 'Warren Buffett Analysis',
     [ReportSectionType.INVESTMENT_PLAN]: 'Investment Plan',
     [ReportSectionType.TRADER_INVESTMENT_PLAN]: 'Trading Strategy',
     [ReportSectionType.FINAL_TRADE_DECISION]: 'Final Decision'

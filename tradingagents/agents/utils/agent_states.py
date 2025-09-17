@@ -60,8 +60,6 @@ class AgentState(MessagesState):
         str, "Report from the News Researcher of current world affairs"
     ]
     fundamentals_report: Annotated[str, "Report from the Fundamentals Researcher"]
-    ben_graham_report: Annotated[str, "Report from the Ben Graham Value Investment Analyst"]
-    warren_buffett_report: Annotated[str, "Report from the Warren Buffett Value Investment Analyst"]
 
     # researcher team discussion step
     investment_debate_state: Annotated[

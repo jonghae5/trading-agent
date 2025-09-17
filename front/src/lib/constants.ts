@@ -149,9 +149,7 @@ export const DEFAULT_ANALYSTS = [
   AnalystType.MARKET,
   AnalystType.SOCIAL,
   AnalystType.NEWS,
-  AnalystType.FUNDAMENTALS,
-  AnalystType.BEN_GRAHAM,
-  AnalystType.WARREN_BUFFETT
+  AnalystType.FUNDAMENTALS
 ]
 
 // Agent Names and Teams

@@ -14,10 +14,8 @@ def create_bear_researcher(llm, memory):
         sentiment_report = state["sentiment_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
-        ben_graham_report = state["ben_graham_report"]
-        warren_buffett_report = state["warren_buffett_report"]
 
-        curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}\n\n{ben_graham_report}\n\n{warren_buffett_report}"
+        curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
         past_memories = memory.get_memories(curr_situation, n_matches=2)
 
         past_memory_str = ""
@@ -40,8 +38,6 @@ def create_bear_researcher(llm, memory):
 소셜 미디어 감정 보고서: {sentiment_report}
 최신 세계 동향 뉴스: {news_report}
 회사 펀더멘털 보고서: {fundamentals_report}
-벤자민 그레이엄 보고서: {ben_graham_report}
-워렌 버핏 보고서: {warren_buffett_report}
 토론의 대화 히스토리: {history}
 마지막 강세 논증: {current_response}
 유사 상황의 성찰과 교훈: {past_memory_str}
