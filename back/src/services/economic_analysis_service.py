@@ -65,8 +65,8 @@ class EconomicAnalysisService:
     
     # Category-specific indicator mappings
     CATEGORY_INDICATORS = {
-        AnalysisCategory.GROWTH_EMPLOYMENT: ['GDP', 'A191RL1Q225SBEA', 'INDPRO', 'TCU', 'UNRATE', 'PAYEMS', 'ICSA'],
-        AnalysisCategory.INFLATION_MONETARY: ['CPIAUCSL', 'PCEPILFE', 'T5YIE', 'FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y'],
+        AnalysisCategory.GROWTH_EMPLOYMENT: ['A191RL1Q225SBEA', 'INDPRO', 'UNRATE', 'PAYEMS', 'ICSA', 'RSAFS', 'MANEMP', 'PPIFIS'],
+        AnalysisCategory.INFLATION_MONETARY: ['CPIAUCSL', 'PCEPILFE', 'T5YIE', 'FEDFUNDS', 'DGS10', 'DGS2', 'T10Y2Y', 'PPIFIS'],
         AnalysisCategory.FINANCIAL_RISK: ['NFCI', 'BAMLH0A0HYM2', 'BAA', 'VIXCLS', 'UMCSENT'],
         AnalysisCategory.REALESTATE_DEBT: ['MORTGAGE30US', 'NYUCSFRCONDOSMSAMID', 'GFDEBTN', 'GFDEGDQ188S', 'NCBDBIQ027S'],
         AnalysisCategory.FISCAL_GLOBAL: ['FYFSGDA188S', 'DTWEXBGS', 'DGS30', 'DCOILWTICO', 'BOPGSTB']
@@ -83,16 +83,17 @@ class EconomicAnalysisService:
         'BAA': {'direction': 'inverse', 'normal_range': (3.0, 6.0), 'alert_threshold': 7.0},
         
         # 정방향 지표 (높을수록 좋음)
-        'GDP': {'direction': 'normal', 'normal_range': (1.5, 4.0), 'alert_threshold': 0.5},
         'A191RL1Q225SBEA': {'direction': 'normal', 'normal_range': (1.0, 4.0), 'alert_threshold': -1.0},
         'INDPRO': {'direction': 'normal', 'normal_range': (95, 110), 'alert_threshold': 85},
-        'TCU': {'direction': 'normal', 'normal_range': (75, 85), 'alert_threshold': 70},
         'PAYEMS': {'direction': 'normal', 'normal_range': (100, 300), 'alert_threshold': 50},
         'UMCSENT': {'direction': 'normal', 'normal_range': (80, 110), 'alert_threshold': 70},
+        'RSAFS': {'direction': 'normal', 'normal_range': (0.5, 4.0), 'alert_threshold': -2.0},
+        'MANEMP': {'direction': 'normal', 'normal_range': (48, 60), 'alert_threshold': 45},
         
         # 중성 지표 (맥락에 따라 다름)
         'CPIAUCSL': {'direction': 'neutral', 'normal_range': (1.5, 3.5), 'alert_threshold': 5.0},
         'PCEPILFE': {'direction': 'neutral', 'normal_range': (1.5, 3.0), 'alert_threshold': 4.0},
+        'PPIFIS': {'direction': 'neutral', 'normal_range': (1.0, 4.0), 'alert_threshold': 6.0},
         'T5YIE': {'direction': 'neutral', 'normal_range': (2.0, 3.5), 'alert_threshold': 5.0},
         'FEDFUNDS': {'direction': 'neutral', 'normal_range': (2.0, 6.0), 'alert_threshold': 8.0},
         'DGS10': {'direction': 'neutral', 'normal_range': (2.0, 5.0), 'alert_threshold': 7.0},
@@ -118,15 +119,16 @@ class EconomicAnalysisService:
     
     # 지표명 한국어 매핑 (LLM 응답에서 사용)
     INDICATOR_KOREAN_NAMES = {
-        'GDP': 'GDP(국내총생산)',
         'A191RL1Q225SBEA': 'GDP 실질성장률',
         'INDPRO': '산업생산지수',
-        'TCU': '설비가동률',
         'UNRATE': '실업률',
         'PAYEMS': '비농업 일자리수',
         'ICSA': '실업수당 신청건수',
         'CPIAUCSL': '소비자물가지수(CPI)',
         'PCEPILFE': '근원 개인소비지출 물가지수',
+        'PPIFIS': '생산자물가지수(PPI)',
+        'RSAFS': '소매판매액',
+        'MANEMP': '제조업 고용지수',
         'T5YIE': '5년 인플레이션 기대치',
         'FEDFUNDS': '연방기준금리',
         'DGS10': '10년 국채수익률',
@@ -1093,15 +1095,20 @@ class EconomicAnalysisService:
 - GDP 실질성장률의 최근 추세가 경제 모멘텀과 향후 성장 지속성에 주는 신호 해석
 - 최근 실업률과 일자리 증가 트렌드가 소비와 경기회복에 미치는 영향
 - 산업생산지수 최신 변화가 향후 제조업과 실물경제에 주는 신호 해석
+- 소매판매액(RSAFS) 최근 변화가 향후 소비지출과 경기에 미칠 파급효과 분석
+- 제조업 고용지수(MANEMP) 변화가 제조업 전반과 공급망에 주는 신호 해석
+- 생산자물가지수(PPI) 최근 동향이 향후 소비자물가와 기업 수익성에 미칠 영향
 - 최근 고용지표 개선/악화가 연준 정책과 인플레이션에 미칠 영향 예측
 - GDP 실질성장률과 고용지표 간의 상관관계를 통한 경제 전반적 건전성 평가
 """,
             AnalysisCategory.INFLATION_MONETARY: """
 특별 고려사항 - 최근 동향과 미래 영향 중심:
 - 최신 인플레이션 데이터가 향후 연준 정책 결정에 미칠 영향 분석
+- 생산자물가지수(PPI) 최근 변화가 향후 소비자물가와 인플레이션 전망에 미칠 영향
 - 최근 수익률곡선 변화가 향후 금융시장과 경기에 주는 신호 해석
 - 최근 인플레이션 기대치 변화가 실제 물가와 소비에 미칠 파급효과
 - 최신 연준 기준금리 변화가 향후 3-12개월 경제활동에 미칠 영향 예측
+- PPI와 CPI 간의 시차와 상관관계를 통한 미래 인플레이션 압력 예측
 """,
             AnalysisCategory.FINANCIAL_RISK: """
 특별 고려사항 - 최근 동향과 미래 영향 중심:
@@ -1385,7 +1392,7 @@ class EconomicAnalysisService:
         
         if category == AnalysisCategory.GROWTH_EMPLOYMENT:
             if any(stats.get('risk_level') == '매우높음' for ind, stats in data.items() 
-                   if isinstance(stats, dict) and ind in ['UNRATE', 'GDP']):
+                   if isinstance(stats, dict) and ind in ['UNRATE', 'A191RL1Q225SBEA']):
                 risks.append("경기침체 가능성 증대")
         
         elif category == AnalysisCategory.INFLATION_MONETARY:
@@ -1445,6 +1452,24 @@ class EconomicAnalysisService:
                 trend_interp = gdp_growth.get('trend_interpretation', '')
                 latest_value = gdp_growth.get('latest_value', 0)
                 insights.append(f"GDP 실질성장률: {latest_value:.1f}%, {trend_interp}")
+                
+            retail_sales = next((stats for ind, stats in data.items() if ind == 'RSAFS' and isinstance(stats, dict)), None)
+            if retail_sales:
+                trend_interp = retail_sales.get('trend_interpretation', '')
+                latest_value = retail_sales.get('latest_value', 0)
+                insights.append(f"소매판매액: {latest_value:.1f}%, {trend_interp}")
+                
+            mfg_employment = next((stats for ind, stats in data.items() if ind == 'MANEMP' and isinstance(stats, dict)), None)
+            if mfg_employment:
+                trend_interp = mfg_employment.get('trend_interpretation', '')
+                latest_value = mfg_employment.get('latest_value', 0)
+                insights.append(f"제조업 고용지수: {latest_value:.1f}, {trend_interp}")
+                
+            ppi = next((stats for ind, stats in data.items() if ind == 'PPIFIS' and isinstance(stats, dict)), None)
+            if ppi:
+                trend_interp = ppi.get('trend_interpretation', '')
+                latest_value = ppi.get('latest_value', 0)
+                insights.append(f"생산자물가지수: {latest_value:.1f}%, {trend_interp}")
         
         elif category == AnalysisCategory.FINANCIAL_RISK:
             vix = next((stats for ind, stats in data.items() if ind == 'VIXCLS' and isinstance(stats, dict)), None)

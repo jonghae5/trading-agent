@@ -43,15 +43,26 @@ type TimeRange = keyof typeof TIME_RANGES
 const INDICATOR_CATEGORIES = {
   growthEmployment: {
     title: '성장 & 고용',
-    description: 'GDP, GDP 실질성장률, 산업생산, 실업률, 일자리',
-    indicators: ['GDP', 'A191RL1Q225SBEA', 'INDPRO', 'TCU', 'UNRATE', 'PAYEMS', 'ICSA']
+    description:
+      'GDP 실질성장률, 산업생산, 실업률, 일자리, 소매판매, 제조업PMI, PPI',
+    indicators: [
+      'A191RL1Q225SBEA',
+      'INDPRO',
+      'UNRATE',
+      'PAYEMS',
+      'ICSA',
+      'RSAFS',
+      'MANEMP',
+      'PPIFIS'
+    ]
   },
   inflationMonetary: {
     title: '인플레이션 & 통화정책',
-    description: 'CPI, 인플레이션 기대, 연방기준금리, 수익률곡선',
+    description: 'CPI, 인플레이션 기대, 연방기준금리, 수익률곡선, PPI',
     indicators: [
       'CPIAUCSL',
       'PCEPILFE',
+      'PPIFIS',
       'T5YIE',
       'FEDFUNDS',
       'DGS10',
@@ -85,7 +96,6 @@ const INDICATOR_CATEGORIES = {
 // Indicator display information
 const INDICATOR_INFO = {
   // 성장 & 생산성
-  GDP: { name: 'GDP (총생산)', unit: '조달러', color: '#10b981', icon: '📈' },
   A191RL1Q225SBEA: {
     name: 'GDP 실질성장률',
     unit: '%',
@@ -93,7 +103,6 @@ const INDICATOR_INFO = {
     icon: '📊'
   },
   INDPRO: { name: '산업생산지수', unit: '', color: '#2563eb', icon: '🏭' },
-  TCU: { name: '설비가동률', unit: '%', color: '#0891b2', icon: '⚙️' },
 
   // 고용 & 노동시장
   UNRATE: { name: '실업률', unit: '%', color: '#ef4444', icon: '👥' },
@@ -108,6 +117,16 @@ const INDICATOR_INFO = {
     icon: '📊'
   },
   PCEPILFE: { name: '코어 PCE', unit: '%', color: '#ea580c', icon: '🎯' },
+  PPIFIS: {
+    name: 'PPI (생산자물가지수)',
+    unit: '%',
+    color: '#dc2626',
+    icon: '🏭'
+  },
+
+  // 소매 & 제조업
+  RSAFS: { name: '소매판매액', unit: '%', color: '#16a34a', icon: '🛒' },
+  MANEMP: { name: '제조업 고용지수', unit: '', color: '#0ea5e9', icon: '🏗️' },
 
   // 통화정책 & 금리
   FEDFUNDS: { name: '연방기준금리', unit: '%', color: '#6366f1', icon: '🏦' },
@@ -339,12 +358,12 @@ export const Economics: React.FC = () => {
             </h4>
             <div className="text-xs sm:text-sm text-blue-800">
               <p>
-                <strong>1. 성장&고용:</strong> GDP, 산업생산, 실업률, 일자리로
-                경제 성장과 고용상황 종합 분석
+                <strong>1. 성장&고용:</strong> GDP, 산업생산, 실업률, 일자리,
+                소매판매, 제조업PMI, PPI로 경제 성장과 고용상황 종합 분석
               </p>
               <p>
-                <strong>2. 인플레이션&통화정책:</strong> CPI, 인플레이션 기대치,
-                연준금리, 수익률곡선으로 물가와 통화정책 방향 예측
+                <strong>2. 인플레이션&통화정책:</strong> CPI, PPI, 인플레이션
+                기대치, 연준금리, 수익률곡선으로 물가와 통화정책 방향 예측
               </p>
               <p>
                 <strong>3. 금융&시장위험:</strong> 금융상황지수, 회사채
@@ -713,7 +732,11 @@ export const Economics: React.FC = () => {
                                 return date.getFullYear().toString()
                               }}
                             />
-                            <YAxis fontSize={12} />
+                            <YAxis
+                              fontSize={12}
+                              domain={['dataMin', 'dataMax']}
+                              allowDataOverflow={false}
+                            />
                             <Tooltip
                               content={({ active, payload, label }) => {
                                 if (!active || !payload || !payload.length)
