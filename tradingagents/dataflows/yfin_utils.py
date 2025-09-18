@@ -9,11 +9,49 @@ from functools import wraps
 from .utils import save_output, SavePathType, decorate_all_methods
 
 
+
+def is_korea_stock(ticker: str):
+    if ticker.isdigit() and len(ticker) == 6:
+        return True
+    return False
+
+def guess_korea_market(ticker: str):
+    # 코스피: .KS, 코스닥: .KQ
+    if is_korea_stock(ticker):
+        try:
+            info_ks = yf.Ticker(ticker + ".KS").info
+            if info_ks and "shortName" in info_ks and info_ks.get("exchange") == "KSC":
+                return f"{ticker}.KS"
+        except Exception:
+            pass
+        try:
+            info_kq = yf.Ticker(ticker + ".KQ").info
+            if info_kq and "shortName" in info_kq and info_kq.get("exchange") == "KOE":
+                return f"{ticker}.KQ"
+        except Exception:
+            pass
+    return ticker
+
+
+def get_korea_stock_name(ticker: str):
+    """
+    한국 주식 티커에 대해 종목 이름을 반환합니다. (pykrx 사용)
+    """
+    if is_korea_stock(ticker):
+        try:
+            from pykrx import stock
+            ticker_name = stock.get_market_ticker_name(ticker)
+            return ticker_name
+        except Exception:
+            return ""
+    return ""
+
 def init_ticker(func: Callable) -> Callable:
     """Decorator to initialize yf.Ticker and pass it to the function."""
 
     @wraps(func)
     def wrapper(symbol: Annotated[str, "ticker symbol"], *args, **kwargs) -> Any:
+        symbol = guess_korea_market(symbol)
         ticker = yf.Ticker(symbol)
         return func(ticker, *args, **kwargs)
 

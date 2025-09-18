@@ -16,6 +16,25 @@ from openai import OpenAI
 from .config import get_config, set_config, DATA_DIR
 
 
+def is_korea_stock(ticker: str):
+    if ticker.isdigit() and len(ticker) == 6:
+        return True
+    return False
+
+def get_korea_stock_name(ticker: str):
+    """
+    한국 주식 티커에 대해 종목 이름을 반환합니다. (pykrx 사용)
+    """
+    if is_korea_stock(ticker):
+        try:
+            from pykrx import stock
+            ticker_name = stock.get_market_ticker_name(ticker)
+            return ticker_name
+        except Exception:
+            return ""
+    return ""
+
+    
 def get_finnhub_news(
     ticker: Annotated[
         str,
@@ -35,7 +54,6 @@ def get_finnhub_news(
         str: formatted string containing the news of the company in the time frame
 
     """
-
     start_date = datetime.strptime(curr_date, "%Y-%m-%d")
     before = start_date - relativedelta(days=look_back_days)
     before = before.strftime("%Y-%m-%d")
@@ -184,8 +202,7 @@ def get_simfin_balance_sheet(
         return f"No {freq} balance sheet reports found for {ticker}"
     
     # Use up to 5 most recent reports for trend analysis
-    reports_to_analyze = reports[:min(5, len(reports))]
-    
+    reports_to_analyze = reports[:min(10, len(reports))]
     result_str = f"## {freq.title()} Balance Sheet for {ticker} - {len(reports_to_analyze)} Years Analysis:\n\n"
     
     # Process multiple years of data
@@ -205,6 +222,7 @@ def get_simfin_balance_sheet(
             assets = {}
             liabilities = {}
             equity = {}
+            other = {}  # 기타 항목들
             
             for item in bs_data:
                 concept = item.get('concept', '')
@@ -218,6 +236,9 @@ def get_simfin_balance_sheet(
                     liabilities[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
                 elif any(keyword in concept.lower() for keyword in ['equity', 'capital', 'retained', 'stockholder']):
                     equity[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
+                else:
+                    # 영어 키워드에 매칭되지 않는 모든 항목 (한글 계정명 포함)
+                    other[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
             
             # Format the output for this year (show key items only to avoid too much text)
             key_items = []
@@ -236,6 +257,16 @@ def get_simfin_balance_sheet(
             if equity:
                 stockholder_equity = next((v for k, v in equity.items() if 'stockholder' in k.lower() or 'shareholder' in k.lower()), 'N/A')
                 key_items.append(f"Stockholder Equity: {stockholder_equity}")
+            
+            # Other 항목들 추가 (한글 계정명 등)
+            if other:
+                result_str += "\n**Other Balance Sheet Items:**\n"
+                # 주요 항목들만 선별해서 표시 (너무 많으면 제한)
+                other_items = list(other.items())[:15]  # 최대 15개만 표시
+                for concept, value in other_items:
+                    result_str += f"- {concept}: {value}\n"
+                if len(other) > 20:
+                    result_str += f"- ... and {len(other) - 20} more items\n"
             
             for item in key_items:
                 result_str += f"- {item}\n"
@@ -279,7 +310,7 @@ def get_simfin_cashflow(
         return f"No {freq} cash flow reports found for {ticker}"
     
     # Use up to 5 most recent reports for trend analysis
-    reports_to_analyze = reports[:min(5, len(reports))]
+    reports_to_analyze = reports[:min(10, len(reports))]
     
     result_str = f"## {freq.title()} Cash Flow Statement for {ticker} - {len(reports_to_analyze)} Years Analysis:\n\n"
     
@@ -300,7 +331,7 @@ def get_simfin_cashflow(
             operating = {}
             investing = {}
             financing = {}
-            other = {}
+            other = {}  # 기타 항목들 (한글 계정명 포함)
             
             for item in cf_data:
                 concept = item.get('concept', '')
@@ -315,6 +346,7 @@ def get_simfin_cashflow(
                 elif any(keyword in concept.lower() for keyword in ['financing', 'debt', 'dividend', 'share', 'stock']):
                     financing[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
                 else:
+                    # 영어 키워드에 매칭되지 않는 모든 항목 (한글 계정명 포함)
                     other[concept] = f"{value:,} {unit}" if isinstance(value, (int, float)) else str(value)
             
             # Format the output for this year (show key items only)
@@ -345,6 +377,17 @@ def get_simfin_cashflow(
             
             for item in key_items:
                 result_str += f"- {item}\n"
+            
+            # Other 항목들 추가 (한글 계정명 등)
+            if other:
+                result_str += "\n**Other Cash Flow Items:**\n"
+                # 주요 항목들만 선별해서 표시 (너무 많으면 제한)
+                other_items = list(other.items())[:20]  # 최대 20개만 표시
+                for concept, value in other_items:
+                    result_str += f"- {concept}: {value}\n"
+                if len(other) > 20:
+                    result_str += f"- ... and {len(other) - 20} more items\n"
+            
             result_str += "\n"
         else:
             result_str += "Cash flow statement details not available for this year.\n\n"
@@ -385,10 +428,9 @@ def get_simfin_income_statements(
         return f"No {freq} income statement reports found for {ticker}"
     
     # Use up to 5 most recent reports for trend analysis
-    reports_to_analyze = reports[:min(5, len(reports))]
+    reports_to_analyze = reports[:min(10, len(reports))]
     
     result_str = f"## {freq.title()} Income Statement for {ticker} - {len(reports_to_analyze)} Years Analysis:\n\n"
-    
     # Process multiple years of data
     for i, report in enumerate(reports_to_analyze):
         # Extract income statement information for each year
@@ -397,7 +439,6 @@ def get_simfin_income_statements(
         year = report.get('year', 'Unknown')
         
         result_str += f"### Year {year} ({period}) - Filed: {report_date}\n\n"
-        
         # Extract income statement data from each report
         if 'report' in report and 'ic' in report['report']:
             ic_data = report['report']['ic']
@@ -437,6 +478,15 @@ def get_simfin_income_statements(
             
             for item in key_items:
                 result_str += f"- {item}\n"
+            
+            if other_income:
+                result_str += "\n**Other Income Statement Items:**\n"
+                # Show up to 20 items for brevity
+                other_items = list(other_income.items())[:20]
+                for concept, value in other_items:
+                    result_str += f"- {concept}: {value}\n"
+                if len(other_income) > 20:
+                    result_str += f"- ... and {len(other_income) - 20} more items\n"
             result_str += "\n"
         else:
             result_str += "Income statement details not available for this year.\n\n"
@@ -870,6 +920,9 @@ def get_stock_news_openai(ticker, curr_date):
     config = get_config()
     client = OpenAI(base_url=config["backend_url"])
 
+    ticker_name = get_korea_stock_name(ticker)
+    ticker = ticker + " " + ticker_name
+
     response = client.responses.create(
         model=config["quick_think_llm"],
         input=[
@@ -939,6 +992,11 @@ def get_global_news_openai(curr_date):
 def get_fundamentals_openai(ticker, curr_date):
     config = get_config()
     client = OpenAI(base_url=config["backend_url"])
+
+    if is_korea_stock(ticker):
+        from pykrx import stock
+        ticker_name = stock.get_market_ticker_name(ticker)
+        ticker = ticker + " " + ticker_name
 
     response = client.responses.create(
         model=config["quick_think_llm"],

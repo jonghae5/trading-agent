@@ -51,6 +51,27 @@ class StockService:
         self.yfinance_cache_duration = 1800  # 30 minutes for API results
 
     
+    def _is_korea_stock(self, ticker: str) -> bool:
+        # 숫자로만 이루어져 있고 6자리인지 확인
+        return ticker.isdigit() and len(ticker) == 6
+
+    def _guess_korea_market_yf(self, ticker: str):
+        # 코스피: .KS, 코스닥: .KQ
+        if self._is_korea_stock(ticker):
+            try:
+                info_ks = yf.Ticker(ticker + ".KS").info
+                if info_ks and "shortName" in info_ks and info_ks.get("exchange") == "KSC":
+                    return f"{ticker}.KS"
+            except Exception:
+                pass
+            try:
+                info_kq = yf.Ticker(ticker + ".KQ").info
+                if info_kq and "shortName" in info_kq and info_kq.get("exchange") == "KOE":
+                    return f"{ticker}.KQ"
+            except Exception:
+                pass
+        return ticker
+        
     def _get_ticker_cache_key(self, ticker: str) -> str:
         """Generate cache key for ticker search."""
         return f"ticker_{ticker.upper().strip()}"
@@ -70,7 +91,8 @@ class StockService:
     def _search_yfinance_sync(self, ticker: str) -> Optional[Dict[str, Any]]:
         """Search yfinance for ticker info (requirement #2)."""
         try:
-            stock = yf.Ticker(ticker.upper())
+            t = self._guess_korea_market_yf(ticker.upper())
+            stock = yf.Ticker(t)
             info = stock.info
             
             # Check if we got valid data
@@ -78,7 +100,10 @@ class StockService:
                 return None
             
             # Return yfinance info in a format suitable for DB upsert
-            return info
+            return {
+                **info,
+                "symbol": ticker.upper()
+            }
             
         except Exception as e:
             logger.debug(f"Error searching yfinance for {ticker}: {e}")
@@ -171,7 +196,6 @@ class StockService:
                     if self._is_yfinance_cache_valid(yf_cache_entry['timestamp']):
                         yfinance_data = yf_cache_entry['data']
                         logger.debug(f"⚡ YFinance cache HIT for '{ticker}'")
-                
                 # If not in cache, search yfinance
                 if yfinance_data is None:
                     loop = asyncio.get_event_loop()
@@ -180,7 +204,7 @@ class StockService:
                         self._search_yfinance_sync,
                         ticker
                     )
-                    
+                    t = self._guess_korea_market_yf(ticker.upper())
                     # Cache yfinance result
                     if yfinance_data:
                         self.yfinance_cache[yf_cache_key] = {

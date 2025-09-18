@@ -16,6 +16,24 @@ from duckduckgo_search import DDGS
 from datetime import datetime
 
 
+def is_korea_stock(ticker: str):
+    if ticker.isdigit() and len(ticker) == 6:
+        return True
+    return False
+
+def get_korea_stock_name(ticker: str):
+    """
+    한국 주식 티커에 대해 종목 이름을 반환합니다. (pykrx 사용)
+    """
+    if is_korea_stock(ticker):
+        try:
+            from pykrx import stock
+            ticker_name = stock.get_market_ticker_name(ticker)
+            return ticker_name
+        except Exception:
+            return ""
+    return ""
+
 def is_rate_limited(response):
     """Check if the response indicates rate limiting (status code 429)"""
     return response.status_code == 429
@@ -144,6 +162,7 @@ def getNewsData(query, start_date, end_date):
             # region="wt-wt": 전세계 뉴스, safesearch="Off": 성인/폭력 등 제한 없음, timelimit="m": 최근 1달
             # 최신 뉴스가 우선적으로 반환됩니다.
             print(f"DuckDuckGo 뉴스 검색 시작: 쿼리='{query}', 기간={start_date}~{end_date}")
+            query = get_korea_stock_name(query)
             
             for result in ddgs.news(query, region="wt-wt", safesearch="Off", timelimit="m"):
                 # 새로운 DuckDuckGo 응답 형태 처리

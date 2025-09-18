@@ -2694,6 +2694,21 @@ wheels = [
 ]
 
 [[package]]
+name = "opendartreader"
+version = "0.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "lxml" },
+    { name = "pandas" },
+    { name = "requests" },
+    { name = "requests-file" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/23/e76575618af74b3572b6791b6e1cc403832af9cb2d6c6961a0749b37bf84/OpenDartReader-0.2.3-py3-none-any.whl", hash = "sha256:710c01969e5b01dc1b7bc78a9f5f13cad11623cdb2f6ed45110f6cd40a111ecc", size = 27544, upload-time = "2023-03-15T07:17:25.548Z" },
+]
+
+[[package]]
 name = "openpyxl"
 version = "3.1.5"
 source = { registry = "https://pypi.org/simple" }
@@ -4303,6 +4318,18 @@ wheels = [
 ]
 
 [[package]]
+name = "requests-file"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/72/97/bf44e6c6bd8ddbb99943baf7ba8b1a8485bcd2fe0e55e5708d7fee4ff1ae/requests_file-2.1.0.tar.gz", hash = "sha256:0f549a3f3b0699415ac04d167e9cb39bccfb730cb832b4d20be3d9867356e658", size = 6891, upload-time = "2024-05-21T16:28:00.24Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/25/dd878a121fcfdf38f52850f11c512e13ec87c2ea72385933818e5b6c15ce/requests_file-2.1.0-py2.py3-none-any.whl", hash = "sha256:cf270de5a4c5874e84599fc5778303d496c10ae5e870bfa378818f35d21bda5c", size = 4244, upload-time = "2024-05-21T16:27:57.733Z" },
+]
+
+[[package]]
 name = "requests-oauthlib"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4895,6 +4922,7 @@ dependencies = [
     { name = "lxml" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "opendartreader" },
     { name = "pandas" },
     { name = "parsel" },
     { name = "plotly" },
@@ -4940,6 +4968,7 @@ requires-dist = [
     { name = "langgraph", specifier = ">=0.4.8" },
     { name = "lxml", specifier = ">=5.4.0" },
     { name = "numpy", specifier = ">=2.2.6" },
+    { name = "opendartreader", specifier = ">=0.2.3" },
     { name = "pandas", specifier = ">=2.3.0" },
     { name = "parsel", specifier = ">=1.10.0" },
     { name = "plotly", specifier = ">=6.3.0" },
