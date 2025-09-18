@@ -18,6 +18,7 @@ from src.core.config import settings
 from src.core.database import get_database_manager
 from src.models.stock_universe import Base, StockInfo
 from src.services.fred_service import get_fred_service
+from src.utils.stock_utils import is_korea_stock, guess_korea_market
 import time
 
 logger = logging.getLogger(__name__)
@@ -51,26 +52,6 @@ class StockService:
         self.yfinance_cache_duration = 1800  # 30 minutes for API results
 
     
-    def _is_korea_stock(self, ticker: str) -> bool:
-        # 숫자로만 이루어져 있고 6자리인지 확인
-        return ticker.isdigit() and len(ticker) == 6
-
-    def _guess_korea_market_yf(self, ticker: str):
-        # 코스피: .KS, 코스닥: .KQ
-        if self._is_korea_stock(ticker):
-            try:
-                info_ks = yf.Ticker(ticker + ".KS").info
-                if info_ks and "shortName" in info_ks and info_ks.get("exchange") == "KSC":
-                    return f"{ticker}.KS"
-            except Exception:
-                pass
-            try:
-                info_kq = yf.Ticker(ticker + ".KQ").info
-                if info_kq and "shortName" in info_kq and info_kq.get("exchange") == "KOE":
-                    return f"{ticker}.KQ"
-            except Exception:
-                pass
-        return ticker
         
     def _get_ticker_cache_key(self, ticker: str) -> str:
         """Generate cache key for ticker search."""
@@ -91,7 +72,7 @@ class StockService:
     def _search_yfinance_sync(self, ticker: str) -> Optional[Dict[str, Any]]:
         """Search yfinance for ticker info (requirement #2)."""
         try:
-            t = self._guess_korea_market_yf(ticker.upper())
+            t = guess_korea_market(ticker.upper())
             stock = yf.Ticker(t)
             info = stock.info
             
@@ -204,7 +185,6 @@ class StockService:
                         self._search_yfinance_sync,
                         ticker
                     )
-                    t = self._guess_korea_market_yf(ticker.upper())
                     # Cache yfinance result
                     if yfinance_data:
                         self.yfinance_cache[yf_cache_key] = {

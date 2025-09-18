@@ -215,7 +215,6 @@ def fetch_financials_reported_online(ticker: str, freq: str = "annual", from_dat
             dart = OpenDartReader(dart_api_key)
 
             # from_date가 YYYYMMDD 형식의 문자열로 들어오면, 연도/월 추출
-            import datetime
 
             def get_report_code_and_form(base_year, year, from_date):
                 """
@@ -225,9 +224,9 @@ def fetch_financials_reported_online(ticker: str, freq: str = "annual", from_dat
                     # from_date: YYYYMMDD or YYYY-MM-DD
                     try:
                         if '-' in from_date:
-                            dt = datetime.datetime.strptime(from_date[:10], "%Y-%m-%d")
+                            dt = datetime.strptime(from_date[:10], "%Y-%m-%d")
                         else:
-                            dt = datetime.datetime.strptime(from_date[:8], "%Y%m%d")
+                            dt = datetime.strptime(from_date[:8], "%Y%m%d")
                         month = dt.month
                     except Exception:
                         month = 12
@@ -242,13 +241,18 @@ def fetch_financials_reported_online(ticker: str, freq: str = "annual", from_dat
                         return '11011', '사업보고서'
                 else:
                     return '11011', '사업보고서'
+            
+            # from_date가 없으면 오늘 날짜로 기본값 설정 (YYYYMMDD)
+            if not from_date:
+                from_date = datetime.now().strftime("%Y%m%d")
+
+            # from_date에서 연도 추출, 최근 4개년을 조회 대상으로 설정
+            base_year = None
+            years_to_try = [2025, 2024, 2023, 2022]  # 기본값
 
             if from_date and len(from_date) >= 4 and from_date[:4].isdigit():
                 base_year = int(from_date[:4])
-                years_to_try = [base_year - i for i in range(0, 4)]
-            else:
-                base_year = None
-                years_to_try = [2025, 2024, 2023, 2022]
+                years_to_try = [base_year - i for i in range(4)]
 
             fs_data = None
             fs_data_list = []
@@ -257,7 +261,10 @@ def fetch_financials_reported_online(ticker: str, freq: str = "annual", from_dat
                 try:
                     report_code, form_name = get_report_code_and_form(base_year, year, from_date)
                     report_code_form_map[year] = (report_code, form_name)
-                    yearly_data = dart.finstate_all(corp=ticker, bsns_year=year, reprt_code=report_code)
+                    if report_code != "11011":
+                        yearly_data = dart.finstate(ticker, year, report_code)
+                    else:
+                        yearly_data = dart.finstate_all(corp=ticker, bsns_year=year, reprt_code=report_code)
                     if yearly_data is not None and not yearly_data.empty:
                         # form 정보도 같이 저장
                         yearly_data['__dart_form_name'] = form_name

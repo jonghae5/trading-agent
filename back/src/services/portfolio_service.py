@@ -11,6 +11,7 @@ import logging
 from functools import lru_cache
 import time
 import asyncio
+from src.utils.stock_utils import guess_korea_market
 
 logger = logging.getLogger(__name__)
 
@@ -483,7 +484,9 @@ class PortfolioOptimizationService:
             
             # asyncio.to_thread를 사용해서 yfinance를 비동기적으로 실행
             def _download_data():
-                return yf.download(tickers, period=period, progress=False, threads=True)
+                # 한국 주식 코드 변환 처리
+                processed_tickers = [guess_korea_market(ticker) for ticker in tickers]
+                return yf.download(processed_tickers, period=period, progress=False, threads=True)
             
             # 병렬로 데이터 다운로드
             data = await asyncio.to_thread(_download_data)
@@ -860,7 +863,9 @@ class PortfolioOptimizationService:
         try:
             # 비동기로 yfinance 데이터 요청
             def _validate_data():
-                return yf.download(tickers, period="5d", progress=False, threads=True)
+                # 한국 주식 코드 변환 처리
+                processed_tickers = [guess_korea_market(ticker) for ticker in tickers]
+                return yf.download(processed_tickers, period="5d", progress=False, threads=True)
             
             test_data = await asyncio.to_thread(_validate_data)
             
@@ -887,7 +892,9 @@ class PortfolioOptimizationService:
         """종목 코드 유효성 검증 (동기 - 하위 호환성)"""
         try:
             # yfinance로 간단한 데이터 요청해서 유효성 확인
-            test_data = yf.download(tickers, period="5d", progress=False, threads=True)
+            # 한국 주식 코드 변환 처리
+            processed_tickers = [guess_korea_market(ticker) for ticker in tickers]
+            test_data = yf.download(processed_tickers, period="5d", progress=False, threads=True)
             
             if test_data.empty:
                 raise ValueError("유효하지 않은 종목 코드가 포함되어 있습니다.")

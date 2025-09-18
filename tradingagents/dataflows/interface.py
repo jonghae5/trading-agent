@@ -228,8 +228,9 @@ def get_simfin_balance_sheet(
         report_date = report.get('filedDate', 'Unknown')
         period = report.get('period', 'Unknown')
         year = report.get('year', 'Unknown')
+        form = report.get('form', 'Unknown')
         
-        result_str += f"### Year {year} ({period}) - Filed: {report_date}\n\n"
+        result_str += f"### Year {year} ({period}) ({form})\n\n"
         
         # Extract balance sheet data from each report
         if 'report' in report and 'bs' in report['report']:
@@ -279,11 +280,11 @@ def get_simfin_balance_sheet(
             if other:
                 result_str += "\n**Other Balance Sheet Items:**\n"
                 # 주요 항목들만 선별해서 표시 (너무 많으면 제한)
-                other_items = list(other.items())[:15]  # 최대 15개만 표시
+                other_items = list(other.items())[:30]  # 최대 15개만 표시
                 for concept, value in other_items:
                     result_str += f"- {concept}: {value}\n"
-                if len(other) > 20:
-                    result_str += f"- ... and {len(other) - 20} more items\n"
+                if len(other) > 30:
+                    result_str += f"- ... and {len(other) - 30} more items\n"
             
             for item in key_items:
                 result_str += f"- {item}\n"
@@ -337,8 +338,9 @@ def get_simfin_cashflow(
         report_date = report.get('filedDate', 'Unknown')
         period = report.get('period', 'Unknown')
         year = report.get('year', 'Unknown')
+        form = report.get('form', 'Unknown')
         
-        result_str += f"### Year {year} ({period}) - Filed: {report_date}\n\n"
+        result_str += f"### Year {year} ({period}) ({form})\n\n"
         
         # Extract cash flow data from each report
         if 'report' in report and 'cf' in report['report']:
@@ -399,11 +401,11 @@ def get_simfin_cashflow(
             if other:
                 result_str += "\n**Other Cash Flow Items:**\n"
                 # 주요 항목들만 선별해서 표시 (너무 많으면 제한)
-                other_items = list(other.items())[:20]  # 최대 20개만 표시
+                other_items = list(other.items())[:30]  # 최대 20개만 표시
                 for concept, value in other_items:
                     result_str += f"- {concept}: {value}\n"
-                if len(other) > 20:
-                    result_str += f"- ... and {len(other) - 20} more items\n"
+                if len(other) > 30:
+                    result_str += f"- ... and {len(other) - 30} more items\n"
             
             result_str += "\n"
         else:
@@ -449,13 +451,15 @@ def get_simfin_income_statements(
     
     result_str = f"## {freq.title()} Income Statement for {ticker} - {len(reports_to_analyze)} Years Analysis:\n\n"
     # Process multiple years of data
+    print("오종해길이",len(reports_to_analyze))
     for i, report in enumerate(reports_to_analyze):
         # Extract income statement information for each year
         report_date = report.get('filedDate', 'Unknown')
         period = report.get('period', 'Unknown') 
         year = report.get('year', 'Unknown')
+        form = report.get('form', 'Unknown')
         
-        result_str += f"### Year {year} ({period}) - Filed: {report_date}\n\n"
+        result_str += f"### Year {year} ({period}) ({form})\n\n"
         # Extract income statement data from each report
         if 'report' in report and 'ic' in report['report']:
             ic_data = report['report']['ic']
@@ -499,17 +503,18 @@ def get_simfin_income_statements(
             if other_income:
                 result_str += "\n**Other Income Statement Items:**\n"
                 # Show up to 20 items for brevity
-                other_items = list(other_income.items())[:20]
+                other_items = list(other_income.items())[:30]
                 for concept, value in other_items:
                     result_str += f"- {concept}: {value}\n"
-                if len(other_income) > 20:
-                    result_str += f"- ... and {len(other_income) - 20} more items\n"
+                if len(other_income) > 30:
+                    result_str += f"- ... and {len(other_income) - 30} more items\n"
             result_str += "\n"
         else:
             result_str += "Income statement details not available for this year.\n\n"
     
     result_str += "\nThis income statement shows the company's financial performance over a specific period, including revenues (money earned), expenses (costs incurred), and net income (profit or loss)."
     
+    print("오종해",result_str)
     return result_str
 
 
@@ -950,7 +955,7 @@ def get_stock_news_openai(ticker, curr_date):
                 "content": [
                     {
                         "type": "input_text",
-                        "text": f"Can you search Social Media for {ticker} from 7 days before {curr_date} to {curr_date}? Make sure you only get the data posted during that period.",
+                        "text": f"Can you search Social Media for {ticker} from 14 days before {curr_date} to {curr_date}? Make sure you only get the data posted during that period.",
                     }
                 ],
             }
@@ -985,7 +990,7 @@ def get_global_news_openai(curr_date):
                 "content": [
                     {
                         "type": "input_text",
-                        "text": f"Can you search global or macroeconomics news from 7 days before {curr_date} to {curr_date} that would be informative for trading purposes? Make sure you only get the data posted during that period.",
+                        "text": f"Can you search global or macroeconomics news from 14 days before {curr_date} to {curr_date} that would be informative for trading purposes? Make sure you only get the data posted during that period.",
                     }
                 ],
             }
