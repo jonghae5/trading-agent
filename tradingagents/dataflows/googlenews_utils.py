@@ -162,10 +162,13 @@ def getNewsData(query, start_date, end_date):
             # region="wt-wt": 전세계 뉴스, safesearch="Off": 성인/폭력 등 제한 없음, timelimit="m": 최근 1달
             # 최신 뉴스가 우선적으로 반환됩니다.
             print(f"DuckDuckGo 뉴스 검색 시작: 쿼리='{query}', 기간={start_date}~{end_date}")
-            query = get_korea_stock_name(query)
-            print(f"DuckDuckGo 뉴스 검색 시작: 쿼리 변환(KR)='{query}', 기간={start_date}~{end_date}")
+            query_with_name = get_korea_stock_name(query)
+            print(f"DuckDuckGo 뉴스 검색 시작: 쿼리 변환(KR)='{query_with_name}', 기간={start_date}~{end_date}")
+            if not query_with_name:
+                query_with_name = query
+
             
-            for result in ddgs.news(query, region="wt-wt", safesearch="Off", timelimit="m"):
+            for result in ddgs.news(query_with_name, region="wt-wt", safesearch="Off", timelimit="m"):
                 # 새로운 DuckDuckGo 응답 형태 처리
                 # date는 이제 timestamp 형태 (예: 1755234060)
                 pubdate_raw = result.get("date")
