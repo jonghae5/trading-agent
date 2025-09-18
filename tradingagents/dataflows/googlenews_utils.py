@@ -163,6 +163,7 @@ def getNewsData(query, start_date, end_date):
             # 최신 뉴스가 우선적으로 반환됩니다.
             print(f"DuckDuckGo 뉴스 검색 시작: 쿼리='{query}', 기간={start_date}~{end_date}")
             query = get_korea_stock_name(query)
+            print(f"DuckDuckGo 뉴스 검색 시작: 쿼리 변환(KR)='{query}', 기간={start_date}~{end_date}")
             
             for result in ddgs.news(query, region="wt-wt", safesearch="Off", timelimit="m"):
                 # 새로운 DuckDuckGo 응답 형태 처리
