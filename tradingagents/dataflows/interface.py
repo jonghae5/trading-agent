@@ -451,7 +451,6 @@ def get_simfin_income_statements(
     
     result_str = f"## {freq.title()} Income Statement for {ticker} - {len(reports_to_analyze)} Years Analysis:\n\n"
     # Process multiple years of data
-    print("오종해길이",len(reports_to_analyze))
     for i, report in enumerate(reports_to_analyze):
         # Extract income statement information for each year
         report_date = report.get('filedDate', 'Unknown')
@@ -514,7 +513,6 @@ def get_simfin_income_statements(
     
     result_str += "\nThis income statement shows the company's financial performance over a specific period, including revenues (money earned), expenses (costs incurred), and net income (profit or loss)."
     
-    print("오종해",result_str)
     return result_str
 
 
@@ -990,7 +988,7 @@ def get_global_news_openai(curr_date):
                 "content": [
                     {
                         "type": "input_text",
-                        "text": f"Can you search global or macroeconomics news from 14 days before {curr_date} to {curr_date} that would be informative for trading purposes? Make sure you only get the data posted during that period.",
+                        "text": f"Can you search global or macroeconomics news from 14 days before {curr_date} to {curr_date} that would be informative for trading purposes? Make sure you only get the data posted during that period. However, if there are any especially critical or impactful news items relevant to trading—even if they are older than 14 days—please also include them and clearly indicate their date and significance.",
                     }
                 ],
             }
