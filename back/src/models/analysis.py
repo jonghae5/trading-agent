@@ -61,7 +61,7 @@ class AnalysisSession(Base):
     username: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     
     # Analysis parameters
-    ticker: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    ticker: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     analysis_date: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, index=True)
     
     # Analysis configuration

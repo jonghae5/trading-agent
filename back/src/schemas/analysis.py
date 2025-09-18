@@ -68,7 +68,7 @@ class ReportSectionType(str, Enum):
 
 class AnalysisConfigRequest(BaseModel):
     """Analysis configuration request."""
-    ticker: str = Field(..., min_length=1, max_length=20, description="Stock ticker symbol")
+    ticker: str = Field(..., min_length=1, max_length=50, description="Stock ticker symbol")
     analysis_date: str = Field(..., description="Analysis date in YYYY-MM-DD format")
     analysts: List[AnalystType] = Field(..., min_items=1, description="Selected analysts")
     research_depth: int = Field(3, ge=1, le=10, description="Research depth (1-10)")
@@ -80,11 +80,13 @@ class AnalysisConfigRequest(BaseModel):
     @validator('ticker')
     def validate_ticker(cls, v):
         """Validate ticker format."""
-        ticker = v.upper().strip()
-        if not ticker.isalnum():
+        ticker = v.strip()
+        # Only validate original ticker part (before space) for alphanumeric
+        original_ticker = ticker.split()[0] if ' ' in ticker else ticker
+        if not original_ticker.isalnum():
             raise ValueError('Ticker must contain only alphanumeric characters')
-        if len(ticker) > 10:
-            raise ValueError('Ticker must be 10 characters or less')
+        if len(ticker) > 50:
+            raise ValueError('Ticker must be 50 characters or less')
         return ticker
     
     @validator('analysis_date')

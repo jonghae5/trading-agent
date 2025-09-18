@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, desc, func
 import uuid
 from datetime import datetime, timedelta
+from pykrx import stock
 
 from src.core.database import get_db, get_async_db
 from src.core.security import get_current_user, User
@@ -50,11 +51,22 @@ async def start_analysis(
     try:
         config = request.config
         session_id = str(uuid.uuid4())
+
+        # Get Korean stock name and append to ticker
+        ticker_with_name = config.ticker
+        try:
+            ticker_name = stock.get_market_ticker_name(config.ticker)
+            if ticker_name:
+                ticker_with_name = f"{config.ticker} {ticker_name}"
+        except Exception as e:
+            logger.warning(f"Failed to get ticker name for {config.ticker}: {e}")
+            # Use original ticker if getting name fails
+
         analysis_session = AnalysisSession(
             session_id=session_id,
             user_id=current_user.id,
             username=current_user.username,
-            ticker=config.ticker,
+            ticker=ticker_with_name,
             analysis_date=datetime.strptime(config.analysis_date, '%Y-%m-%d'),
             config_snapshot=config.model_dump(),
             selected_analysts=[analyst.value for analyst in config.analysts],
@@ -131,7 +143,8 @@ async def get_analysis_sessions(
             AnalysisSession.user_id == current_user.id
         )
         if ticker:
-            query = query.where(AnalysisSession.ticker == ticker.upper())
+            # Filter by original ticker code (before space) for compatibility
+            query = query.where(AnalysisSession.ticker.like(f"{ticker.upper()}%"))
         if status:
             query = query.where(AnalysisSession.status == status)
         if include_reports:

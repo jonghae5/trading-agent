@@ -213,28 +213,63 @@ def fetch_financials_reported_online(ticker: str, freq: str = "annual", from_dat
             import OpenDartReader
             dart_api_key = get_opendartreader_api_key()
             dart = OpenDartReader(dart_api_key)
-            
-            # 최근 년도부터 시도 (2024 -> 2023 -> 2022)
-            # from_date가 YYYYMMDD 형식의 문자열로 들어오면, 연도 추출 및 1년씩 감소
+
+            # from_date가 YYYYMMDD 형식의 문자열로 들어오면, 연도/월 추출
+            import datetime
+
+            def get_report_code_and_form(base_year, year, from_date):
+                """
+                base_year와 year가 같으면 분기/반기/3분기 보고서, 다르면 연간보고서
+                """
+                if base_year == year and from_date and len(from_date) >= 6:
+                    # from_date: YYYYMMDD or YYYY-MM-DD
+                    try:
+                        if '-' in from_date:
+                            dt = datetime.datetime.strptime(from_date[:10], "%Y-%m-%d")
+                        else:
+                            dt = datetime.datetime.strptime(from_date[:8], "%Y%m%d")
+                        month = dt.month
+                    except Exception:
+                        month = 12
+                    # 3, 6, 9, 12월 기준
+                    if month >= 11:
+                        return '11014', '3분기보고서'
+                    elif month >= 8:
+                        return '11012', '반기보고서'
+                    elif month >= 5:
+                        return '11013', '1분기보고서'
+                    else:
+                        return '11011', '사업보고서'
+                else:
+                    return '11011', '사업보고서'
+
             if from_date and len(from_date) >= 4 and from_date[:4].isdigit():
                 base_year = int(from_date[:4])
-                years_to_try = [base_year - i for i in range(1,4)]
+                years_to_try = [base_year - i for i in range(0, 4)]
             else:
-                years_to_try = [2024, 2023, 2022]
+                base_year = None
+                years_to_try = [2025, 2024, 2023, 2022]
+
             fs_data = None
             fs_data_list = []
+            report_code_form_map = {}  # year: (report_code, form)
             for year in years_to_try:
                 try:
-                    yearly_data = dart.finstate_all(corp=ticker, bsns_year=year)
+                    report_code, form_name = get_report_code_and_form(base_year, year, from_date)
+                    report_code_form_map[year] = (report_code, form_name)
+                    yearly_data = dart.finstate_all(corp=ticker, bsns_year=year, reprt_code=report_code)
                     if yearly_data is not None and not yearly_data.empty:
+                        # form 정보도 같이 저장
+                        yearly_data['__dart_form_name'] = form_name
+                        yearly_data['__dart_report_code'] = report_code
                         fs_data_list.append(yearly_data)
                 except Exception as fs_error:
-                    print(f"{year}년 재무제표 조회 실패: {fs_error}")
+                    print(f"{year}년 {form_name}({report_code}) 재무제표 조회 실패: {fs_error}")
                     continue
             if fs_data_list:
                 import pandas as pd
                 fs_data = pd.concat(fs_data_list, ignore_index=True)
-            
+
             # 기업 개황 정보 가져오기
             company_info = None
             try:
@@ -242,34 +277,56 @@ def fetch_financials_reported_online(ticker: str, freq: str = "annual", from_dat
                 print(f"OpenDartReader에서 기업 개황 정보를 수집했습니다.")
             except Exception as e:
                 print(f"기업 개황 정보 가져오기 실패: {e}")
-            
+
             # DataFrame이 비어있는지 체크
-            has_fs_data = (fs_data is not None and 
-                         not (hasattr(fs_data, 'empty') and fs_data.empty) and
-                         len(fs_data) > 0)
-            
+            has_fs_data = (
+                fs_data is not None and
+                not (hasattr(fs_data, 'empty') and fs_data.empty) and
+                len(fs_data) > 0
+            )
+
             if has_fs_data:
                 print(f"OpenDartReader에서 {len(fs_data)}개의 재무제표 결과를 수집했습니다.")
-                
+
                 # Finnhub 형식으로 변환
                 def convert_dart_to_finnhub_format(df, ticker):
                     # Get unique business years
                     years = df['bsns_year'].unique()
                     converted_data = []
-                    
+
                     for year in years:
                         year_data = df[df['bsns_year'] == year]
-                        
+                        # form_name, report_code 추출
+                        form_name = year_data['__dart_form_name'].iloc[0] if '__dart_form_name' in year_data.columns else '사업보고서'
+                        report_code = year_data['__dart_report_code'].iloc[0] if '__dart_report_code' in year_data.columns else '11011'
+
+                        # filedDate: 가장 최근 frmtrm_dt
+                        filed_date = year_data.iloc[0].get('frmtrm_dt', f"{year}-12-31")
+
+                        # 분기 정보 추출
+                        if report_code == '11013':
+                            period = "Q1"
+                            quarter = 1
+                        elif report_code == '11012':
+                            period = "H1"
+                            quarter = 2
+                        elif report_code == '11014':
+                            period = "Q3"
+                            quarter = 3
+                        else:
+                            period = "FY"
+                            quarter = 0
+
                         # Create Finnhub-like structure
                         report_entry = {
                             "symbol": ticker,
                             "cik": ticker,  # Use ticker as CIK for Korean stocks
-                            "accessNumber": f"dart-{ticker}-{year}",
+                            "accessNumber": f"dart-{ticker}-{year}-{report_code}",
                             "year": int(year),
-                            "quarter": 0,  # Annual report
-                            "form": "사업보고서",
-                            "filedDate": year_data.iloc[0].get('frmtrm_dt', f"{year}-12-31"),
-                            "period": "FY",  # Full Year for annual reports
+                            "quarter": quarter,
+                            "form": form_name,
+                            "filedDate": filed_date,
+                            "period": period,
                             "report": {}
                         }
                         
