@@ -55,4 +55,5 @@ front/.vercel
 back/*.db
 back/*.db-wal
 back/*.db-shm
+back/docs_cache
 
