@@ -21,6 +21,23 @@ def is_korea_stock(ticker: str):
         return True
     return False
 
+def guess_korea_market(ticker: str):
+    # 코스피: .KS, 코스닥: .KQ
+    if is_korea_stock(ticker):
+        try:
+            info_ks = yf.Ticker(ticker + ".KS").info
+            if info_ks and "shortName" in info_ks and info_ks.get("exchange") == "KSC":
+                return f"{ticker}.KS"
+        except Exception:
+            pass
+        try:
+            info_kq = yf.Ticker(ticker + ".KQ").info
+            if info_kq and "shortName" in info_kq and info_kq.get("exchange") == "KOE":
+                return f"{ticker}.KQ"
+        except Exception:
+            pass
+    return ticker
+
 def get_korea_stock_name(ticker: str):
     """
     한국 주식 티커에 대해 종목 이름을 반환합니다. (pykrx 사용)
@@ -782,6 +799,7 @@ def get_stockstats_indicator(
     curr_date = curr_date.strftime("%Y-%m-%d")
 
     try:
+        symbol = guess_korea_market(symbol)
         indicator_value = StockstatsUtils.get_stock_stats(
             symbol,
             indicator,
@@ -849,6 +867,7 @@ def get_YFin_data_online(
     datetime.strptime(end_date, "%Y-%m-%d")
 
     # Create ticker object
+    symbol = guess_korea_market(symbol)
     ticker = yf.Ticker(symbol.upper())
 
     # Fetch historical data for the specified date range
