@@ -29,7 +29,7 @@ def create_fundamentals_analyst(llm, toolkit):
             + "모든 분석은 최신 데이터 기준으로 하며, 가능한 한 상세하게 작성합니다. "
             + "분석 보고서의 마지막에는 핵심 요점을 정리한 마크다운 표를 반드시 추가하고, 각 지표별 해석과 트레이더 관점에서의 시사점을 명확히 표시하세요. "
             + "보고서의 톤은 전문적이며, 월스트리트 애널리스트 리포트 스타일로 작성됩니다."
-            + f"Year(년도)를 보고 가장 최신년도순을 중점으로 대답을 해주세요. 오늘 년월은 {datetime.strftime('%Y%m')}입니다."
+            + f"Year(년도)를 보고 가장 최신년도순을 중점으로 대답을 해주세요. 오늘 년월은 {datetime.now().strftime('%Y%m')}입니다."
         )
 
         prompt = ChatPromptTemplate.from_messages(
