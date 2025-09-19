@@ -1,5 +1,5 @@
 import yfinance as yf
-
+from pykrx import stock
 
 def is_korea_stock(ticker: str) -> bool:
     """한국 주식 코드인지 확인 (6자리 숫자)"""
@@ -7,6 +7,26 @@ def is_korea_stock(ticker: str) -> bool:
         return True
     return False
 
+
+def get_stock_name(ticker: str):
+    """
+    주식 티커에 대해 종목 이름을 반환합니다.
+    한국 주식이면 pykrx, 아니면 yfinance를 사용합니다.
+    """
+    if is_korea_stock(ticker):
+        try:
+            ticker_name = stock.get_market_ticker_name(ticker)
+            return ticker_name
+        except Exception:
+            return ""
+    else:
+        try:
+            ticker_obj = yf.Ticker(ticker)
+            info = ticker_obj.info
+            # shortName이 있으면 그걸, 없으면 longName, 둘 다 없으면 ""
+            return info.get("shortName") or info.get("longName") or ""
+        except Exception:
+            return ""
 
 def guess_korea_market(ticker: str) -> str:
     """한국 주식의 시장을 추정하여 적절한 접미사를 붙여 반환

@@ -32,26 +32,7 @@ from src.schemas.analysis import (
 from src.schemas.common import ApiResponse, PaginatedResponse
 from src.services.analysis_manager import AnalysisManager
 from src.models.base import get_kst_now
-
-def get_stock_name(ticker: str):
-    """
-    주식 티커에 대해 종목 이름을 반환합니다.
-    한국 주식이면 pykrx, 아니면 yfinance를 사용합니다.
-    """
-    if is_korea_stock(ticker):
-        try:
-            ticker_name = stock.get_market_ticker_name(ticker)
-            return ticker_name
-        except Exception:
-            return ""
-    else:
-        try:
-            ticker_obj = yf.Ticker(ticker)
-            info = ticker_obj.info
-            # shortName이 있으면 그걸, 없으면 longName, 둘 다 없으면 ""
-            return info.get("shortName") or info.get("longName") or ""
-        except Exception:
-            return ""
+from src.utils.stock_utils import is_korea_stock, guess_korea_market, get_stock_name
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
