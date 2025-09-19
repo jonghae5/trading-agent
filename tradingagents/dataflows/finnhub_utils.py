@@ -11,6 +11,9 @@ def is_korea_stock(ticker: str):
     return False
 
 def guess_korea_market(ticker: str):
+    # 이미 .KS나 .KQ가 붙어 있으면 제거
+    if ticker.endswith(".KS") or ticker.endswith(".KQ"):
+        ticker = ticker[:-3]
     # 코스피: .KS, 코스닥: .KQ
     if is_korea_stock(ticker):
         try:

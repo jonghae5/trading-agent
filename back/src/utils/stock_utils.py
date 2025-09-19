@@ -38,6 +38,9 @@ def guess_korea_market(ticker: str) -> str:
         str: 시장 접미사가 붙은 티커 (예: "005930.KS") 또는 원본 티커
     """
     # 코스피: .KS, 코스닥: .KQ
+    # 이미 .KS나 .KQ가 붙어 있으면 제거
+    if ticker.endswith(".KS") or ticker.endswith(".KQ"):
+        ticker = ticker[:-3]
     if is_korea_stock(ticker):
         # 코스피 먼저 확인
         try:
