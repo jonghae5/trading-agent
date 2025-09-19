@@ -21,9 +21,10 @@ def is_korea_stock(ticker: str):
         return True
     return False
 
-def get_korea_stock_name(ticker: str):
+def get_stock_name(ticker: str):
     """
-    한국 주식 티커에 대해 종목 이름을 반환합니다. (pykrx 사용)
+    주식 티커에 대해 종목 이름을 반환합니다.
+    한국 주식이면 pykrx, 아니면 yfinance를 사용합니다.
     """
     if is_korea_stock(ticker):
         try:
@@ -32,7 +33,15 @@ def get_korea_stock_name(ticker: str):
             return ticker_name
         except Exception:
             return ""
-    return ""
+    else:
+        try:
+            import yfinance as yf
+            ticker_obj = yf.Ticker(ticker)
+            info = ticker_obj.info
+            # shortName이 있으면 그걸, 없으면 longName, 둘 다 없으면 ""
+            return info.get("shortName") or info.get("longName") or ""
+        except Exception:
+            return ""
 
 def is_rate_limited(response):
     """Check if the response indicates rate limiting (status code 429)"""
@@ -162,7 +171,7 @@ def getNewsData(query, start_date, end_date):
             # region="wt-wt": 전세계 뉴스, safesearch="Off": 성인/폭력 등 제한 없음, timelimit="m": 최근 1달
             # 최신 뉴스가 우선적으로 반환됩니다.
             print(f"DuckDuckGo 뉴스 검색 시작: 쿼리='{query}', 기간={start_date}~{end_date}")
-            query_with_name = get_korea_stock_name(query)
+            query_with_name = get_stock_name(query)
             print(f"DuckDuckGo 뉴스 검색 시작: 쿼리 변환(KR)='{query_with_name}', 기간={start_date}~{end_date}")
             if not query_with_name:
                 query_with_name = query
