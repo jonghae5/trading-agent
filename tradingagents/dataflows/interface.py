@@ -3,6 +3,7 @@ from .reddit_utils import fetch_top_from_category
 from .yfin_utils import *
 from .stockstats_utils import *
 from .googlenews_utils import *
+from .naver_news_utils import get_naver_news
 from .finnhub_utils import get_data_in_range, fetch_company_news_online, fetch_insider_sentiment_online, fetch_insider_transactions_online, fetch_balance_sheet_online, fetch_income_statement_online, fetch_cash_flow_online
 from dateutil.relativedelta import relativedelta
 from concurrent.futures import ThreadPoolExecutor
@@ -540,6 +541,25 @@ def get_google_news(
         return ""
 
     return f"## {query} Google News, from {before} to {curr_date}:\n\n{news_str}"
+
+
+def get_naver_news_sync(
+    query: Annotated[str, "Query to search with"],
+    curr_date: Annotated[str, "Curr date in yyyy-mm-dd format"],
+    look_back_days: Annotated[int, "how many days to look back"],
+) -> str:
+    """
+    네이버 뉴스 API를 사용한 뉴스 검색 (동기 함수)
+    
+    Args:
+        query: 검색어 (주식 티커 또는 회사명)
+        curr_date: 현재 날짜 (yyyy-mm-dd 형식)
+        look_back_days: 검색 기간 (기본 7일)
+    
+    Returns:
+        str: 포맷된 뉴스 문자열
+    """
+    return get_naver_news(query, curr_date, look_back_days)
 
 
 def get_reddit_global_news(

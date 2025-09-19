@@ -1,5 +1,6 @@
 from .finnhub_utils import get_data_in_range
 from .googlenews_utils import getNewsData
+from .naver_news_utils import get_naver_news, get_naver_search_client
 from .yfin_utils import YFinanceUtils
 from .reddit_utils import fetch_top_from_category
 from .stockstats_utils import StockstatsUtils
@@ -11,6 +12,7 @@ from .interface import (
     get_finnhub_company_insider_sentiment,
     get_finnhub_company_insider_transactions,
     get_google_news,
+    get_naver_news_sync,
     get_reddit_global_news,
     get_reddit_company_news,
     # Financial statements functions
@@ -31,6 +33,7 @@ __all__ = [
     "get_finnhub_company_insider_sentiment",
     "get_finnhub_company_insider_transactions",
     "get_google_news",
+    "get_naver_news_sync",
     "get_reddit_global_news",
     "get_reddit_company_news",
     # Financial statements functions

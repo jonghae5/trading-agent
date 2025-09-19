@@ -363,6 +363,28 @@ class Toolkit:
 
     @staticmethod
     @tool
+    def get_naver_news(
+        query: Annotated[str, "Query to search with (company name or ticker)"],
+        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+        look_back_days: Annotated[int, "How many days to look back"] = 7,
+    ):
+        """
+        Retrieve the latest news from Naver News API based on a query and date range.
+        Especially effective for Korean stocks and companies.
+        Args:
+            query (str): Query to search with (company name or ticker, e.g., '삼성전자', '005930')
+            curr_date (str): Current date in yyyy-mm-dd format
+            look_back_days (int): How many days to look back, default is 7
+        Returns:
+            str: A formatted string containing the latest news from Naver News based on the query and date range.
+        """
+
+        naver_news_results = interface.get_naver_news_sync(query, curr_date, look_back_days)
+
+        return naver_news_results
+
+    @staticmethod
+    @tool
     def get_stock_news_openai(
         ticker: Annotated[str, "the company's ticker"],
         curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],

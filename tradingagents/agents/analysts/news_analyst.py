@@ -9,7 +9,7 @@ def create_news_analyst(llm, toolkit):
         ticker = state["company_of_interest"]
 
         if toolkit.config["online_tools"]:
-            tools = [toolkit.get_global_news_openai, toolkit.get_google_news, toolkit.get_finnhub_news]
+            tools = [toolkit.get_global_news_openai, toolkit.get_google_news, toolkit.get_naver_news, toolkit.get_finnhub_news]
         else:
             tools = [
                 toolkit.get_reddit_news,
@@ -22,7 +22,7 @@ def create_news_analyst(llm, toolkit):
             + "특히, 최신 뉴스(가장 최근에 보도된 뉴스)에 더 큰 비중을 두고 분석해 주시기 바랍니다. "
             + "최근 뉴스가 시장에 미치는 영향이나 시사점이 있다면 더욱 강조해서 설명해 주세요. "
             + "단순히 트렌드가 혼재되어 있다고 말하지 말고, 트레이더들이 결정을 내리는 데 도움이 될 수 있는 상세하고 세밀한 분석과 통찰력을 제공해 주세요. "
-            + "그리고 반드시 'get_google_news' 도구를 우선적으로 사용하여 관련 뉴스를 수집하고, 그 결과를 보고서에 반드시 반영해 주세요. "
+            + "그리고 반드시 'get_google_news'와 'get_naver_news' 도구를 우선적으로 사용하여 관련 뉴스를 수집하고, 특히 한국 관련 종목의 경우 네이버 뉴스를 통해 더 정확한 한국어 뉴스를 확인해 주세요. "
             + "보고서의 요점을 정리하고 읽기 쉽게 구성된 마크다운 표를 보고서 끝에 반드시 추가해 주세요."
         )
 

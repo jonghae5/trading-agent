@@ -142,6 +142,7 @@ class TradingAgentsGraph:
                     # online tools
                     self.toolkit.get_global_news_openai,
                     self.toolkit.get_google_news,
+                    self.toolkit.get_naver_news,
                     self.toolkit.get_finnhub_news,
                     # offline tools
                     self.toolkit.get_reddit_news,
