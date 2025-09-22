@@ -698,8 +698,8 @@ def get_stock_stats_indicators_window(
             "Usage: Confirm overall market trend and identify golden/death cross setups. "
             "Tips: It reacts slowly; best for strategic trend confirmation rather than frequent trading entries."
         ),
-        "close_10_ema": (
-            "10 EMA: A responsive short-term average. "
+        "close_5_ema": (
+            "5 EMA: A responsive short-term average. "
             "Usage: Capture quick shifts in momentum and potential entry points. "
             "Tips: Prone to noise in choppy markets; use alongside longer averages for filtering false signals."
         ),
