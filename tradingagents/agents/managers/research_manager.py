@@ -35,7 +35,6 @@ def create_research_manager(llm, memory):
 실수에 대한 과거 성찰:
 \"{past_memory_str}\"
 
-토론 내용:
 토론 히스토리:
 {history}
 
