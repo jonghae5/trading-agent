@@ -1099,9 +1099,9 @@ def get_opendart_business_report(
         dart_api_key = get_opendartreader_api_key()
         dart = OpenDartReader.OpenDartReader(dart_api_key)
 
-        # 현재 연도 기준으로 최근 3개년의 사업보고서 조회
+        # 현재 연도 기준으로 최근 2개년의 사업보고서 조회
         current_year = int(curr_date[:4])
-        years_to_analyze = [current_year - i for i in range(3)]
+        years_to_analyze = [current_year - i for i in range(2)]
 
         analysis_result = f"# {ticker} OpenDART 사업보고서 기업 분석\n\n"
 
