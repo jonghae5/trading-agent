@@ -1120,7 +1120,8 @@ def get_opendart_business_report(
                             analysis_result += "### 주요 사업 내용\n"
                             for _, row in business_overview.head(5).iterrows():
                                 if "se_div_nm" in row and "bsns_cont" in row:
-                                    analysis_result += f"- **{row[\"se_div_nm\"]}**: {row[\"bsns_cont\"][:200]}...\n"
+                                    content = row["bsns_cont"][:200]
+                                    analysis_result += f"- **{row['se_div_nm']}**: {content}...\n"
                     except Exception as e:
                         analysis_result += f"주요 사업 내용 조회 실패: {str(e)}\n"
 
@@ -1137,7 +1138,8 @@ def get_opendart_business_report(
                                 if "shrhldr_nm" in row:
                                     shares = row.get("hold_stock_co", "N/A")
                                     ratio = row.get("hold_stock_rt", "N/A")
-                                    analysis_result += f"| {row[\"shrhldr_nm\"]} | {shares} | {ratio} |\n"
+                                    shrhldr_nm = row["shrhldr_nm"]
+                                    analysis_result += f"| {shrhldr_nm} | {shares} | {ratio} |\n"
                             analysis_result += "\n"
                     except Exception as e:
                         analysis_result += f"최대주주 현황 조회 실패: {str(e)}\n"
@@ -1152,7 +1154,9 @@ def get_opendart_business_report(
                             # 주요 임원 정보
                             for _, row in executives.head(3).iterrows():
                                 if "nm" in row and "ofcps" in row:
-                                    analysis_result += f"- **{row[\"nm\"]}**: {row[\"ofcps\"]}\n"
+                                    nm = row["nm"]
+                                    ofcps = row["ofcps"]
+                                    analysis_result += f"- **{nm}**: {ofcps}\n"
                     except Exception as e:
                         analysis_result += f"임원 현황 조회 실패: {str(e)}\n"
 
@@ -1167,9 +1171,11 @@ def get_opendart_business_report(
 
                             for _, row in subsidiaries.head(5).iterrows():
                                 if "sub_nm" in row:
-                                    analysis_result += f"- **{row[\"sub_nm\"]}**\n"
+                                    sub_nm = row["sub_nm"]
+                                    analysis_result += f"- **{sub_nm}**\n"
                                     if "bsn_content" in row:
-                                        analysis_result += f"  사업내용: {row[\"bsn_content\"][:100]}...\n"
+                                        content = row["bsn_content"][:500]
+                                        analysis_result += f"  사업내용: {content}...\n"
                     except Exception as e:
                         analysis_result += f"종속회사 현황 조회 실패: {str(e)}\n"
 
@@ -1195,7 +1201,7 @@ def get_opendart_business_report(
                     company_info = {}
 
                 for key, value in company_info.items():
-                    if value and str(value) \!= "nan":
+                    if value and str(value) != "nan":
                         analysis_result += f"- **{key}**: {value}\n"
 
                 analysis_result += "\n"
