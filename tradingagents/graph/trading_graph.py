@@ -157,6 +157,7 @@ class TradingAgentsGraph:
                     self.toolkit.get_simfin_balance_sheet,
                     self.toolkit.get_simfin_cashflow,
                     self.toolkit.get_simfin_income_stmt,
+                    self.toolkit.get_opendart_business_report,
                     # offline tools
                 ]
             ),

@@ -1072,3 +1072,159 @@ def get_fundamentals_openai(ticker, curr_date):
     )
 
     return response.output[1].content[0].text
+
+
+
+def get_opendart_business_report(
+    ticker: Annotated[str, "Korean stock ticker symbol (6-digit)"],
+    curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+) -> str:
+    """
+    OpenDART API를 사용하여 한국 기업의 사업보고서 분석을 수행합니다.
+
+    Args:
+        ticker (str): 한국 주식 티커 심볼 (6자리 숫자)
+        curr_date (str): 현재 날짜 (yyyy-mm-dd 형식)
+
+    Returns:
+        str: 사업보고서 기반 기업 분석 보고서
+    """
+    if not is_korea_stock(ticker):
+        return f"{ticker}는 한국 주식이 아니므로 OpenDART 사업보고서 분석을 수행할 수 없습니다."
+
+    try:
+        import OpenDartReader
+        from .finnhub_utils import get_opendartreader_api_key
+
+        dart_api_key = get_opendartreader_api_key()
+        dart = OpenDartReader.OpenDartReader(dart_api_key)
+
+        # 현재 연도 기준으로 최근 3개년의 사업보고서 조회
+        current_year = int(curr_date[:4])
+        years_to_analyze = [current_year - i for i in range(3)]
+
+        analysis_result = f"# {ticker} OpenDART 사업보고서 기업 분석\n\n"
+
+        for year in years_to_analyze:
+            try:
+                # 사업보고서 (11011) 조회
+                annual_report = dart.report(ticker, year, "11011")
+
+                if annual_report is not None and not annual_report.empty:
+                    analysis_result += f"## {year}년 사업보고서 분석\n\n"
+
+                    # 주요 사업 내용 분석
+                    try:
+                        business_overview = dart.business(ticker, year, "11011")
+                        if business_overview is not None and not business_overview.empty:
+                            analysis_result += "### 주요 사업 내용\n"
+                            for _, row in business_overview.head(5).iterrows():
+                                if "se_div_nm" in row and "bsns_cont" in row:
+                                    analysis_result += f"- **{row[\"se_div_nm\"]}**: {row[\"bsns_cont\"][:200]}...\n"
+                    except Exception as e:
+                        analysis_result += f"주요 사업 내용 조회 실패: {str(e)}\n"
+
+                    analysis_result += "\n"
+
+                    # 최대주주 현황 분석
+                    try:
+                        major_shareholders = dart.major_shareholders(ticker, year)
+                        if major_shareholders is not None and not major_shareholders.empty:
+                            analysis_result += "### 최대주주 현황\n"
+                            analysis_result += "| 주주명 | 소유주식수 | 지분율 |\n"
+                            analysis_result += "|--------|------------|--------|\n"
+                            for _, row in major_shareholders.head(5).iterrows():
+                                if "shrhldr_nm" in row:
+                                    shares = row.get("hold_stock_co", "N/A")
+                                    ratio = row.get("hold_stock_rt", "N/A")
+                                    analysis_result += f"| {row[\"shrhldr_nm\"]} | {shares} | {ratio} |\n"
+                            analysis_result += "\n"
+                    except Exception as e:
+                        analysis_result += f"최대주주 현황 조회 실패: {str(e)}\n"
+
+                    # 임원 현황 분석
+                    try:
+                        executives = dart.executives(ticker, year)
+                        if executives is not None and not executives.empty:
+                            analysis_result += "### 임원 현황\n"
+                            analysis_result += f"총 임원 수: {len(executives)}명\n\n"
+
+                            # 주요 임원 정보
+                            for _, row in executives.head(3).iterrows():
+                                if "nm" in row and "ofcps" in row:
+                                    analysis_result += f"- **{row[\"nm\"]}**: {row[\"ofcps\"]}\n"
+                    except Exception as e:
+                        analysis_result += f"임원 현황 조회 실패: {str(e)}\n"
+
+                    analysis_result += "\n"
+
+                    # 종속회사 현황 분석
+                    try:
+                        subsidiaries = dart.subsidiaries(ticker, year)
+                        if subsidiaries is not None and not subsidiaries.empty:
+                            analysis_result += "### 종속회사 현황\n"
+                            analysis_result += f"총 종속회사 수: {len(subsidiaries)}개\n\n"
+
+                            for _, row in subsidiaries.head(5).iterrows():
+                                if "sub_nm" in row:
+                                    analysis_result += f"- **{row[\"sub_nm\"]}**\n"
+                                    if "bsn_content" in row:
+                                        analysis_result += f"  사업내용: {row[\"bsn_content\"][:100]}...\n"
+                    except Exception as e:
+                        analysis_result += f"종속회사 현황 조회 실패: {str(e)}\n"
+
+                    analysis_result += "\n---\n\n"
+
+                else:
+                    analysis_result += f"{year}년 사업보고서를 찾을 수 없습니다.\n\n"
+
+            except Exception as e:
+                analysis_result += f"{year}년 사업보고서 조회 중 오류 발생: {str(e)}\n\n"
+
+        # 기업 개황 정보 추가
+        try:
+            company_overview = dart.company(ticker)
+            if company_overview is not None:
+                analysis_result += "## 기업 개황\n\n"
+
+                if hasattr(company_overview, "to_dict"):
+                    company_info = company_overview.to_dict()
+                elif isinstance(company_overview, dict):
+                    company_info = company_overview
+                else:
+                    company_info = {}
+
+                for key, value in company_info.items():
+                    if value and str(value) \!= "nan":
+                        analysis_result += f"- **{key}**: {value}\n"
+
+                analysis_result += "\n"
+
+        except Exception as e:
+            analysis_result += f"기업 개황 조회 실패: {str(e)}\n"
+
+        # 분석 요약 및 투자 시사점
+        analysis_result += """## 종합 분석 및 투자 시사점
+
+### 핵심 분석 포인트
+1. **사업 구조**: 주요 사업 부문별 수익성 및 성장성 검토
+2. **지배구조**: 최대주주 및 경영진 안정성 평가
+3. **그룹 현황**: 종속회사를 통한 사업 다각화 및 시너지 분석
+4. **경영 투명성**: 공시 품질 및 정보 공개 수준 평가
+
+### 투자자 관점 시사점
+- 사업보고서를 통해 기업의 중장기 전략 방향성 확인
+- 지배구조 안정성을 통한 경영 리스크 평가
+- 종속회사 현황을 통한 그룹 차원의 성장 잠재력 분석
+- 임원진 전문성을 통한 경영 역량 평가
+
+**주의사항**: 본 분석은 공개된 사업보고서 기반이며, 최신 재무 데이터 및 시장 상황을 종합적으로 고려한 투자 결정이 필요합니다.
+"""
+
+        return analysis_result
+
+    except ImportError:
+        return "OpenDartReader 라이브러리가 설치되지 않았습니다. \"pip install opendartreader\"로 설치해주세요."
+    except Exception as e:
+        return f"OpenDART 사업보고서 분석 중 오류 발생: {str(e)}"
+

@@ -439,3 +439,26 @@ class Toolkit:
         )
 
         return openai_fundamentals_results
+
+    @staticmethod
+    @tool
+    def get_opendart_business_report(
+        ticker: Annotated[str, "Korean stock ticker symbol (6-digit)"],
+        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+    ):
+        """
+        OpenDART API를 사용하여 한국 기업의 사업보고서 분석을 수행합니다.
+        한국 주식에만 적용 가능하며, 사업 내용, 최대주주, 임원, 종속회사 등의 정보를 분석합니다.
+
+        Args:
+            ticker (str): 한국 주식 티커 심볼 (6자리 숫자, e.g. '005930')
+            curr_date (str): 현재 날짜 (yyyy-mm-dd 형식)
+        Returns:
+            str: OpenDART 사업보고서를 기반으로 한 기업 분석 보고서
+        """
+
+        opendart_analysis_results = interface.get_opendart_business_report(
+            ticker, curr_date
+        )
+
+        return opendart_analysis_results

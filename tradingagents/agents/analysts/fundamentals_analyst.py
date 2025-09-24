@@ -16,7 +16,8 @@ def create_fundamentals_analyst(llm, toolkit):
                 toolkit.get_finnhub_company_insider_transactions,
                 toolkit.get_simfin_balance_sheet,
                 toolkit.get_simfin_cashflow,
-                toolkit.get_simfin_income_stmt
+                toolkit.get_simfin_income_stmt,
+                toolkit.get_opendart_business_report
                 ]
         else:
             tools = []
@@ -33,7 +34,10 @@ def create_fundamentals_analyst(llm, toolkit):
             + "분석 보고서의 마지막에는 핵심 요점을 정리한 마크다운 표를 반드시 추가하고, 각 지표별 해석과 트레이더 관점에서의 시사점을 명확히 표시하세요. "
             + "추가로, 분석 보고서에는 연간(사업)보고서뿐만 아니라 반기, 1분기, 3분기 보고서 등 다양한 주기의 재무 데이터가 존재합니다. 최신 보고서를 우선적으로 반영하되, 연간(사업)보고서도 충분히 검토하여 분석에 포함하세요. "
             + "보고서의 톤은 전문적이며, 월스트리트 애널리스트 리포트 스타일로 작성됩니다. "
-            + f"Year(년도)를 보고 가장 최신년도순을 중점으로 대답을 해주세요. 오늘 년월은 {datetime.now().strftime('%Y%m')}입니다."
+            + f"Year(년도)를 보고 가장 최신년도순을 중점으로 대답을 해주세요. 오늘 년월은 {datetime.now().strftime('%Y%m')}입니다. "
+            + "**중요**: 분석 대상이 한국 주식(6자리 숫자 티커)인 경우, 반드시 get_opendart_business_report 함수를 사용하여 OpenDART 사업보고서 분석을 수행하고, "
+            + "이를 통해 얻은 사업 구조, 지배구조, 경영진 정보, 종속회사 현황 등을 종합적으로 분석에 포함하세요. "
+            + "OpenDART 정보와 재무제표 데이터를 결합하여 더욱 심층적인 기업 분석을 제공하세요."
         )
 
         prompt = ChatPromptTemplate.from_messages(
