@@ -57,10 +57,12 @@ export const stocksApi = {
   async getRecommendationTrends(
     symbol: string
   ): Promise<RecommendationTrend[]> {
+    // symbol에 띄어쓰기가 있으면 맨 앞 단어만 사용
+    const cleanSymbol = symbol.includes(' ') ? symbol.split(' ')[0] : symbol
     const response = await apiClient.get<{
       success: boolean
       data: { symbol: string; trends: RecommendationTrend[] }
-    }>(`/api/v1/stocks/recommendation-trends/${symbol}`)
+    }>(`/api/v1/stocks/recommendation-trends/${cleanSymbol}`)
     return response.data.trends
   },
 
@@ -68,11 +70,12 @@ export const stocksApi = {
     symbol: string,
     limit?: number
   ): Promise<EarningSurprise[]> {
+    const cleanSymbol = symbol.includes(' ') ? symbol.split(' ')[0] : symbol
     const params = limit ? { limit } : {}
     const response = await apiClient.get<{
       success: boolean
       data: { symbol: string; surprises: EarningSurprise[] }
-    }>(`/api/v1/stocks/earnings-surprises/${symbol}`, params)
+    }>(`/api/v1/stocks/earnings-surprises/${cleanSymbol}`, params)
     return response.data.surprises
   }
 }
