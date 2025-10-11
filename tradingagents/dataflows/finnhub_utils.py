@@ -111,8 +111,10 @@ def fetch_company_news_online(ticker: str, start_date: str, end_date: str) -> Li
     end_timestamp = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp())
     
     url = f"https://finnhub.io/api/v1/company-news"
+    ticker_market = guess_korea_market(ticker.upper())
+    print(f"Finnhub API 호출 🔍: {url}: {ticker_market}, {start_date}, {end_date}")
     params = {
-        'symbol': guess_korea_market(ticker.upper()),
+        'symbol': ticker_market,
         'from': start_date,
         'to': end_date,
         'token': api_key
@@ -145,8 +147,10 @@ def fetch_insider_sentiment_online(ticker: str, start_date: str, end_date: str) 
     api_key = get_finnhub_api_key()
     
     url = f"https://finnhub.io/api/v1/stock/insider-sentiment"
+    ticker_market = guess_korea_market(ticker.upper())
+    print(f"Finnhub API 호출 🔍: {url}: {ticker_market}, {start_date}, {end_date}")
     params = {
-        'symbol': guess_korea_market(ticker.upper()),
+        'symbol': ticker_market,
         'from': start_date,
         'to': end_date,
         'token': api_key
@@ -179,8 +183,10 @@ def fetch_insider_transactions_online(ticker: str, start_date: str, end_date: st
     api_key = get_finnhub_api_key()
     
     url = f"https://finnhub.io/api/v1/stock/insider-transactions"
+    ticker_market = guess_korea_market(ticker.upper())
+    print(f"Finnhub API 호출 🔍: {url}: {ticker_market}, {start_date}, {end_date}")
     params = {
-        'symbol': guess_korea_market(ticker.upper()),
+        'symbol': ticker_market,
         'from': start_date,
         'to': end_date,
         'token': api_key
@@ -425,8 +431,10 @@ def fetch_financials_reported_online(ticker: str, freq: str = "annual", from_dat
         # 해외 주식의 경우 기존 Finnhub API 사용
         api_key = get_finnhub_api_key()
         url = f"https://finnhub.io/api/v1/stock/financials-reported"
+        ticker_market = guess_korea_market(ticker.upper())
+        print(f"Finnhub API 호출 🔍: {url}: {ticker_market}, {freq}, {from_date}, {to_date}")
         params = {
-            'symbol': guess_korea_market(ticker.upper()),
+            'symbol': ticker_market,
             'freq': freq,
             'token': api_key
         }
