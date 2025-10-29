@@ -57,7 +57,6 @@ import toast from 'react-hot-toast'
 type OptimizationMethod =
   | 'max_sharpe'
   | 'min_volatility'
-  | 'efficient_frontier'
   | 'risk_parity'
 
 export const Portfolio: React.FC = () => {
@@ -391,11 +390,6 @@ export const Portfolio: React.FC = () => {
       description: '리스크를 최소화한 안전한 포트폴리오 구성'
     },
     {
-      value: 'efficient_frontier',
-      label: '효율적 프론티어',
-      description: '적정 수준의 위험과 수익률 균형을 맞춘 포트폴리오 구성'
-    },
-    {
       value: 'risk_parity',
       label: '리스크 패리티',
       description: '각 자산의 위험 기여도를 균등하게 분배한 포트폴리오 구성'
@@ -685,7 +679,7 @@ export const Portfolio: React.FC = () => {
             {/* 최적화 방법 */}
             <div>
               <Label>최적화 방법</Label>
-              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {optimizationMethods.map((method) => (
                   <div
                     key={method.value}

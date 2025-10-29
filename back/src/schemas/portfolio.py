@@ -8,7 +8,7 @@ class PortfolioBase(BaseModel):
     description: Optional[str] = None
     tickers: List[str] = Field(..., min_items=2, max_items=20)
     ticker_weights: Optional[Dict[str, float]] = None
-    optimization_method: str = Field(..., pattern="^(max_sharpe|min_volatility|efficient_frontier)$")
+    optimization_method: str = Field(..., pattern="^(max_sharpe|min_volatility|risk_parity)$")
     rebalance_frequency: str = Field(..., pattern="^(monthly|quarterly)$")
 
 
@@ -18,7 +18,7 @@ class PortfolioCreate(PortfolioBase):
 
 class PortfolioOptimizeRequest(BaseModel):
     tickers: List[str] = Field(..., min_items=2, max_items=20)
-    optimization_method: str = Field(default="max_sharpe", pattern="^(max_sharpe|min_volatility|efficient_frontier|risk_parity)$")
+    optimization_method: str = Field(default="max_sharpe", pattern="^(max_sharpe|min_volatility|risk_parity)$")
     investment_amount: Optional[float] = Field(default=10000, ge=1000, le=10000000)
     transaction_cost: Optional[float] = Field(default=0.001, ge=0.0, le=0.05)
     max_position_size: Optional[float] = Field(default=0.30, ge=0.05, le=0.60)
@@ -106,7 +106,7 @@ class PortfolioResponse(BaseModel):
 class BacktestRequest(BaseModel):
     tickers: List[str] = Field(..., min_items=2, max_items=20)
     ticker_weights: Optional[Dict[str, float]] = None
-    optimization_method: str = Field(default="max_sharpe", pattern="^(max_sharpe|min_volatility|efficient_frontier|risk_parity)$")
+    optimization_method: str = Field(default="max_sharpe", pattern="^(max_sharpe|min_volatility|risk_parity)$")
     
     # Walk-Forward Analysis 파라미터
     rebalance_frequency: Optional[str] = Field(default="monthly", pattern="^(monthly|quarterly)$")

@@ -110,7 +110,6 @@ export interface BacktestRequest {
   optimization_method:
     | 'max_sharpe'
     | 'min_volatility'
-    | 'efficient_frontier'
     | 'risk_parity'
 
   // Walk-Forward Analysis 파라미터
