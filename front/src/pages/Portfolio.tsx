@@ -499,8 +499,7 @@ export const Portfolio: React.FC = () => {
               2-20개 종목을 선택하여 최적화된 포트폴리오를 생성하세요
               <br />
               <span className="text-xs text-blue-600 font-medium">
-                💡 모든 방법에서 CAPM(60%) + EWMA(40%) 하이브리드 기대수익률을
-                사용합니다
+                💡 모든 방법에서 EWMA(지수이동평균) 기대수익률을 사용합니다
               </span>
               <br />
               <span className="text-xs text-green-600 font-medium">

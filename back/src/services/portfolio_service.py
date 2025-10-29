@@ -20,39 +20,6 @@ class PortfolioOptimizationService:
     """Portfolio optimization service using PyPortfolioOpt with Walk-Forward Analysis."""
     
     @staticmethod
-    @lru_cache(maxsize=64)
-    def _cached_spy_data(start_date: str, end_date: str):
-        """SPY 시장 데이터 캐시 (날짜별)"""
-        try:
-            logger.info(f"Downloading SPY data from {start_date} to {end_date}")
-            market_data = yf.download("SPY", start=start_date, end=end_date, progress=False, threads=True)['Close']
-            logger.info(f"SPY data downloaded: {len(market_data)} days")
-            return market_data
-        except Exception as e:
-            logger.warning(f"Failed to download SPY data: {e}")
-            return None
-    
-    @staticmethod
-    async def _async_cached_spy_data(start_date: str, end_date: str):
-        """SPY 시장 데이터 비동기 캐시"""
-        try:
-            # 먼저 캐시 확인
-            cached_data = PortfolioOptimizationService._cached_spy_data(start_date, end_date)
-            if cached_data is not None:
-                return cached_data
-            
-            # 캐시에 없으면 비동기로 다운로드
-            def _download_spy():
-                return yf.download("SPY", start=start_date, end=end_date, progress=False, threads=True)['Close']
-            
-            market_data = await asyncio.to_thread(_download_spy)
-            logger.info(f"SPY data downloaded asynchronously: {len(market_data)} days")
-            return market_data
-        except Exception as e:
-            logger.warning(f"Failed to download SPY data asynchronously: {e}")
-            return None
-
-    @staticmethod
     def _optimize_single_period(args):
         """단일 기간 최적화 (병렬 처리용)"""
         train_data, test_data, method, kwargs = args
@@ -324,28 +291,13 @@ class PortfolioOptimizationService:
                         frequency = len(latest_data)
                         ewma_span = max(30, int(len(latest_data) * 0.7))
                         
-                        try:
-                            # 시장 벤치마크 데이터 (비동기 캐시 사용)
-                            start_date = latest_data.index.min().strftime('%Y-%m-%d')
-                            end_date = latest_data.index.max().strftime('%Y-%m-%d')
-                            market_data = await PortfolioOptimizationService._async_cached_spy_data(start_date, end_date)
-                            if market_data is not None:
-                                market_data = market_data.reindex(latest_data.index, method='ffill').dropna()
-                            else:
-                                raise Exception("Failed to get SPY data")
-                            
-                            # CAPM 기대수익률 계산
-                            capm_mu = expected_returns.capm_return(
-                                latest_data, 
-                                market_prices=market_data, 
-                                frequency=frequency,
-                                risk_free_rate=0.02
-                            )
-                            ewma_mu = expected_returns.ema_historical_return(latest_data, frequency=frequency, span=ewma_span)
-                            mu = 0.6 * capm_mu + 0.4 * ewma_mu
-                            
-                        except Exception:
-                            mu = expected_returns.ema_historical_return(latest_data, frequency=frequency, span=ewma_span)
+                        # EWMA 기대수익률 사용 (단기 리밸런싱에 적합)
+                        mu = expected_returns.ema_historical_return(
+                            latest_data, 
+                            frequency=frequency, 
+                            span=ewma_span
+                        )
+                        logger.info(f"Using EWMA expected returns (span={ewma_span}) for short-term rebalancing")
                         
                         S = risk_models.CovarianceShrinkage(latest_data).ledoit_wolf()
                         
@@ -553,33 +505,13 @@ class PortfolioOptimizationService:
             # EWMA span을 실제 데이터 길이에 맞춤 (약 70% 기간 사용)
             ewma_span = max(30, int(trading_days * 0.7))
             
-            # 모든 방법에서 CAPM-EWMA 하이브리드 기대 수익률 사용 (CAPM 60% + EWMA 40%)
-            try:
-                # 시장 벤치마크 데이터 가져오기 (SPY 사용, 동기 캐시 사용 - optimize_portfolio는 동기함수)
-                start_date = price_data.index.min().strftime('%Y-%m-%d')
-                end_date = price_data.index.max().strftime('%Y-%m-%d')
-                market_data = PortfolioOptimizationService._cached_spy_data(start_date, end_date)
-                if market_data is None:
-                    raise Exception("Failed to get SPY data")
-                market_data = market_data.reindex(price_data.index, method='ffill').dropna()
-                
-                # CAPM 기대수익률 계산
-                capm_mu = expected_returns.capm_return(
-                    price_data, 
-                    market_prices=market_data, 
-                    frequency=frequency,
-                    risk_free_rate=0.02
-                )
-                ewma_mu = expected_returns.ema_historical_return(price_data, frequency=frequency, span=ewma_span)
-                
-                # 하이브리드 조합 (CAPM 60%, EWMA 40%) - 모든 방법에 적용
-                mu = 0.6 * capm_mu + 0.4 * ewma_mu
-                logger.info(f"Using CAPM-EWMA hybrid expected returns (60%-40%) for {method} method")
-                
-            except Exception as capm_error:
-                # CAPM 실패 시 EWMA만 사용
-                logger.warning(f"CAPM calculation failed: {capm_error}, falling back to EWMA only")
-                mu = expected_returns.ema_historical_return(price_data, frequency=frequency, span=ewma_span)
+            # EWMA 기대수익률 사용 (단기 리밸런싱에 최적화)
+            mu = expected_returns.ema_historical_return(
+                price_data, 
+                frequency=frequency, 
+                span=ewma_span
+            )
+            logger.info(f"Using EWMA expected returns (span={ewma_span}) for {method} optimization")
             
             S = risk_models.CovarianceShrinkage(price_data).ledoit_wolf()
             
@@ -952,18 +884,17 @@ class PortfolioOptimizationService:
     
     @staticmethod
     def _risk_parity_optimization(mu, S, max_position_size):
-        """Risk Parity 포트폴리오 최적화"""
+        """Risk Parity 포트폴리오 최적화 - 위험 기여도 균등 분배"""
         try:
             n_assets = len(mu)
             
             # 초기 균등 가중치
             x0 = np.ones(n_assets) / n_assets
             
-            # 제약조건: 가중치 합 = 1, 모든 가중치 >= 0
+            # 제약조건: Risk Parity는 집중도 제한 없이 위험 균등 분배
             constraints = [
                 {'type': 'eq', 'fun': lambda x: np.sum(x) - 1.0},
-                {'type': 'ineq', 'fun': lambda x: x - 0.005},  # 최소 0.5%
-                {'type': 'ineq', 'fun': lambda x: max_position_size - x}   # 최대 30%
+                {'type': 'ineq', 'fun': lambda x: x - 0.005},  # 최소 0.5%만 유지
             ]
             
             # Risk Parity 목적함수 (위험 기여도의 분산 최소화)
