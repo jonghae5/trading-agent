@@ -54,10 +54,7 @@ import {
 } from 'recharts'
 import toast from 'react-hot-toast'
 
-type OptimizationMethod =
-  | 'max_sharpe'
-  | 'min_volatility'
-  | 'risk_parity'
+type OptimizationMethod = 'max_sharpe' | 'min_volatility' | 'risk_parity'
 
 export const Portfolio: React.FC = () => {
   // 포트폴리오 구성 상태
@@ -77,7 +74,6 @@ export const Portfolio: React.FC = () => {
   )
   const [isBacktesting, setIsBacktesting] = useState(false)
 
-  console.log('backtestResult', backtestResult)
   // 포트폴리오 저장
   const [portfolioName, setPortfolioName] = useState('')
   const [portfolioDescription, setPortfolioDescription] = useState('')
@@ -1062,7 +1058,12 @@ export const Portfolio: React.FC = () => {
                                 승률:
                               </span>
                               <span className="text-sm font-medium">
-                                {(backtestResult.results.fixed_weights_performance.summary_stats.win_rate * 100).toFixed(1)}%
+                                {(
+                                  backtestResult.results
+                                    .fixed_weights_performance.summary_stats
+                                    .win_rate * 100
+                                ).toFixed(1)}
+                                %
                               </span>
                             </div>
                           </div>
@@ -1179,7 +1180,10 @@ export const Portfolio: React.FC = () => {
                     {backtestResult.results.walk_forward_results.length}회
                     리밸런싱
                     {backtestResult.results?.fixed_weights_performance && (
-                      <span className="text-purple-600"> vs 고정 비중 유지</span>
+                      <span className="text-purple-600">
+                        {' '}
+                        vs 고정 비중 유지
+                      </span>
                     )}
                   </CardDescription>
                 </CardHeader>
@@ -1218,18 +1222,23 @@ export const Portfolio: React.FC = () => {
 
                     // 고정 비중 차트 데이터 생성
                     let fixedChartData: any[] = []
-                    if (backtestResult.results?.fixed_weights_performance?.fixed_weights) {
-                      const fixedWeights = backtestResult.results.fixed_weights_performance.fixed_weights
+                    if (
+                      backtestResult.results?.fixed_weights_performance
+                        ?.fixed_weights
+                    ) {
+                      const fixedWeights =
+                        backtestResult.results.fixed_weights_performance
+                          .fixed_weights
                       fixedChartData = algorithicChartData.map((item: any) => {
                         const dataPoint: any = {
                           date: item.date,
                           fullDate: item.fullDate
                         }
-                        
+
                         allTickers.forEach((ticker: string) => {
                           dataPoint[ticker] = (fixedWeights[ticker] || 0) * 100
                         })
-                        
+
                         return dataPoint
                       })
                     }
@@ -1287,7 +1296,13 @@ export const Portfolio: React.FC = () => {
                     }
 
                     return (
-                      <div className={`grid ${backtestResult.results?.fixed_weights_performance ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'} gap-6`}>
+                      <div
+                        className={`grid ${
+                          backtestResult.results?.fixed_weights_performance
+                            ? 'grid-cols-1 lg:grid-cols-2'
+                            : 'grid-cols-1'
+                        } gap-6`}
+                      >
                         {/* 알고리즘 가중치 변화 */}
                         <div>
                           <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -1297,7 +1312,12 @@ export const Portfolio: React.FC = () => {
                             <ResponsiveContainer width="100%" height="100%">
                               <AreaChart
                                 data={algorithicChartData}
-                                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                margin={{
+                                  top: 5,
+                                  right: 30,
+                                  left: 20,
+                                  bottom: 5
+                                }}
                               >
                                 <CartesianGrid
                                   strokeDasharray="3 3"
@@ -1317,17 +1337,19 @@ export const Portfolio: React.FC = () => {
                                 <Tooltip content={<CustomTooltip />} />
                                 <Legend />
 
-                                {allTickers.map((ticker: string, index: number) => (
-                                  <Area
-                                    key={ticker}
-                                    type="monotone"
-                                    dataKey={ticker}
-                                    stackId="1"
-                                    stroke={colors[index % colors.length]}
-                                    fill={colors[index % colors.length]}
-                                    fillOpacity={0.8}
-                                  />
-                                ))}
+                                {allTickers.map(
+                                  (ticker: string, index: number) => (
+                                    <Area
+                                      key={ticker}
+                                      type="monotone"
+                                      dataKey={ticker}
+                                      stackId="1"
+                                      stroke={colors[index % colors.length]}
+                                      fill={colors[index % colors.length]}
+                                      fillOpacity={0.8}
+                                    />
+                                  )
+                                )}
                               </AreaChart>
                             </ResponsiveContainer>
                           </div>
@@ -1343,7 +1365,12 @@ export const Portfolio: React.FC = () => {
                               <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart
                                   data={fixedChartData}
-                                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                  margin={{
+                                    top: 5,
+                                    right: 30,
+                                    left: 20,
+                                    bottom: 5
+                                  }}
                                 >
                                   <CartesianGrid
                                     strokeDasharray="3 3"
@@ -1363,17 +1390,19 @@ export const Portfolio: React.FC = () => {
                                   <Tooltip content={<CustomTooltip />} />
                                   <Legend />
 
-                                  {allTickers.map((ticker: string, index: number) => (
-                                    <Area
-                                      key={ticker}
-                                      type="monotone"
-                                      dataKey={ticker}
-                                      stackId="1"
-                                      stroke={colors[index % colors.length]}
-                                      fill={colors[index % colors.length]}
-                                      fillOpacity={0.6}
-                                    />
-                                  ))}
+                                  {allTickers.map(
+                                    (ticker: string, index: number) => (
+                                      <Area
+                                        key={ticker}
+                                        type="monotone"
+                                        dataKey={ticker}
+                                        stackId="1"
+                                        stroke={colors[index % colors.length]}
+                                        fill={colors[index % colors.length]}
+                                        fillOpacity={0.6}
+                                      />
+                                    )
+                                  )}
                                 </AreaChart>
                               </ResponsiveContainer>
                             </div>
@@ -1441,7 +1470,7 @@ export const Portfolio: React.FC = () => {
 
                       // 고정 비중 기간별 수익률 매핑
                       const fixedPeriodReturns = new Map()
-                      
+
                       fixedResults.forEach((result: any) => {
                         fixedPeriodReturns.set(
                           result.period_start,
@@ -1683,16 +1712,17 @@ export const Portfolio: React.FC = () => {
 
                       // 고정 비중 누적 수익률을 직접 계산
                       let fixedCumulativeReturn = 1 // 1에서 시작 (100%)
-                      
+
                       // 날짜별로 고정 비중 데이터 매핑 (기간별 수익률로부터 누적 계산)
                       const fixedDataMap = new Map()
                       fixedTimeline.forEach((item: any, index: number) => {
                         if (index === 0) {
                           fixedCumulativeReturn = 1 + item.period_return // 첫 번째 기간
                         } else {
-                          fixedCumulativeReturn = fixedCumulativeReturn * (1 + item.period_return) // 복리 계산
+                          fixedCumulativeReturn =
+                            fixedCumulativeReturn * (1 + item.period_return) // 복리 계산
                         }
-                        
+
                         fixedDataMap.set(
                           item.period_start, // period_start를 키로 사용
                           (fixedCumulativeReturn - 1) * 100 // 백분율로 변환
