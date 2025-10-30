@@ -68,7 +68,7 @@ export const LoginForm: React.FC = () => {
   )
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -81,10 +81,10 @@ export const LoginForm: React.FC = () => {
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.1 }}
-            className="mb-4"
+            className="mb-6"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full shadow-lg">
-              <Shield className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl">
+              <Shield className="w-10 h-10 text-white" />
             </div>
           </motion.div>
 
@@ -94,54 +94,59 @@ export const LoginForm: React.FC = () => {
             transition={{ delay: 0.2 }}
             className="text-3xl font-bold text-gray-900 dark:text-white mb-2"
           >
-            TradingAgents 대시보드
+            TradingAgents
           </motion.h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            AI 기반 투자 분석 플랫폼
+          </p>
         </div>
 
         {/* Login Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">🔑 사용자 인증</CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <Card className="border-0 shadow-xl">
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               {/* Username Field */}
               <div className="space-y-2">
-                <Label htmlFor="username">아이디</Label>
+                <Label htmlFor="username" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  아이디
+                </Label>
                 <Input
                   id="username"
                   type="text"
-                  placeholder="아이디를 입력하세요"
+                  placeholder="아이디"
                   error={errors.username?.message}
                   disabled={isLoading || isSubmitting}
                   {...register('username')}
+                  className="h-11"
                 />
               </div>
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password">비밀번호</Label>
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  비밀번호
+                </Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="비밀번호를 입력하세요"
+                    placeholder="비밀번호"
                     error={errors.password?.message}
                     disabled={isLoading || isSubmitting}
                     {...register('password')}
-                    className="pr-10"
+                    className="pr-10 h-11"
                   />
                   <button
                     type="button"
                     onClick={togglePasswordVisibility}
                     disabled={isLoading || isSubmitting}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 disabled:opacity-50 transition-colors"
+                    aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="w-5 h-5" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-5 h-5" />
                     )}
                   </button>
                 </div>
@@ -157,7 +162,7 @@ export const LoginForm: React.FC = () => {
                     className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
                   >
                     <div className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-600" />
+                      <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
                       <p className="text-sm text-red-700 dark:text-red-300">
                         {error}
                       </p>
@@ -169,36 +174,26 @@ export const LoginForm: React.FC = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full"
-                size="lg"
+                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium shadow-lg hover:shadow-xl transition-all"
                 disabled={isLoading || isSubmitting}
                 loading={isLoading || isSubmitting}
               >
-                🚀 로그인
+                {isLoading || isSubmitting ? '로그인 중...' : '로그인'}
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Instructions */}
+        {/* Footer Note */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-8 text-center"
+          className="mt-6 text-center"
         >
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-              📋 사용 안내
-            </h3>
-            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-              <li>• 등록된 아이디와 비밀번호를 입력하세요</li>
-              <li>• 안전한 JWT 토큰 방식으로 인증합니다</li>
-              <li>
-                • 모든 시간은 <strong>한국 표준시(KST)</strong>로 표시됩니다
-              </li>
-            </ul>
-          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            보안 연결로 안전하게 보호됩니다
+          </p>
         </motion.div>
       </motion.div>
     </div>

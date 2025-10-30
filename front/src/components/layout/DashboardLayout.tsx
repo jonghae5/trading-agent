@@ -57,9 +57,10 @@ export const DashboardLayout: React.FC = () => {
         </main>
 
         {/* Session Manager - Floating */}
-        <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
+        {/* OJH */}
+        {/* <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
           <SessionManager compact />
-        </div>
+        </div> */}
       </div>
 
       {/* Global Toast Notifications */}
